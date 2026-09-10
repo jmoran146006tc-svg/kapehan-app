@@ -10,6 +10,21 @@ import { Collapsible } from '@/components/ui/collapsible';
 import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { Button } from '@/components/ui/button';
+
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
+async function sanityCheck() {
+  try {
+    console.log('Sanity check starting...');
+    const cred = await createUserWithEmailAndPassword(auth, 'test@kapehan.dev', 'testpass123');
+    await setDoc(doc(db, 'ping', 'test1'), { hello: 'world', at: Date.now() });
+    console.log('✅ Auth + Firestore both wired up:', cred.user.uid);
+  } catch (err) {
+    console.error('❌ Sanity check failed:', err);
+  }
+}
 
 export default function TabTwoScreen() {
   const safeAreaInsets = useSafeAreaInsets();
@@ -43,6 +58,9 @@ export default function TabTwoScreen() {
           <ThemedText style={styles.centerText} themeColor="textSecondary">
             This starter app includes example{'\n'}code to help you get started.
           </ThemedText>
+          <Button onPress={sanityCheck}>
+            <ThemedText>You make me sick!</ThemedText>
+          </Button>
 
           <ExternalLink href="https://docs.expo.dev" asChild>
             <Pressable style={({ pressed }) => pressed && styles.pressed}>

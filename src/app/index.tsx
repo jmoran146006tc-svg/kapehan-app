@@ -1,7 +1,8 @@
 import * as Device from 'expo-device';
 import { Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import { Text } from '@/components/ui/text';
+import { Button } from '@/components/ui/button';
 import { AnimatedIcon } from '@/components/animated-icon';
 import { HintRow } from '@/components/hint-row';
 import { ThemedText } from '@/components/themed-text';
@@ -30,6 +31,7 @@ function getDevMenuHint() {
 
 export default function HomeScreen() {
   return (
+
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ThemedView style={styles.heroSection}>
@@ -38,11 +40,12 @@ export default function HomeScreen() {
             Welcome to&nbsp;Expo
           </ThemedText>
         </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
+          <ThemedText type="code" style={styles.code}>
+            get started
+            <Button>
+              <Text>Yeyey</Text>
+            </Button>
+          </ThemedText>
         <ThemedView type="backgroundElement" style={styles.stepContainer}>
           <HintRow
             title="Try editing"
@@ -58,6 +61,7 @@ export default function HomeScreen() {
         {Platform.OS === 'web' && <WebBadge />}
       </SafeAreaView>
     </ThemedView>
+
   );
 }
 
