@@ -11,12 +11,15 @@
 import '@/global.css';
 import { Slot } from 'expo-router';
 import { PortalHost } from '@rn-primitives/portal';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function RootLayout() {
   return (
-    <>
-      <Slot />
-      <PortalHost />
-    </>
+    <SafeAreaProvider>
+      <>
+        <Slot />
+        <PortalHost />
+      </>
+    </SafeAreaProvider>
   );
 }

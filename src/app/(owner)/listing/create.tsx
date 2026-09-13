@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
@@ -9,14 +10,16 @@ import { Text } from '@/components/ui/text';
 
 export default function CreateListingScreen() {
   return (
-    <View className="flex-1 bg-background p-4 gap-4">
-      <Text className="text-2xl font-bold">New Listing</Text>
-      <Input placeholder="Shop name" />
-      <Input placeholder="Address" />
-      {/* TODO: hours input, photo picker → Cloudinary upload */}
-      <Button>
-        <Text>Submit for approval</Text>
-      </Button>
-    </View>
+    <SafeAreaView edges={['bottom']}>
+      <View className="flex-1 bg-background p-4 gap-4">
+        <Text className="text-2xl font-bold">New Listing</Text>
+        <Input placeholder="Shop name" />
+        <Input placeholder="Address" />
+        {/* TODO: hours input, photo picker → Cloudinary upload */}
+        <Button>
+          <Text>Submit for approval</Text>
+        </Button>
+      </View>
+    </SafeAreaView>
   );
 }
