@@ -1,25 +1,30 @@
-import { View } from 'react-native';
+import { ScrollView } from 'react-native';
+import { addDoc, collection } from 'firebase/firestore';
+import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { db } from '@/lib/firebase';
+import { useAuth } from '@/hooks/useAuth';
+import { ShopForm } from '@/components/shop-form';
 import { Text } from '@/components/ui/text';
-
-// TODO: react-hook-form + zod, per your form stack. Fields per the §5 /shops
-// schema: name, address, lat/lng, priceRange, noiseLevel, ambianceTags,
-// hours (§6), photos via Cloudinary unsigned upload.
+import type { ShopFormValues } from '@/lib/schemas/shop';
 
 export default function CreateListingScreen() {
+  const { user } = useAuth();
+
+  async function handleCreate(values: ShopFormValues) {
+    if (!user) return;
+    await addDoc(collection(db, 'shops'), {
+      ...values, ownerId: user.uid, status: 'pending', avgRating: 0, reviewCount: 0,
+    });
+    router.replace('/(owner)');
+  }
+
   return (
-    <SafeAreaView edges={['bottom']}>
-      <View className="flex-1 bg-background p-4 gap-4">
+    <SafeAreaView edges={['bottom']} className="flex-1">
+      <ScrollView className="flex-1 bg-background p-4" contentContainerClassName="gap-4 pb-8">
         <Text className="text-2xl font-bold">New Listing</Text>
-        <Input placeholder="Shop name" />
-        <Input placeholder="Address" />
-        {/* TODO: hours input, photo picker → Cloudinary upload */}
-        <Button>
-          <Text>Submit for approval</Text>
-        </Button>
-      </View>
+        <ShopForm onSubmit={handleCreate} submitLabel="Submit for approval" />
+      </ScrollView>
     </SafeAreaView>
   );
 }
