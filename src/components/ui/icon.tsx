@@ -12,7 +12,7 @@ function IconImpl({ as: IconComponent, ...props }: IconProps) {
   return <IconComponent {...props} />;
 }
 
-cssInterop(IconImpl, {
+cssInterop(IconImpl as React.ComponentType<any>, {
   className: {
     target: 'style',
     nativeStyleToProp: {

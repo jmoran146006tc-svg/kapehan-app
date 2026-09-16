@@ -1,56 +1,75 @@
-# Welcome to your Expo app 👋
+# Kapehan
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Kapehan helps people discover and compare coffee shops in Tagum City. Customers can filter approved listings, save favorites, set search preferences, compare shops, track recently viewed spots, and leave one editable review per shop. Coffee-shop owners submit listings, follow approval status, receive in-app updates, and read customer reviews.
 
-## Get started
+## Tech stack
 
-1. Install dependencies
+- Expo SDK 57, Expo Router, React Native, and TypeScript
+- NativeWind plus react-native-reusables style UI components
+- Firebase Authentication and Cloud Firestore via the Firebase JavaScript SDK
+- React Hook Form, Zod, Zustand, Dayjs, Cloudinary, and Expo Image Picker
+
+## Getting started
+
+### Requirements
+
+- Node.js 22.13 or later (Expo SDK 57 minimum)
+- A Firebase project with Email/Password Authentication and Cloud Firestore enabled
+- A Cloudinary cloud with an unsigned upload preset for listing photos
+
+### Configure the project
+
+1. Install dependencies:
 
    ```bash
    npm install
    ```
 
-2. Start the app
+2. Copy the example environment file:
+
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+
+3. Fill in `.env`:
+EXPO_PUBLIC_FIREBASE_API_KEY=AIzaSyBZDZHdDI-cNGNinlxMTDtFzZOy1dLhF3E
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=kapehan-app-4c616.firebaseapp.com
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=kapehan-app-4c616
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=kapehan-app-4c616.firebasestorage.app
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=722974004908
+EXPO_PUBLIC_FIREBASE_APP_ID=1:722974004908:web:df32e157fa6df0ba6d3109
+EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME=hoeyhawg
+EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET=vfhwtfet
+
+4. Start Expo:
 
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+## Firestore rules and seed data
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+The checked-in rules live in `firestore.rules`. Deploy them only after populating existing shops with numeric `priceMin`/`priceMax` fields:
 
 ```bash
-npm run reset-project
+node --env-file=.env scripts/seed-shops.mjs --dry-run
+node --env-file=.env scripts/seed-shops.mjs
+npx firebase-tools login
+npx firebase-tools deploy --only firestore --project "$env:EXPO_PUBLIC_FIREBASE_PROJECT_ID"
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+The seed script contains synthetic coordinates, prices, WiFi values, and ratings for demo data; replace them with verified shop information before presenting it as real.
 
-### Other setup steps
+## Validation
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```bash
+npx tsc --noEmit
+npx expo lint
+```
 
-## Learn more
+## Windows troubleshooting
 
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- OneDrive can delay Metro file watching. If refreshes are unreliable, keep an active development checkout outside a synced folder and copy or commit changes afterward.
+- If startup or scanning is unusually slow, add a Windows Defender exclusion for the project directory and its `node_modules` folder according to your organization’s security policy.
+- Expo Go needs to reach Metro. Use the LAN connection on the same network first; if that is blocked, start with `npx expo start --tunnel`.
+- When a device shows old code, stop Expo, run `npx expo start --clear`, and reopen the QR URL.

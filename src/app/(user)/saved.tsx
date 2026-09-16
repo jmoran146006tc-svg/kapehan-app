@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useShops } from '@/hooks/useShops';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Text } from '@/components/ui/text';
+import { formatPriceRange } from '@/utils/price';
 
 export default function SavedScreen() {
   const { user } = useAuth();
@@ -26,7 +27,7 @@ export default function SavedScreen() {
         <Card key={shop.id}>
           <CardHeader>
             <CardTitle>{shop.name}</CardTitle>
-            <CardDescription>{shop.priceRange} · {shop.wifiRating} wifi</CardDescription>
+            <CardDescription>{formatPriceRange(shop.priceMin, shop.priceMax)} · {shop.wifiRating} wifi</CardDescription>
           </CardHeader>
         </Card>
       ))}

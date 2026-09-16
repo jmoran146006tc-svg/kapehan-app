@@ -1,6 +1,7 @@
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
+import { Text } from '@/components/ui/text';
 
 export default function Index() {
   const { user, role, loading } = useAuth();
@@ -8,7 +9,7 @@ export default function Index() {
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator size="large" />
+        <Text className="text-muted-foreground">Loading…</Text>
       </View>
     );
   }

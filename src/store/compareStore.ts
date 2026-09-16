@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+// Comparison is a short-lived UI selection, not a user preference worth persisting remotely.
+
 interface CompareState {
   ids: string[];
   toggle: (id: string) => void;

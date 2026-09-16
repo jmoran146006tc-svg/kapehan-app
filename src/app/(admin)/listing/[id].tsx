@@ -1,17 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Alert, Image, ScrollView, View } from 'react-native';
+import { Image, ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { collection, doc, onSnapshot, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { db } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
+import { formatPriceRange } from '@/utils/price';
+import { getListingStatusBadgeVariant } from '@/utils/listing';
+import { getUserFriendlyError } from '@/lib/errors';
 
 interface ShopDoc {
   name: string;
   address?: string;
-  priceRange?: string;
+  priceMin?: number;
+  priceMax?: number;
   noiseLevel?: string;
   ambianceTags?: string[];
   photos?: string[];
@@ -23,6 +27,7 @@ export default function AdminReviewListingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [shop, setShop] = useState<ShopDoc | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -33,14 +38,25 @@ export default function AdminReviewListingScreen() {
 
   async function setStatus(status: 'approved' | 'rejected') {
     if (!id) return;
+    setActionError(null);
     setUpdating(true);
     try {
-      await updateDoc(doc(db, 'shops', id), { status });
-      // TODO: once §11's in-app notifications exist, write a notification
-      // doc to shop.ownerId here ("listing approved" / "listing rejected").
+      if (!shop?.ownerId) throw new Error('This listing has no owner to notify');
+
+      // The decision and notification are one client-side atomic write; no trigger is needed.
+      const batch = writeBatch(db);
+      batch.update(doc(db, 'shops', id), { status });
+      batch.set(doc(collection(db, 'users', shop.ownerId, 'notifications')), {
+        type: status === 'approved' ? 'listing_approved' : 'listing_rejected',
+        message: `${shop.name} was ${status}.`,
+        shopId: id,
+        read: false,
+        createdAt: serverTimestamp(),
+      });
+      await batch.commit();
       router.back();
-    } catch (e: any) {
-      Alert.alert('Something went wrong', e.message);
+    } catch (error) {
+      setActionError(getUserFriendlyError(error, 'We could not update this listing. Please try again.'));
       setUpdating(false);
     }
   }
@@ -53,8 +69,7 @@ export default function AdminReviewListingScreen() {
     );
   }
 
-  const badgeVariant =
-    shop.status === 'approved' ? 'default' : shop.status === 'rejected' ? 'destructive' : 'secondary';
+  const badgeVariant = getListingStatusBadgeVariant(shop.status);
 
   return (
     <ScrollView className="flex-1 bg-background p-4">
@@ -74,12 +89,13 @@ export default function AdminReviewListingScreen() {
       ) : null}
 
       <View className="gap-2 mb-6">
-        {shop.priceRange ? <Text>Price: {shop.priceRange}</Text> : null}
+        {(shop.priceMin != null || shop.priceMax != null) ? <Text>Price: {formatPriceRange(shop.priceMin, shop.priceMax)}</Text> : null}
         {shop.noiseLevel ? <Text>Noise: {shop.noiseLevel}</Text> : null}
         {shop.ambianceTags?.length ? (
           <Text>Ambiance: {shop.ambianceTags.join(', ')}</Text>
         ) : null}
       </View>
+      {actionError && <Text accessibilityRole="alert" className="text-destructive mb-4">{actionError}</Text>}
 
       <SafeAreaView edges={['bottom']}>
         <View className="flex-row gap-3">

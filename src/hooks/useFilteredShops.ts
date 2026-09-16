@@ -4,6 +4,7 @@ import { useFilterStore } from '@/store/filterStore';
 import { useUserLocation } from './useUserLocation';
 import { haversineKm } from '@/utils/distance';
 import { isOpenNow } from '@/utils/hours';
+import { getPriceBucket } from '@/utils/price';
 
 export function useFilteredShops() {
   const { shops } = useShops();
@@ -19,7 +20,10 @@ export function useFilteredShops() {
       }))
       .filter((shop) => {
         if (filters.search && !shop.name.toLowerCase().includes(filters.search.toLowerCase())) return false;
-        if (filters.priceRange.length && !filters.priceRange.includes(shop.priceRange)) return false;
+        if (
+          filters.priceBuckets.length &&
+          (shop.priceMin == null || !filters.priceBuckets.includes(getPriceBucket(shop.priceMin)))
+        ) return false;
         if (filters.wifiRating.length && !filters.wifiRating.includes(shop.wifiRating)) return false;
         if (filters.openNowOnly && !shop.openNow) return false;
         if (filters.maxDistanceKm != null && (shop.distanceKm == null || shop.distanceKm > filters.maxDistanceKm))

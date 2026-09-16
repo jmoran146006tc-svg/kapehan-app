@@ -1,0 +1,150 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function myRole() {
+      return isSignedIn()
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+        : null;
+    }
+
+    function isAdmin() {
+      return myRole() == 'admin';
+    }
+
+    function validShop(data) {
+      return data.keys().hasOnly([
+          'name', 'ownerId', 'address', 'lat', 'lng', 'priceMin', 'priceMax',
+          'wifiRating', 'photos', 'hours', 'status', 'avgRating', 'reviewCount'
+        ]) &&
+        data.keys().hasAll([
+          'name', 'ownerId', 'address', 'lat', 'lng', 'priceMin', 'priceMax',
+          'wifiRating', 'photos', 'hours', 'status', 'avgRating', 'reviewCount'
+        ]) &&
+        data.name is string && data.ownerId is string && data.address is string &&
+        data.lat is number && data.lng is number &&
+        data.priceMin is number && data.priceMin >= 0 &&
+        data.priceMax is number && data.priceMax >= data.priceMin &&
+        data.wifiRating in ['fast', 'moderate', 'none'] &&
+        data.photos is list && data.hours is map &&
+        data.status in ['pending', 'approved', 'rejected'] &&
+        data.avgRating is number && data.avgRating >= 0 && data.avgRating <= 5 &&
+        data.reviewCount is int && data.reviewCount >= 0;
+    }
+
+    function validReviewFields() {
+      return request.resource.data.keys().hasOnly(['userId', 'userName', 'rating', 'text', 'createdAt']) &&
+        request.resource.data.keys().hasAll(['userId', 'userName', 'rating', 'text', 'createdAt']) &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.userName is string &&
+        request.resource.data.rating is int &&
+        request.resource.data.rating >= 1 && request.resource.data.rating <= 5 &&
+        request.resource.data.text is string && request.resource.data.text.size() <= 1000 &&
+        request.resource.data.createdAt == request.time;
+    }
+
+    function aggregateMatchesReview(shopId) {
+      let shopBefore = get(/databases/$(database)/documents/shops/$(shopId));
+      let shopAfter = getAfter(/databases/$(database)/documents/shops/$(shopId));
+      let reviewBeforePath = /databases/$(database)/documents/shops/$(shopId)/reviews/$(request.auth.uid);
+      let reviewAfter = getAfter(/databases/$(database)/documents/shops/$(shopId)/reviews/$(request.auth.uid));
+      let reviewAlreadyExists = exists(reviewBeforePath);
+      let oldRating = reviewAlreadyExists ? get(reviewBeforePath).data.rating : 0;
+      let nextCount = shopBefore.data.reviewCount + (reviewAlreadyExists ? 0 : 1);
+      let nextAverage = ((shopBefore.data.avgRating * shopBefore.data.reviewCount) - oldRating + reviewAfter.data.rating) / nextCount;
+
+      return shopAfter.data.diff(shopBefore.data).affectedKeys().hasOnly(['avgRating', 'reviewCount']) &&
+        reviewAfter.data.userId == request.auth.uid &&
+        reviewAfter.data.rating is int &&
+        reviewAfter.data.rating >= 1 && reviewAfter.data.rating <= 5 &&
+        reviewAfter.data.createdAt == request.time &&
+        shopAfter.data.reviewCount == nextCount &&
+        shopAfter.data.avgRating == nextAverage;
+    }
+
+    function validNotification() {
+      return request.resource.data.keys().hasOnly(['type', 'message', 'shopId', 'read', 'createdAt']) &&
+        request.resource.data.keys().hasAll(['type', 'message', 'shopId', 'read', 'createdAt']) &&
+        request.resource.data.type in ['listing_approved', 'listing_rejected', 'review_received'] &&
+        request.resource.data.message is string && request.resource.data.message.size() <= 1000 &&
+        request.resource.data.shopId is string && request.resource.data.read == false &&
+        request.resource.data.createdAt == request.time;
+    }
+
+    function isAdminStatusNotification(uid) {
+      let shopBefore = get(/databases/$(database)/documents/shops/$(request.resource.data.shopId));
+      let shopAfter = getAfter(/databases/$(database)/documents/shops/$(request.resource.data.shopId));
+      return isAdmin() && shopBefore.data.ownerId == uid && shopAfter.data.ownerId == uid &&
+        shopBefore.data.status == 'pending' &&
+        ((request.resource.data.type == 'listing_approved' && shopAfter.data.status == 'approved') ||
+          (request.resource.data.type == 'listing_rejected' && shopAfter.data.status == 'rejected'));
+    }
+
+    function isReviewNotification(uid) {
+      let shop = get(/databases/$(database)/documents/shops/$(request.resource.data.shopId));
+      let reviewAfter = getAfter(/databases/$(database)/documents/shops/$(request.resource.data.shopId)/reviews/$(request.auth.uid));
+      return isSignedIn() && request.auth.uid != uid &&
+        request.resource.data.type == 'review_received' && shop.data.ownerId == uid &&
+        reviewAfter.data.userId == request.auth.uid && reviewAfter.data.createdAt == request.time;
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      // Admin accounts are intentionally provisioned outside this client app.
+      allow create: if isOwner(uid) &&
+        request.resource.data.keys().hasOnly(['name', 'email', 'role', 'preferences', 'savedShopIds', 'recentlyViewed']) &&
+        request.resource.data.keys().hasAll(['name', 'email', 'role', 'preferences', 'savedShopIds', 'recentlyViewed']) &&
+        request.resource.data.name is string && request.resource.data.email == request.auth.token.email &&
+        request.resource.data.role in ['user', 'owner'] &&
+        request.resource.data.preferences is map && request.resource.data.savedShopIds is list &&
+        request.resource.data.recentlyViewed is list;
+      // Admin accounts are provisioned with privileged credentials, not by changing a client profile.
+      allow update: if isOwner(uid) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'preferences', 'savedShopIds', 'recentlyViewed']));
+
+      match /notifications/{notificationId} {
+        allow read: if isOwner(uid);
+        // Notification creators must be the matching admin decision or review transaction.
+        allow create: if validNotification() && (isAdminStatusNotification(uid) || isReviewNotification(uid));
+        allow update: if isOwner(uid) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) &&
+          request.resource.data.read is bool;
+      }
+    }
+
+    match /shops/{shopId} {
+      allow read: if resource.data.status == 'approved' || isOwner(resource.data.ownerId) || isAdmin();
+      allow create: if myRole() == 'owner' && validShop(request.resource.data) &&
+        request.resource.data.ownerId == request.auth.uid &&
+        request.resource.data.status == 'pending' && request.resource.data.avgRating == 0 &&
+        request.resource.data.reviewCount == 0;
+      allow update: if (isAdmin() && validShop(request.resource.data) &&
+          resource.data.status == 'pending' && request.resource.data.status in ['approved', 'rejected'] &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])) ||
+        (isOwner(resource.data.ownerId) && validShop(request.resource.data) &&
+          request.resource.data.ownerId == resource.data.ownerId &&
+          request.resource.data.avgRating == resource.data.avgRating &&
+          request.resource.data.reviewCount == resource.data.reviewCount &&
+          request.resource.data.status == 'pending' &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'name', 'address', 'lat', 'lng', 'priceMin', 'priceMax', 'wifiRating', 'photos', 'hours', 'status'
+          ])) ||
+        (isSignedIn() && aggregateMatchesReview(shopId));
+
+      match /reviews/{reviewId} {
+        allow read: if true;
+        // The review UID is the author UID and the parent aggregate must change in this same transaction.
+        allow create, update: if isOwner(reviewId) && validReviewFields() && aggregateMatchesReview(shopId);
+        // Deletion is intentionally unavailable until it also recalculates the parent summary atomically.
+        allow delete: if false;
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { View, Image, Pressable, Alert } from 'react-native';
-import { useForm, Controller } from 'react-hook-form';
+import { View, Image, Pressable } from 'react-native';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadToCloudinary } from '@/lib/cloudinary';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Icon } from '@/components/ui/icon';
 import { X } from 'lucide-react-native';
+import { getUserFriendlyError } from '@/lib/errors';
 
 interface ShopFormProps {
   defaultValues?: Partial<ShopFormValues>;
@@ -20,47 +21,50 @@ interface ShopFormProps {
 export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps) {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm
+  const { control, handleSubmit, setValue, formState: { errors } } = useForm
   <ShopFormInput,
   any,
   ShopFormValues>({
   resolver: zodResolver(shopFormSchema),
   defaultValues: {
-    name: '', address: '', lat: 0, lng: 0,
-    priceRange: '₱₱', wifiRating: 'moderate',
+    name: '', address: '', lat: '', lng: '',
+    priceMin: 60, priceMax: 150, wifiRating: 'moderate',
     hours: DEFAULT_HOURS, photos: [],
     ...defaultValues,
   },
 });
 
-const photos = watch('photos') ?? [];
+  const photos = useWatch({ control, name: 'photos' }) ?? [];
 
 
   async function pickPhoto() {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
-    if (result.canceled) return;
-    setUploading(true);
+    setSubmitError(null);
     try {
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
+      if (result.canceled) return;
+      setUploading(true);
       const url = await uploadToCloudinary(result.assets[0].uri);
-      setValue('photos', [...photos, url]);
-    } catch (e: any) {
-      Alert.alert('Upload failed', e.message);
+      setValue('photos', [...photos, url], { shouldValidate: true });
+    } catch (error) {
+      setSubmitError(getUserFriendlyError(error, 'We could not upload that photo. Please try again.'));
     } finally {
       setUploading(false);
     }
   }
 
   function removePhoto(url: string) {
-    setValue('photos', photos.filter((p) => p !== url));
+    setValue('photos', photos.filter((p) => p !== url), { shouldValidate: true });
   }
 
   async function handleFormSubmit(values: ShopFormValues) {
+    setSubmitError(null);
     setSubmitting(true);
     try {
       await onSubmit(values);
-    } catch (e: any) {
-      Alert.alert('Something went wrong', e.message);
+    } catch (error) {
+      setSubmitError(getUserFriendlyError(error, 'We could not save this listing. Please try again.'));
     } finally {
       setSubmitting(false);
     }
@@ -69,39 +73,43 @@ const photos = watch('photos') ?? [];
   return (
     <View className="gap-4">
       <Controller control={control} name="name" render={({ field }) => (
-        <Input placeholder="Shop name" value={field.value} onChangeText={field.onChange} />
+        <Input placeholder="Shop name" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />
       )} />
       {errors.name && <Text className="text-destructive">{errors.name.message}</Text>}
 
       <Controller control={control} name="address" render={({ field }) => (
-        <Input placeholder="Address" value={field.value} onChangeText={field.onChange} />
+        <Input placeholder="Address" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />
       )} />
       {errors.address && <Text className="text-destructive">{errors.address.message}</Text>}
 
       <View className="flex-row gap-2">
         <Controller control={control} name="lat" render={({ field }) => (
           <Input className="flex-1" placeholder="Latitude" keyboardType="decimal-pad"
-            value={String(field.value)} onChangeText={field.onChange} />
+            value={String(field.value ?? '')} onBlur={field.onBlur} onChangeText={field.onChange} />
         )} />
         <Controller control={control} name="lng" render={({ field }) => (
           <Input className="flex-1" placeholder="Longitude" keyboardType="decimal-pad"
-            value={String(field.value)} onChangeText={field.onChange} />
+            value={String(field.value ?? '')} onBlur={field.onBlur} onChangeText={field.onChange} />
         )} />
       </View>
       <Text className="text-muted-foreground text-xs -mt-2">
         Drop a pin in Google Maps, long-press it, and copy the coordinates it shows.
       </Text>
+      {(errors.lat || errors.lng) && <Text className="text-destructive">{errors.lat?.message ?? errors.lng?.message}</Text>}
 
-      <Text className="font-semibold">Price range</Text>
+      <Text className="font-semibold">Typical price range</Text>
       <View className="flex-row gap-2">
-        {(['₱', '₱₱', '₱₱₱'] as const).map((p) => (
-          <Controller key={p} control={control} name="priceRange" render={({ field }) => (
-            <Button variant={field.value === p ? 'default' : 'outline'} className="flex-1" onPress={() => field.onChange(p)}>
-              <Text>{p}</Text>
-            </Button>
-          )} />
-        ))}
+        <Controller control={control} name="priceMin" render={({ field }) => (
+          <Input className="flex-1" placeholder="Typical price min" keyboardType="numeric"
+            value={String(field.value ?? '')} onBlur={field.onBlur} onChangeText={field.onChange} />
+        )} />
+        <Controller control={control} name="priceMax" render={({ field }) => (
+          <Input className="flex-1" placeholder="Typical price max" keyboardType="numeric"
+            value={String(field.value ?? '')} onBlur={field.onBlur} onChangeText={field.onChange} />
+        )} />
       </View>
+      {errors.priceMin && <Text className="text-destructive">{errors.priceMin.message}</Text>}
+      {errors.priceMax && <Text className="text-destructive">{errors.priceMax.message}</Text>}
 
       <Text className="font-semibold">WiFi</Text>
       <View className="flex-row gap-2">
@@ -120,9 +128,9 @@ const photos = watch('photos') ?? [];
           <View className="flex-row items-center gap-2">
             <Text className="w-12 capitalize">{day}</Text>
             <Input className="flex-1" placeholder="Open" editable={!field.value.closed}
-              value={field.value.open} onChangeText={(t) => field.onChange({ ...field.value, open: t })} />
+              value={field.value.open} onBlur={field.onBlur} onChangeText={(t) => field.onChange({ ...field.value, open: t })} />
             <Input className="flex-1" placeholder="Close" editable={!field.value.closed}
-              value={field.value.close} onChangeText={(t) => field.onChange({ ...field.value, close: t })} />
+              value={field.value.close} onBlur={field.onBlur} onChangeText={(t) => field.onChange({ ...field.value, close: t })} />
             <Button size="sm" variant={field.value.closed ? 'default' : 'outline'}
               onPress={() => field.onChange({ ...field.value, closed: !field.value.closed })}>
               <Text>Closed</Text>
@@ -130,7 +138,8 @@ const photos = watch('photos') ?? [];
           </View>
         )} />
       ))}
-      <Text className="text-muted-foreground text-xs -mt-2">24-hour "HH:mm" — e.g. 07:00 and 21:00.</Text>
+      <Text className="text-muted-foreground text-xs -mt-2">24-hour HH:mm — e.g. 07:00 and 21:00.</Text>
+      {errors.hours && <Text className="text-destructive">Check that every open day uses 24-hour time (for example, 07:00).</Text>}
 
       <Text className="font-semibold">Photos</Text>
       <View className="flex-row flex-wrap gap-2">
@@ -147,8 +156,9 @@ const photos = watch('photos') ?? [];
         </Button>
       </View>
 
-      <Button onPress={handleSubmit(handleFormSubmit)} disabled={submitting || uploading}>
-        <Text>{submitting ? 'Saving…' : submitLabel}</Text>
+      {submitError && <Text accessibilityRole="alert" className="text-destructive">{submitError}</Text>}
+      <Button loading={submitting} loadingLabel="Saving…" onPress={handleSubmit(handleFormSubmit)} disabled={uploading}>
+        <Text>{submitLabel}</Text>
       </Button>
     </View>
   );

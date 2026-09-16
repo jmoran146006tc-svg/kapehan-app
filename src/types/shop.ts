@@ -11,7 +11,8 @@ export interface Shop {
   address: string;
   lat: number;
   lng: number;
-  priceRange: '₱' | '₱₱' | '₱₱₱';
+  priceMin: number;
+  priceMax: number;
   wifiRating: 'fast' | 'moderate' | 'none';
   photos: string[];
   hours: Record<string, ShopHours>;

@@ -6,7 +6,7 @@
  *
  * WHAT THIS DOES
  * - Writes one doc per shop to the `shops` collection, matching the
- *   current schema (priceRange + wifiRating — noiseLevel/ambianceTags
+ *   current schema (priceMin/priceMax + wifiRating — noiseLevel/ambianceTags
  *   were cut from the ER diagram, so they are NOT written here).
  * - Sets status: "approved" directly, skipping the owner-submit ->
  *   admin-approve flow, since this is seed/test data, not a real
@@ -18,7 +18,7 @@
  *   string, and lat/lng are jittered around the city center so pins
  *   spread out on a map -- they do NOT point at the shop's real
  *   location. Replace with real geocoded data before your demo.
- * - priceRange / wifiRating / avgRating / reviewCount: deterministic
+ * - prices / wifiRating / avgRating / reviewCount: deterministic
  *   fake values (seeded from the shop name, so re-running this script
  *   always produces the same numbers) purely so search/sort/compare
  *   have something to work with. Not real ratings.
@@ -161,7 +161,6 @@ const UNVERIFIED_NAMES = new Set([
 const TAGUM_CENTER = { lat: 7.4478, lng: 125.8078 }; // Tagum City proper, approx.
 const JITTER_DEG = 0.02; // spreads pins across roughly a 2km radius
 
-const PRICE_RANGES = ["₱", "₱₱", "₱₱₱"];
 const WIFI_RATINGS = ["fast", "moderate", "none"];
 
 const DEFAULT_HOURS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"].reduce(
@@ -192,7 +191,7 @@ function mulberry32(seed) {
     seed |= 0;
     seed = (seed + 0x6d2b79f5) | 0;
     let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t > >> 7), 61 | t)) ^ t;
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
@@ -220,13 +219,15 @@ function round6(n) {
 
 function buildShop(name) {
   const rng = mulberry32(hashString(name));
+  const priceMin = Math.floor(40 + rng() * 211);
   return {
     name,
     ownerId: SEED_OWNER_ID,
     address: "Tagum City, Davao del Norte, Philippines", // placeholder
     lat: round6(TAGUM_CENTER.lat + (rng() * 2 - 1) * JITTER_DEG),
     lng: round6(TAGUM_CENTER.lng + (rng() * 2 - 1) * JITTER_DEG),
-    priceRange: PRICE_RANGES[Math.floor(rng() * PRICE_RANGES.length)],
+    priceMin,
+    priceMax: priceMin + Math.floor(rng() * 101),
     wifiRating: WIFI_RATINGS[Math.floor(rng() * WIFI_RATINGS.length)],
     photos: [],
     hours: DEFAULT_HOURS,
@@ -291,7 +292,7 @@ async function main() {
   }
 
   console.log(
-    "\nDone. Remember: address/lat/lng/priceRange/wifiRating/ratings above are placeholders, not real data."
+    "\nDone. Remember: address/lat/lng/prices/wifiRating/ratings above are placeholders, not real data."
   );
   process.exit(0);
 }

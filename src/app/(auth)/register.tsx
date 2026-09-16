@@ -4,33 +4,41 @@ import { Link, router } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { auth, db } from '@/lib/firebase';
+import { getUserFriendlyError } from '@/lib/errors';
+import { registerSchema, type RegisterValues } from '@/lib/schemas/auth';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 
-type SelectableRole = 'user' | 'owner';
-
 export default function RegisterScreen() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState<SelectableRole>('user');
-  const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { control, handleSubmit, formState: { errors } } = useForm<RegisterValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { name: '', email: '', password: '', role: 'user' },
+  });
 
-  async function handleRegister() {
+  async function handleRegister(values: RegisterValues) {
+    setSubmitError(null);
+    setIsSubmitting(true);
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      const cred = await createUserWithEmailAndPassword(auth, values.email, values.password);
       await setDoc(doc(db, 'users', cred.user.uid), {
-        name,
-        email,
-        role,
+        name: values.name,
+        email: values.email,
+        role: values.role,
         preferences: {},
         savedShopIds: [],
+        recentlyViewed: [],
       });
       router.replace('/'); // index.tsx picks up the new role and redirects
-    } catch (e: any) {
-      setError(e.message);
+    } catch (error) {
+      setSubmitError(getUserFriendlyError(error, 'We could not create your account. Please try again.'));
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -38,22 +46,32 @@ export default function RegisterScreen() {
     <SafeAreaView edges={['bottom']}>
       <View className="flex-1 justify-center gap-4 p-6 bg-background">
         <Text className="text-2xl font-bold mb-2">Sign up</Text>
-        <Input placeholder="Name" value={name} onChangeText={setName} />
-        <Input placeholder="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-        <Input placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
+        <Controller control={control} name="name" render={({ field }) => (
+          <Input placeholder="Name" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} autoComplete="name" />
+        )} />
+        {errors.name && <Text className="text-destructive">{errors.name.message}</Text>}
+        <Controller control={control} name="email" render={({ field }) => (
+          <Input placeholder="Email" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} autoCapitalize="none" autoComplete="email" keyboardType="email-address" />
+        )} />
+        {errors.email && <Text className="text-destructive">{errors.email.message}</Text>}
+        <Controller control={control} name="password" render={({ field }) => (
+          <Input placeholder="Password" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} autoComplete="new-password" secureTextEntry />
+        )} />
+        {errors.password && <Text className="text-destructive">{errors.password.message}</Text>}
 
-        {/* TODO: swap for RNR RadioGroup once you've added it via the CLI */}
-        <View className="flex-row gap-2">
-          <Button variant={role === 'user' ? 'default' : 'outline'} onPress={() => setRole('user')} className="flex-1">
-            <Text>Customer</Text>
-          </Button>
-          <Button variant={role === 'owner' ? 'default' : 'outline'} onPress={() => setRole('owner')} className="flex-1">
-            <Text>Coffee Shop Owner</Text>
-          </Button>
-        </View>
+        <Controller control={control} name="role" render={({ field }) => (
+          <View className="flex-row gap-2">
+            <Button variant={field.value === 'user' ? 'default' : 'outline'} onPress={() => field.onChange('user')} className="flex-1">
+              <Text>Customer</Text>
+            </Button>
+            <Button variant={field.value === 'owner' ? 'default' : 'outline'} onPress={() => field.onChange('owner')} className="flex-1">
+              <Text>Coffee Shop Owner</Text>
+            </Button>
+          </View>
+        )} />
 
-        {error && <Text className="text-destructive">{error}</Text>}
-        <Button onPress={handleRegister}>
+        {submitError && <Text accessibilityRole="alert" className="text-destructive">{submitError}</Text>}
+        <Button loading={isSubmitting} loadingLabel="Creating account…" onPress={handleSubmit(handleRegister)}>
           <Text>Create account</Text>
         </Button>
         <Link href="/(auth)/login" className="text-center text-muted-foreground mt-4">

@@ -12,7 +12,7 @@ export default function CreateListingScreen() {
   const { user } = useAuth();
 
   async function handleCreate(values: ShopFormValues) {
-    if (!user) return;
+    if (!user) throw new Error('You must be logged in to create a listing.');
     await addDoc(collection(db, 'shops'), {
       ...values, ownerId: user.uid, status: 'pending', avgRating: 0, reviewCount: 0,
     });

@@ -4,9 +4,10 @@ import { useShops } from '@/hooks/useShops';
 import { isOpenNow } from '@/utils/hours';
 import { Text } from '@/components/ui/text';
 import type { Shop } from '@/types/shop';
+import { formatPriceRange } from '@/utils/price';
 
 const ROWS: { label: string; get: (s: Shop) => string }[] = [
-  { label: 'Price', get: (s) => s.priceRange },
+  { label: 'Price', get: (s) => formatPriceRange(s.priceMin, s.priceMax) },
   { label: 'WiFi', get: (s) => s.wifiRating },
   { label: 'Open now', get: (s) => (isOpenNow(s.hours) ? 'Open' : 'Closed') },
   { label: 'Rating', get: (s) => `${s.avgRating?.toFixed(1) ?? '—'} (${s.reviewCount ?? 0})` },
@@ -20,7 +21,7 @@ export default function CompareScreen() {
   if (selected.length === 0) {
     return (
       <View className="flex-1 items-center justify-center bg-background p-4">
-        <Text className="text-muted-foreground">Tap "+ Compare" on a couple of shops in Search first.</Text>
+        <Text className="text-muted-foreground">Tap “+ Compare” on a couple of shops in Search first.</Text>
       </View>
     );
   }

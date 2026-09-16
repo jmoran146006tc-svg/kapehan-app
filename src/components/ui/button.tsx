@@ -1,4 +1,4 @@
-import { TextClassContext } from '@/components/ui/text';
+import { Text, TextClassContext } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { Platform, Pressable } from 'react-native';
@@ -88,16 +88,25 @@ const buttonTextVariants = cva(
   }
 );
 
-type ButtonProps = React.ComponentProps<typeof Pressable> & React.RefAttributes<typeof Pressable> & VariantProps<typeof buttonVariants>;
+type ButtonProps = React.ComponentProps<typeof Pressable> & React.RefAttributes<typeof Pressable> & VariantProps<typeof buttonVariants> & {
+  loading?: boolean;
+  loadingLabel?: string;
+};
 
-function Button({ className, variant, size, ...props }: ButtonProps) {
+function Button({ className, variant, size, loading = false, loadingLabel = 'Loading…', children, disabled, ...props }: ButtonProps) {
+  const isDisabled = disabled || loading;
   return (
     <TextClassContext.Provider value={buttonTextVariants({ variant, size })}>
       <Pressable
-        className={cn(props.disabled && 'opacity-50', buttonVariants({ variant, size }), className)}
+        className={cn(isDisabled && 'opacity-50', buttonVariants({ variant, size }), className)}
         role="button"
+        disabled={isDisabled}
+        accessibilityState={{ disabled: isDisabled, busy: loading }}
         {...props}
-      />
+      >
+        {/* A stable label avoids the distracting animated spinner while the button is disabled. */}
+        {loading ? <Text>{loadingLabel}</Text> : children}
+      </Pressable>
     </TextClassContext.Provider>
   );
 }
