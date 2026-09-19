@@ -48,6 +48,9 @@ jobs:
       - name: Prevent Jekyll from eating the _expo folder
         run: touch dist/.nojekyll
 
+      - name: Add SPA fallback for client-side routing
+        run: cp dist/index.html dist/404.html
+
       - name: Deploy web to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
