@@ -36,6 +36,9 @@ jobs:
       - name: Export web build
         run: npx expo export --platform web
 
+      - name: Prevent Jekyll from eating the _expo folder
+        run: touch dist/.nojekyll
+
       - name: Deploy web to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
