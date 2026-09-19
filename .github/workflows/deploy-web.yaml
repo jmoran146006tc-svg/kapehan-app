@@ -1,7 +1,7 @@
 name: Deploy Expo App (Web & QR)
 on:
   push:
-    branches: [main]
+    branches: [master]
 
 permissions:
   contents: write
