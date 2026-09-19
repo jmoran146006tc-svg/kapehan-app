@@ -39,6 +39,19 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6c607451-5ecf-47d9-b63c-f46f3ca66998"
+      }
+    },
+    "owner": "nuriakea",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/6c607451-5ecf-47d9-b63c-f46f3ca66998"
     }
   }
 }
