@@ -9,10 +9,17 @@ export function useShops() {
 
   useEffect(() => {
     const q = query(collection(db, 'shops'), where('status', '==', 'approved'));
-    return onSnapshot(q, (snap) => {
-      setShops(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Shop)));
-      setLoading(false);
-    });
+    return onSnapshot(
+  q,
+  (snap) => {
+    setShops(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Shop)));
+    setLoading(false);
+  },
+  (error) => {
+    console.error('useShops listener error:', error);
+    setLoading(false);
+  }
+);
   }, []);
 
   return { shops, loading };
