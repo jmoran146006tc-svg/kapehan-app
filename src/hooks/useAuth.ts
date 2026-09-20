@@ -32,7 +32,11 @@ export function useAuth(): AuthState {
     const unsubDoc = onSnapshot(doc(db, 'users', user.uid), (snap) => {
       setRole((snap.data()?.role as Role) ?? null);
       setLoading(false);
-    });
+    },
+    (error) => {
+    console.error('useAuth role listener error:', error);
+  }
+  );
     return unsubDoc;
   }, [user]);
 

@@ -2,6 +2,8 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { initializeFirestore } from 'firebase/firestore';
 import { firebaseConfig } from './firebaseConfig';
+import { setLogLevel } from 'firebase/firestore';
+setLogLevel('debug');
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
