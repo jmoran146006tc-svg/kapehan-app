@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase';
 import { ShopForm } from '@/components/shop-form';
 import { Text } from '@/components/ui/text';
 import type { ShopFormValues } from '@/lib/schemas/shop';
+import { withTimeout } from '@/lib/timeout';
 import { getUserFriendlyError } from '@/lib/errors';
 
 export default function EditListingScreen() {
@@ -34,7 +35,7 @@ export default function EditListingScreen() {
     if (!id) throw new Error('This listing could not be found.');
     // Resets status to "pending" on every save — an edited listing goes
     // back through admin review before it's visible again.
-    await updateDoc(doc(db, 'shops', id), { ...values, status: 'pending' });
+    await withTimeout(updateDoc(doc(db, 'shops', id), { ...values, status: 'pending' }));
     router.back();
   }
 

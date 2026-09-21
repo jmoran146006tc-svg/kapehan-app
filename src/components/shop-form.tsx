@@ -11,6 +11,7 @@ import { Text } from '@/components/ui/text';
 import { Icon } from '@/components/ui/icon';
 import { X } from 'lucide-react-native';
 import { getUserFriendlyError } from '@/lib/errors';
+import { MAX_TAGS_PER_SHOP, TAG_OPTIONS, type ShopTag } from '@/constants/tags';
 
 interface ShopFormProps {
   defaultValues?: Partial<ShopFormValues>;
@@ -30,13 +31,14 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
   resolver: zodResolver(shopFormSchema),
   defaultValues: {
     name: '', address: '', lat: '', lng: '',
-    priceMin: 60, priceMax: 150, wifiRating: 'moderate',
+    priceMin: 60, priceMax: 150, hasWifi: true, tags: [], description: '',
     hours: DEFAULT_HOURS, photos: [],
     ...defaultValues,
   },
 });
 
   const photos = useWatch({ control, name: 'photos' }) ?? [];
+  const tags = useWatch({ control, name: 'tags' }) ?? [];
 
 
   async function pickPhoto() {
@@ -111,16 +113,43 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
       {errors.priceMin && <Text className="text-destructive">{errors.priceMin.message}</Text>}
       {errors.priceMax && <Text className="text-destructive">{errors.priceMax.message}</Text>}
 
+      <Text className="font-semibold">Description</Text>
+      <Controller control={control} name="description" render={({ field }) => (
+        <Input className="min-h-24 py-3" multiline placeholder="Tell guests what makes your shop special (optional)" maxLength={500} value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />
+      )} />
+      {errors.description && <Text className="text-destructive">{errors.description.message}</Text>}
+
       <Text className="font-semibold">WiFi</Text>
-      <View className="flex-row gap-2">
-        {(['fast', 'moderate', 'none'] as const).map((w) => (
-          <Controller key={w} control={control} name="wifiRating" render={({ field }) => (
-            <Button variant={field.value === w ? 'default' : 'outline'} className="flex-1" onPress={() => field.onChange(w)}>
-              <Text className="capitalize">{w}</Text>
+      <Controller control={control} name="hasWifi" render={({ field }) => (
+        <View className="flex-row gap-2">
+          <Button className="flex-1" variant={field.value ? 'default' : 'outline'} onPress={() => field.onChange(true)}>
+            <Text>WiFi</Text>
+          </Button>
+          <Button className="flex-1" variant={!field.value ? 'default' : 'outline'} onPress={() => field.onChange(false)}>
+            <Text>No WiFi</Text>
+          </Button>
+        </View>
+      )} />
+
+      <Text className="font-semibold">Tags</Text>
+      <View className="flex-row flex-wrap gap-2">
+        {TAG_OPTIONS.map((tag) => {
+          const selected = tags.includes(tag);
+          return (
+            <Button key={tag} size="sm" variant={selected ? 'default' : 'outline'}
+              onPress={() => {
+                const nextTags = selected
+                  ? tags.filter((current) => current !== tag)
+                  : tags.length < MAX_TAGS_PER_SHOP ? [...tags, tag] : tags;
+                setValue('tags', nextTags as ShopTag[], { shouldValidate: true });
+              }}>
+              <Text>{tag}</Text>
             </Button>
-          )} />
-        ))}
+          );
+        })}
       </View>
+      <Text className="text-muted-foreground text-xs -mt-2">Choose up to {MAX_TAGS_PER_SHOP} tags.</Text>
+      {errors.tags && <Text className="text-destructive">{errors.tags.message}</Text>}
 
       <Text className="font-semibold">Hours</Text>
       {DAYS.map((day) => (

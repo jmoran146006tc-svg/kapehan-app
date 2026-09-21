@@ -16,8 +16,9 @@ interface ShopDoc {
   address?: string;
   priceMin?: number;
   priceMax?: number;
-  noiseLevel?: string;
-  ambianceTags?: string[];
+  hasWifi?: boolean;
+  tags?: string[];
+  description?: string;
   photos?: string[];
   status: 'pending' | 'approved' | 'rejected';
   ownerId?: string;
@@ -83,6 +84,7 @@ export default function AdminReviewListingScreen() {
       {shop.address ? (
         <Text className="text-muted-foreground mb-4">{shop.address}</Text>
       ) : null}
+      {shop.description ? <Text className="text-muted-foreground mb-4">{shop.description}</Text> : null}
 
       {shop.photos?.[0] ? (
         <Image source={{ uri: shop.photos[0] }} className="w-full h-48 rounded-xl mb-4" />
@@ -90,10 +92,8 @@ export default function AdminReviewListingScreen() {
 
       <View className="gap-2 mb-6">
         {(shop.priceMin != null || shop.priceMax != null) ? <Text>Price: {formatPriceRange(shop.priceMin, shop.priceMax)}</Text> : null}
-        {shop.noiseLevel ? <Text>Noise: {shop.noiseLevel}</Text> : null}
-        {shop.ambianceTags?.length ? (
-          <Text>Ambiance: {shop.ambianceTags.join(', ')}</Text>
-        ) : null}
+        {shop.hasWifi != null ? <Text>{shop.hasWifi ? 'WiFi available' : 'No WiFi'}</Text> : null}
+        {shop.tags?.length ? <Text>Features: {shop.tags.join(', ')}</Text> : null}
       </View>
       {actionError && <Text accessibilityRole="alert" className="text-destructive mb-4">{actionError}</Text>}
 

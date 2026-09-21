@@ -5,18 +5,18 @@
 export type PriceBucket = 'budget' | 'moderate' | 'premium';
 
 const BUDGET_MAX = 100;
-const MODERATE_MAX = 200;
+const MODERATE_MAX = 250;
 
 export function getPriceBucket(priceMin: number): PriceBucket {
   if (priceMin < BUDGET_MAX) return 'budget';
-  if (priceMin < MODERATE_MAX) return 'moderate';
+  if (priceMin <= MODERATE_MAX) return 'moderate';
   return 'premium';
 }
 
 export const PRICE_BUCKET_LABELS: Record<PriceBucket, string> = {
-  budget: 'Budget',
-  moderate: 'Moderate',
-  premium: 'Premium',
+  budget: 'Budget (under ₱100)',
+  moderate: 'Moderate (₱100–₱250)',
+  premium: 'Premium (over ₱250)',
 };
 
 export function formatPriceRange(priceMin?: number, priceMax?: number): string {

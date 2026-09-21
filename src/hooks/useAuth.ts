@@ -4,16 +4,19 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
 export type Role = 'user' | 'owner' | 'admin';
+export type AccountStatus = 'active' | 'suspended';
 
 interface AuthState {
   user: User | null;
   role: Role | null;
+  status: AccountStatus | null;
   loading: boolean;
 }
 
 export function useAuth(): AuthState {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<Role | null>(null);
+  const [status, setStatus] = useState<AccountStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,6 +24,7 @@ export function useAuth(): AuthState {
       setUser(firebaseUser);
       if (!firebaseUser) {
         setRole(null);
+        setStatus(null);
         setLoading(false);
       }
     });
@@ -31,6 +35,9 @@ export function useAuth(): AuthState {
     if (!user) return;
     const unsubDoc = onSnapshot(doc(db, 'users', user.uid), (snap) => {
       setRole((snap.data()?.role as Role) ?? null);
+      // Older profiles predate suspension support; treat them as active until
+      // an admin explicitly assigns a status.
+      setStatus((snap.data()?.status as AccountStatus | undefined) ?? 'active');
       setLoading(false);
     },
     (error) => {
@@ -40,5 +47,5 @@ export function useAuth(): AuthState {
     return unsubDoc;
   }, [user]);
 
-  return { user, role, loading };
+  return { user, role, status, loading };
 }

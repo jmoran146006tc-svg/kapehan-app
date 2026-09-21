@@ -27,7 +27,7 @@ export default function SavedScreen() {
         <Card key={shop.id}>
           <CardHeader>
             <CardTitle>{shop.name}</CardTitle>
-            <CardDescription>{formatPriceRange(shop.priceMin, shop.priceMax)} · {shop.wifiRating} wifi</CardDescription>
+            <CardDescription>{formatPriceRange(shop.priceMin, shop.priceMax)} · {shop.hasWifi ? 'WiFi' : 'No WiFi'}</CardDescription>
           </CardHeader>
         </Card>
       ))}

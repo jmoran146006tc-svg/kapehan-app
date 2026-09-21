@@ -6,7 +6,7 @@
  *
  * WHAT THIS DOES
  * - Writes one doc per shop to the `shops` collection, matching the
- *   current schema (priceMin/priceMax + wifiRating — noiseLevel/ambianceTags
+ *   current schema (priceMin/priceMax + hasWifi — noiseLevel/ambianceTags
  *   were cut from the ER diagram, so they are NOT written here).
  * - Sets status: "approved" directly, skipping the owner-submit ->
  *   admin-approve flow, since this is seed/test data, not a real
@@ -18,7 +18,7 @@
  *   string, and lat/lng are jittered around the city center so pins
  *   spread out on a map -- they do NOT point at the shop's real
  *   location. Replace with real geocoded data before your demo.
- * - prices / wifiRating / avgRating / reviewCount: deterministic
+ * - prices / hasWifi / avgRating / reviewCount: deterministic
  *   fake values (seeded from the shop name, so re-running this script
  *   always produces the same numbers) purely so search/sort/compare
  *   have something to work with. Not real ratings.
@@ -36,7 +36,7 @@
  */
 
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc } from "firebase/firestore";
+import { getFirestore, doc, serverTimestamp, setDoc } from "firebase/firestore";
 
 // ---------------------------------------------------------------------------
 // 1. The list (order preserved from your notes)
@@ -161,7 +161,24 @@ const UNVERIFIED_NAMES = new Set([
 const TAGUM_CENTER = { lat: 7.4478, lng: 125.8078 }; // Tagum City proper, approx.
 const JITTER_DEG = 0.02; // spreads pins across roughly a 2km radius
 
-const WIFI_RATINGS = ["fast", "moderate", "none"];
+const TAG_OPTIONS = [
+  "Quiet", "Study-Friendly", "Airconditioned", "Open 24/7", "Nature", "Cozy",
+  "Pet-Friendly", "Outdoor Seating", "Free Parking", "Vegan Options",
+  "Live Music", "Power Outlets", "Group-Friendly",
+];
+
+const PRODUCT_POOL = [
+  { name: "Espresso", description: "A bold espresso shot.", category: "Espresso", min: 70, max: 130 },
+  { name: "Americano", description: "Espresso with hot water.", category: "Espresso", min: 80, max: 150 },
+  { name: "Cappuccino", description: "Espresso with silky milk foam.", category: "Latte", min: 110, max: 190 },
+  { name: "Cafe Latte", description: "Smooth espresso and steamed milk.", category: "Latte", min: 115, max: 200 },
+  { name: "Matcha Latte", description: "Earthy matcha with milk.", category: "Non-Coffee", min: 120, max: 210 },
+  { name: "Chocolate Frappe", description: "A chilled chocolate blend.", category: "Non-Coffee", min: 130, max: 230 },
+  { name: "Butter Croissant", description: "Freshly baked and buttery.", category: "Pastries & Food", min: 65, max: 130 },
+  { name: "Chicken Pesto Sandwich", description: "A filling cafe classic.", category: "Pastries & Food", min: 140, max: 260 },
+  { name: "Bottled Water", description: "Chilled drinking water.", category: "Other", min: 25, max: 50 },
+  { name: "Iced Tea", description: "Fresh brewed and refreshing.", category: "Other", min: 50, max: 100 },
+];
 
 const DEFAULT_HOURS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"].reduce(
   (acc, day) => {
@@ -220,6 +237,18 @@ function round6(n) {
 function buildShop(name) {
   const rng = mulberry32(hashString(name));
   const priceMin = Math.floor(40 + rng() * 211);
+  const tagCount = 1 + Math.floor(rng() * 3);
+  const tagStart = Math.floor(rng() * TAG_OPTIONS.length);
+  const tags = Array.from({ length: tagCount }, (_, index) => TAG_OPTIONS[(tagStart + index) % TAG_OPTIONS.length]);
+  const reviewCount = Math.floor(3 + rng() * 95);
+  const ratingCounts = { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 };
+  let ratingTotal = 0;
+  for (let index = 0; index < reviewCount; index += 1) {
+    const roll = rng();
+    const rating = roll < 0.03 ? 1 : roll < 0.09 ? 2 : roll < 0.24 ? 3 : roll < 0.57 ? 4 : 5;
+    ratingCounts[String(rating)] += 1;
+    ratingTotal += rating;
+  }
   return {
     name,
     ownerId: SEED_OWNER_ID,
@@ -228,13 +257,34 @@ function buildShop(name) {
     lng: round6(TAGUM_CENTER.lng + (rng() * 2 - 1) * JITTER_DEG),
     priceMin,
     priceMax: priceMin + Math.floor(rng() * 101),
-    wifiRating: WIFI_RATINGS[Math.floor(rng() * WIFI_RATINGS.length)],
+    hasWifi: rng() >= 0.2,
+    tags,
+    description: `${name} is a welcoming coffee stop in Tagum City.`,
     photos: [],
     hours: DEFAULT_HOURS,
     status: "approved",
-    avgRating: Math.round((3.5 + rng() * 1.5) * 10) / 10,
-    reviewCount: Math.floor(3 + rng() * 95),
+    avgRating: Math.round((ratingTotal / reviewCount) * 10) / 10,
+    reviewCount,
+    ratingCounts,
+    viewCount: 0,
   };
+}
+
+function buildProducts(name) {
+  const rng = mulberry32(hashString(`${name}:products`));
+  const count = 3 + Math.floor(rng() * 6);
+  const start = Math.floor(rng() * PRODUCT_POOL.length);
+  return Array.from({ length: count }, (_, index) => {
+    const item = PRODUCT_POOL[(start + index) % PRODUCT_POOL.length];
+    return {
+      id: slugify(item.name),
+      name: item.name,
+      description: item.description,
+      category: item.category,
+      price: Math.floor(item.min + rng() * (item.max - item.min + 1)),
+      available: rng() >= 0.1,
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -274,11 +324,21 @@ async function main() {
   for (const name of names) {
     const id = uniqueSlug(name);
     const shop = buildShop(name);
+    const products = buildProducts(name);
 
     if (dryRun) {
       console.log(`  would write shops/${id}`, shop);
+      products.forEach((product) => console.log(`    would write shops/${id}/products/${product.id}`, product));
     } else {
-      await setDoc(doc(db, "shops", id), shop, { merge: true });
+      // Overwrite the demo document so retired fields such as wifiRating and
+      // tagline cannot survive a re-seed and make the stricter rules reject it.
+      await setDoc(doc(db, "shops", id), shop);
+      for (const product of products) {
+        await setDoc(doc(db, "shops", id, "products", product.id), {
+          ...product,
+          createdAt: serverTimestamp(),
+        }, { merge: true });
+      }
       console.log(`  \u2713 ${name}  ->  shops/${id}`);
     }
   }
@@ -292,7 +352,7 @@ async function main() {
   }
 
   console.log(
-    "\nDone. Remember: address/lat/lng/prices/wifiRating/ratings above are placeholders, not real data."
+    "\nDone. Remember: address/lat/lng/prices/hasWifi/ratings above are placeholders, not real data."
   );
   process.exit(0);
 }

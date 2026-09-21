@@ -1,27 +1,29 @@
 import { create } from 'zustand';
-import type { Shop } from '@/types/shop';
 import type { PriceBucket } from '@/utils/price';
+import type { ShopTag } from '@/constants/tags';
 
 // These are transient discovery controls, so they deliberately stay out of Firestore.
 
 interface FilterValues {
   search: string;
   priceBuckets: PriceBucket[];
-  wifiRating: Shop['wifiRating'][];
+  wifiOnly: boolean;
+  tags: ShopTag[];
   openNowOnly: boolean;
   maxDistanceKm: number | null;
 }
 
 interface FilterState extends FilterValues {
   setFilter: <K extends keyof FilterValues>(key: K, value: FilterValues[K]) => void;
-  toggleArrayFilter: <K extends 'priceBuckets' | 'wifiRating'>(key: K, value: FilterValues[K][number]) => void;
+  toggleArrayFilter: <K extends 'priceBuckets' | 'tags'>(key: K, value: FilterValues[K][number]) => void;
   reset: () => void;
 }
 
 const defaults = {
   search: '',
   priceBuckets: [] as PriceBucket[],
-  wifiRating: [] as Shop['wifiRating'][],
+  wifiOnly: false,
+  tags: [] as ShopTag[],
   openNowOnly: false,
   maxDistanceKm: null as number | null,
 };

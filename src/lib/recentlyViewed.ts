@@ -1,12 +1,13 @@
-import { Timestamp, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { Timestamp, doc, getDoc, increment, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { withTimeout } from '@/lib/timeout';
 import type { RecentlyViewedEntry } from '@/types/user';
 
 const MAX_RECENTLY_VIEWED = 20;
 
 export async function logShopView(uid: string, shopId: string) {
   const userRef = doc(db, 'users', uid);
-  const userSnap = await getDoc(userRef);
+  const userSnap = await withTimeout(getDoc(userRef));
   const current = (userSnap.data()?.recentlyViewed ?? []) as RecentlyViewedEntry[];
 
   // Re-viewing a shop promotes its existing entry instead of consuming another slot.
@@ -15,5 +16,10 @@ export async function logShopView(uid: string, shopId: string) {
     ...current.filter((entry) => entry.shopId !== shopId),
   ].slice(0, MAX_RECENTLY_VIEWED);
 
-  await updateDoc(userRef, { recentlyViewed });
+  const batch = writeBatch(db);
+  batch.update(userRef, { recentlyViewed, visitCount: increment(1) });
+  // The dashboard's view tile intentionally tracks signed-in detail opens.
+  // The matching rule permits exactly one increment and no other shop change.
+  batch.update(doc(db, 'shops', shopId), { viewCount: increment(1) });
+  await withTimeout(batch.commit());
 }

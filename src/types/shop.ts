@@ -13,10 +13,14 @@ export interface Shop {
   lng: number;
   priceMin: number;
   priceMax: number;
-  wifiRating: 'fast' | 'moderate' | 'none';
+  hasWifi: boolean;
+  tags: string[];
+  description?: string;
   photos: string[];
   hours: Record<string, ShopHours>;
   status: 'pending' | 'approved' | 'rejected';
   avgRating: number;
   reviewCount: number;
+  ratingCounts?: Record<'1' | '2' | '3' | '4' | '5', number>;
+  viewCount?: number;
 }

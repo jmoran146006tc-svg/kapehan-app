@@ -1,59 +1,73 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/hooks/useAuth';
-import { useShops } from '@/hooks/useShops';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ArrowRight, MapPin, Search } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFilteredShops } from '@/hooks/useFilteredShops';
+import { useCompareStore } from '@/store/compareStore';
+import { useSavedShops } from '@/hooks/useSavedShops';
+import { DiscoveryFilterRow } from '@/components/discovery-filter-row';
+import { ShopCard } from '@/components/shop-card';
+import { UserNotificationButton } from '@/components/user-notification-button';
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
-import { formatPriceRange } from '@/utils/price';
-import type { RecentlyViewedEntry } from '@/types/user';
+import { isOpenNow } from '@/utils/hours';
 
 export default function HomeScreen() {
-  const { shops } = useShops();
-  const { user } = useAuth();
-  const [recentlyViewed, setRecentlyViewed] = useState<RecentlyViewedEntry[]>([]);
-  const topPicks = [...shops].sort((a, b) => b.avgRating - a.avgRating).slice(0, 5);
-  const recentlyViewedShops = useMemo(() => {
-    const shopsById = new Map(shops.map((shop) => [shop.id, shop]));
-    return recentlyViewed.map((entry) => shopsById.get(entry.shopId)).filter(Boolean);
-  }, [recentlyViewed, shops]);
-
-  useEffect(() => {
-    if (!user) return;
-    return onSnapshot(doc(db, 'users', user.uid), (snap) => setRecentlyViewed(snap.data()?.recentlyViewed ?? []));
-  }, [user]);
+  const shops = useFilteredShops();
+  const featured = [...shops].sort((a, b) => b.avgRating - a.avgRating).slice(0, 5);
+  const openCount = shops.filter((shop) => isOpenNow(shop.hours)).length;
+  const { ids, toggle } = useCompareStore();
+  const { savedShopIds, savingShopId, toggleSavedShop, error: savedError } = useSavedShops();
 
   return (
-    <ScrollView className="flex-1 bg-background p-4" contentContainerClassName="gap-4">
-      <Text className="text-2xl font-bold">Home</Text>
-      <Text className="font-semibold text-lg">Top picks</Text>
-      <View className="gap-3">
-        {topPicks.map((shop) => (
-          <Card key={shop.id}>
-            <CardHeader>
-              <CardTitle>{shop.name}</CardTitle>
-              <CardDescription>{formatPriceRange(shop.priceMin, shop.priceMax)} · ⭐ {shop.avgRating.toFixed(1)} ({shop.reviewCount})</CardDescription>
-            </CardHeader>
-          </Card>
-        ))}
-        {topPicks.length === 0 && <Text className="text-muted-foreground">No shops yet — check back soon.</Text>}
-      </View>
-      <Text className="font-semibold text-lg">Recently viewed</Text>
-      <View className="gap-3">
-        {recentlyViewedShops.map((shop) => shop && (
-          <Pressable key={shop.id} onPress={() => router.push({ pathname: '/(user)/shop/[id]', params: { id: shop.id } })}>
-            <Card>
-              <CardHeader>
-                <CardTitle>{shop.name}</CardTitle>
-                <CardDescription>{formatPriceRange(shop.priceMin, shop.priceMax)} · {shop.wifiRating} wifi</CardDescription>
-              </CardHeader>
-            </Card>
-          </Pressable>
-        ))}
-        {recentlyViewedShops.length === 0 && <Text className="text-muted-foreground">Shops you open will appear here.</Text>}
-      </View>
-    </ScrollView>
+    <SafeAreaView edges={['top']} className="flex-1 bg-background">
+      <ScrollView className="flex-1" contentContainerClassName="gap-4 pb-8">
+        <View className="gap-4 bg-primary px-4 pb-5 pt-3">
+          <View className="flex-row items-start justify-between">
+            <View>
+              <Text className="text-sm text-primary-foreground/70">{greeting()}</Text>
+              <Text className="mt-1 text-3xl font-bold text-primary-foreground">Find Your Kape</Text>
+            </View>
+            <UserNotificationButton />
+          </View>
+          <Button variant="secondary" className="justify-start bg-card" onPress={() => router.push('/(user)/search')}>
+            <Icon as={Search} size={18} className="text-muted-foreground" />
+            <Text className="text-muted-foreground">Search coffee shops…</Text>
+          </Button>
+          <DiscoveryFilterRow />
+        </View>
+
+        <View className="gap-4 px-4">
+          <Button variant="secondary" className="h-auto items-center justify-between rounded-2xl bg-secondary px-4 py-4" onPress={() => router.push('/(user)/map' as never)}>
+            <View className="flex-1 gap-1">
+              <View className="flex-row items-center gap-2"><Icon as={MapPin} size={17} className="text-primary" /><Text className="font-bold">Explore on Maps</Text></View>
+              <Text className="text-sm text-muted-foreground">{openCount} shop{openCount === 1 ? '' : 's'} open near you</Text>
+            </View>
+            <View className="h-9 w-9 items-center justify-center rounded-full bg-accent"><Icon as={ArrowRight} size={18} className="text-white" /></View>
+          </Button>
+
+          <View className="flex-row items-center justify-between">
+            <Text className="text-xl font-bold">Featured Today</Text>
+            <Button size="sm" variant="link" onPress={() => router.push('/(user)/search')}><Text>See all</Text></Button>
+          </View>
+          {savedError ? <Text accessibilityRole="alert" className="text-destructive">{savedError}</Text> : null}
+          <View className="gap-3">
+            {featured.map((shop) => (
+              <ShopCard key={shop.id} shop={shop} onPress={() => router.push({ pathname: '/(user)/shop/[id]', params: { id: shop.id } })} saved={savedShopIds.includes(shop.id)} saving={savingShopId === shop.id} onToggleSaved={() => void toggleSavedShop(shop.id)} compared={ids.includes(shop.id)} onToggleCompare={() => toggle(shop.id)} />
+            ))}
+            {featured.length === 0 ? <Text className="py-8 text-center text-muted-foreground">No approved coffee shops match these filters yet.</Text> : null}
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
+}
+
+function greeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning ☀️';
+  if (hour < 18) return 'Good afternoon ☀️';
+  return 'Good evening 🌙';
 }

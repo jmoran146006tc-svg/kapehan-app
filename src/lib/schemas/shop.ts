@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_TAGS_PER_SHOP, TAG_OPTIONS } from '@/constants/tags';
 
 const timeOfDay = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use 24-hour time, for example 07:00.');
 
@@ -34,7 +35,9 @@ export const shopFormSchema = z.object({
   lng: requiredNumber('Longitude', -180, 180),
   priceMin: requiredNumber('Typical minimum price', 0, 100_000),
   priceMax: requiredNumber('Typical maximum price', 0, 100_000),
-  wifiRating: z.enum(['fast', 'moderate', 'none']),
+  hasWifi: z.boolean(),
+  tags: z.array(z.enum(TAG_OPTIONS)).max(MAX_TAGS_PER_SHOP, `Choose up to ${MAX_TAGS_PER_SHOP} tags.`).default([]),
+  description: z.string().trim().max(500, 'Keep the description under 500 characters.').default(''),
   hours: z.object({
     mon: dayHoursSchema, tue: dayHoursSchema, wed: dayHoursSchema, thu: dayHoursSchema,
     fri: dayHoursSchema, sat: dayHoursSchema, sun: dayHoursSchema,

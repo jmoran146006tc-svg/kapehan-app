@@ -1,87 +1,73 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, Image, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
-import { collection, doc, onSnapshot, orderBy, query, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { useEffect, useMemo, useState } from 'react';
+import { Image, ScrollView, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { collection, doc, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ArrowLeft, MapPin, Star, Wifi } from 'lucide-react-native';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { useCompareStore } from '@/store/compareStore';
+import { useSavedShops } from '@/hooks/useSavedShops';
+import { haversineKm } from '@/utils/distance';
 import { isOpenNow } from '@/utils/hours';
-import { ShopLocationMap } from '@/components/shop-location-map';
-import { Text } from '@/components/ui/text';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import type { Shop } from '@/types/shop';
-import { formatPriceRange } from '@/utils/price';
+import { formatPriceRange, getPriceBucket } from '@/utils/price';
+import { PRODUCT_CATEGORIES } from '@/constants/products';
 import { dayjs } from '@/lib/dayjs';
-import { reviewFormSchema, type ReviewFormInput, type ReviewFormValues } from '@/lib/schemas/review';
-import { submitReview } from '@/lib/reviews';
 import { logShopView } from '@/lib/recentlyViewed';
-import type { Review } from '@/types/review';
-import type { AppUserDocument } from '@/types/user';
+import { submitReview } from '@/lib/reviews';
+import { reviewFormSchema, type ReviewFormInput, type ReviewFormValues } from '@/lib/schemas/review';
 import { getUserFriendlyError } from '@/lib/errors';
+import type { Product } from '@/types/product';
+import type { Review } from '@/types/review';
+import type { Shop } from '@/types/shop';
+import { ShopLocationMap } from '@/components/shop-location-map';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
+import { Input } from '@/components/ui/input';
+import { Text } from '@/components/ui/text';
+
+type ShopTab = 'info' | 'menu' | 'reviews';
 
 export default function ShopDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const location = useUserLocation();
   const { ids, toggle } = useCompareStore();
+  const { savedShopIds, savingShopId, toggleSavedShop, error: savedError } = useSavedShops();
   const [shop, setShop] = useState<Shop | null>(null);
-  const [saved, setSaved] = useState(false);
-  const [profileName, setProfileName] = useState<string | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [tab, setTab] = useState<ShopTab>('info');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const { control, handleSubmit, reset, formState: { errors } } = useForm<ReviewFormInput, any, ReviewFormValues>({
-    resolver: zodResolver(reviewFormSchema),
-    defaultValues: { rating: 5, text: '' },
-  });
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const { control, handleSubmit, reset, formState: { errors } } = useForm<ReviewFormInput, any, ReviewFormValues>({ resolver: zodResolver(reviewFormSchema), defaultValues: { rating: 5, text: '' } });
 
   useEffect(() => {
     if (!id) return;
-    return onSnapshot(
-      doc(db, 'shops', id),
-      (snap) => {
-        setLoadError(snap.exists() ? null : 'This shop is no longer available.');
-        setShop(snap.exists() ? ({ id: snap.id, ...snap.data() } as Shop) : null);
-      },
-      (error) => setLoadError(getUserFriendlyError(error, 'We could not load this shop. Please try again.')),
-    );
+    return onSnapshot(doc(db, 'shops', id), (snapshot) => {
+      setShop(snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as Shop) : null);
+      setLoadError(snapshot.exists() ? null : 'This shop is no longer available.');
+    }, (error) => setLoadError(getUserFriendlyError(error, 'We could not load this shop. Please try again.')));
   }, [id]);
 
   useEffect(() => {
-    if (!user) return;
-    return onSnapshot(
-      doc(db, 'users', user.uid),
-      (snap) => {
-        const profile = snap.data() as AppUserDocument | undefined;
-        setSaved((profile?.savedShopIds ?? []).includes(id));
-        setProfileName(profile?.name?.trim() || null);
-      },
-      (error) => setActionError(getUserFriendlyError(error, 'We could not load your saved shops. Please try again.')),
-    );
-  }, [user, id]);
+    if (!id) return;
+    return onSnapshot(query(collection(db, 'shops', id, 'reviews'), orderBy('createdAt', 'desc')), (snapshot) => setReviews(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Review)), (error) => setLoadError(getUserFriendlyError(error, 'We could not load reviews. Please try again.')));
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
-    return onSnapshot(
-      query(collection(db, 'shops', id, 'reviews'), orderBy('createdAt', 'desc')),
-      (snap) => setReviews(snap.docs.map((item) => ({ id: item.id, ...item.data() }) as Review)),
-      (error) => setLoadError(getUserFriendlyError(error, 'We could not load reviews. Please try again.')),
-    );
+    return onSnapshot(query(collection(db, 'shops', id, 'products'), orderBy('category'), orderBy('name')), (snapshot) => setProducts(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as Product)), () => setProducts([]));
   }, [id]);
 
   useEffect(() => {
     if (!user || !id) return;
-    void logShopView(user.uid, id).catch(() => {
-      // Viewing a shop remains available if the optional history update is offline.
-    });
+    void logShopView(user.uid, id).catch(() => undefined);
   }, [id, user]);
 
   useEffect(() => {
@@ -89,33 +75,15 @@ export default function ShopDetailScreen() {
     reset(ownReview ? { rating: ownReview.rating, text: ownReview.text } : { rating: 5, text: '' });
   }, [reset, reviews, user]);
 
-  async function toggleSave() {
-    if (!user) {
-      setActionError('Log in to save shops.');
-      return;
-    }
-    if (!id) return;
-    setActionError(null);
-    setIsSaving(true);
-    try {
-      await updateDoc(doc(db, 'users', user.uid), { savedShopIds: saved ? arrayRemove(id) : arrayUnion(id) });
-    } catch (error) {
-      setActionError(getUserFriendlyError(error, 'We could not update your saved shops. Please try again.'));
-    } finally {
-      setIsSaving(false);
-    }
-  }
+  const distanceKm = shop && location ? haversineKm(location.lat, location.lng, shop.lat, shop.lng) : null;
+  const ratingCounts = useMemo(() => shop?.ratingCounts ?? reviews.reduce<Record<'1' | '2' | '3' | '4' | '5', number>>((counts, review) => ({ ...counts, [String(review.rating) as keyof typeof counts]: counts[String(review.rating) as keyof typeof counts] + 1 }), { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 }), [reviews, shop?.ratingCounts]);
 
   async function handleReviewSubmit(values: ReviewFormValues) {
-    if (!user) {
-      setActionError('Log in to leave a review.');
-      return;
-    }
-    if (!id) return;
+    if (!user || !id) return setActionError('Log in to leave a review.');
     setActionError(null);
     setIsSubmittingReview(true);
     try {
-      await submitReview(id, user.uid, profileName ?? user.email ?? 'Kapehan guest', values.rating, values.text);
+      await submitReview(id, user.uid, user.displayName || user.email || 'Kapehan guest', values.rating, values.text);
     } catch (error) {
       setActionError(getUserFriendlyError(error, 'We could not post your review. Please try again.'));
     } finally {
@@ -123,83 +91,45 @@ export default function ShopDetailScreen() {
     }
   }
 
-  if (!shop) return <Text className="p-4 text-destructive">{loadError ?? 'Loading…'}</Text>;
+  if (!shop) return <View className="flex-1 items-center justify-center bg-background p-4"><Text className="text-destructive">{loadError ?? 'Loading…'}</Text></View>;
+
+  const saved = savedShopIds.includes(shop.id);
+  const openNow = isOpenNow(shop.hours);
+  const priceChip = getPriceBucket(shop.priceMin) === 'budget' ? 'Affordable' : getPriceBucket(shop.priceMin) === 'moderate' ? 'Moderate' : 'Premium';
+  const ownReview = reviews.some((review) => review.userId === user?.uid);
 
   return (
-    <ScrollView className="flex-1 bg-background p-4" contentContainerClassName="gap-4">
-      <View className="flex-row justify-between items-start">
-        <Text className="text-2xl font-bold flex-1">{shop.name}</Text>
-        <Badge variant={isOpenNow(shop.hours) ? 'default' : 'secondary'}>
-          <Text>{isOpenNow(shop.hours) ? 'Open now' : 'Closed'}</Text>
-        </Badge>
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="gap-4 pb-8">
+      <View className="relative h-64 bg-secondary">
+        {shop.photos[0] ? <Image source={{ uri: shop.photos[0] }} className="h-full w-full" resizeMode="cover" /> : <View className="h-full w-full items-center justify-center"><Text className="text-muted-foreground">No cover photo yet</Text></View>}
+        <Button size="icon" variant="secondary" className="absolute left-4 top-12 rounded-full bg-card/95" onPress={() => router.back()}><Icon as={ArrowLeft} /></Button>
+        <ScrollView horizontal className="absolute bottom-3 left-3 right-3" showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2"><Badge className="bg-card" variant="secondary"><Text>{priceChip}</Text></Badge><Badge className="bg-card" variant="secondary"><Text>{openNow ? 'Open now' : 'Closed'}</Text></Badge>{shop.tags.map((tag) => <Badge key={tag} className="bg-card" variant="secondary"><Text>{tag}</Text></Badge>)}</ScrollView>
       </View>
-      <Text className="text-muted-foreground">{shop.address}</Text>
-      <Text>{formatPriceRange(shop.priceMin, shop.priceMax)} · {shop.wifiRating} wifi</Text>
 
-      {shop.photos.length > 0 && (
-        <ScrollView horizontal className="gap-2">
-          {shop.photos.map((url) => <Image key={url} source={{ uri: url }} className="w-40 h-40 rounded-xl mr-2" />)}
-        </ScrollView>
-      )}
+      <View className="gap-4 px-4"><View><Text className="text-3xl font-bold">{shop.name}</Text><Text className="mt-1 text-muted-foreground">{shop.description || shop.address}</Text></View><View className="flex-row gap-2"><Metric value={`★ ${shop.avgRating.toFixed(1)}`} label={`${shop.reviewCount} reviews`} /><Metric value={distanceKm == null ? '—' : `${distanceKm.toFixed(1)} km`} label="from you" /><Metric value={formatPriceRange(shop.priceMin, shop.priceMax)} label="price range" /></View></View>
 
-      <ShopLocationMap shop={shop} userLocation={location} />
+      <View className="flex-row border-b border-border px-4">{(['info', 'menu', 'reviews'] as ShopTab[]).map((item) => <Button key={item} variant="ghost" className={tab === item ? 'flex-1 border-b-2 border-accent rounded-none' : 'flex-1 rounded-none'} onPress={() => setTab(item)}><Text className={tab === item ? 'font-bold text-accent' : undefined}>{item === 'reviews' ? `Reviews (${shop.reviewCount})` : item[0].toUpperCase() + item.slice(1)}</Text></Button>)}</View>
 
-      <View className="flex-row gap-2">
-        <Button className="flex-1" variant={saved ? 'default' : 'outline'} loading={isSaving} loadingLabel="Saving…" onPress={toggleSave}>
-          <Text>{saved ? 'Saved' : 'Save'}</Text>
-        </Button>
-        <Button className="flex-1" variant={ids.includes(shop.id) ? 'default' : 'outline'} onPress={() => toggle(shop.id)}>
-          <Text>{ids.includes(shop.id) ? 'Added to compare' : '+ Compare'}</Text>
-        </Button>
-      </View>
-      {actionError && <Text accessibilityRole="alert" className="text-destructive">{actionError}</Text>}
-      {loadError && <Text accessibilityRole="alert" className="text-destructive">{loadError}</Text>}
-
-      <View className="gap-3">
-        <Text className="text-xl font-semibold">Reviews</Text>
-        {user ? (
-          <Card>
-            <CardHeader className="gap-3">
-              <CardTitle>Your review</CardTitle>
-              <Controller control={control} name="rating" render={({ field }) => (
-                <View className="flex-row gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Button key={star} size="icon" variant={star <= field.value ? 'default' : 'outline'} onPress={() => field.onChange(star)}>
-                      <Text>{star <= field.value ? '★' : '☆'}</Text>
-                    </Button>
-                  ))}
-                </View>
-              )} />
-              {errors.rating && <Text className="text-destructive">{errors.rating.message}</Text>}
-              <Controller control={control} name="text" render={({ field }) => (
-                <Input className="min-h-24 py-3" multiline maxLength={1000} placeholder="Share your experience (optional)" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />
-              )} />
-              {errors.text && <Text className="text-destructive">{errors.text.message}</Text>}
-              <Button loading={isSubmittingReview} loadingLabel="Posting review…" onPress={handleSubmit(handleReviewSubmit)}>
-                <Text>{reviews.some((review) => review.userId === user.uid) ? 'Update review' : 'Post review'}</Text>
-              </Button>
-            </CardHeader>
-          </Card>
-        ) : (
-          <Text className="text-muted-foreground">Log in to leave a review.</Text>
-        )}
-
-        {reviews.map((review) => (
-          <Card key={review.id}>
-            <CardHeader>
-              <View className="flex-row items-start justify-between gap-2">
-                <CardTitle className="flex-1">{review.userName}</CardTitle>
-                <Text>★ {review.rating}/5</Text>
-              </View>
-              <CardDescription>{review.text || 'No written comment.'}</CardDescription>
-              <Text className="text-xs text-muted-foreground">
-                {review.createdAt ? dayjs(review.createdAt.toDate()).fromNow() : 'Just now'}
-              </Text>
-            </CardHeader>
-          </Card>
-        ))}
-        {reviews.length === 0 && <Text className="text-muted-foreground">No reviews yet. Be the first to share one.</Text>}
-      </View>
+      <View className="px-4">{tab === 'info' ? <InfoTab shop={shop} location={location} saved={saved} saving={savingShopId === shop.id} compared={ids.includes(shop.id)} onSave={() => void toggleSavedShop(shop.id)} onCompare={() => toggle(shop.id)} /> : null}{tab === 'menu' ? <MenuTab products={products} /> : null}{tab === 'reviews' ? <ReviewsTab reviews={reviews} ratingCounts={ratingCounts} user={user ? { uid: user.uid } : null} control={control} errors={errors} isSubmitting={isSubmittingReview} onSubmit={handleSubmit(handleReviewSubmit)} hasOwnReview={ownReview} /> : null}</View>
+      {actionError || savedError || loadError ? <Text accessibilityRole="alert" className="px-4 text-destructive">{actionError || savedError || loadError}</Text> : null}
     </ScrollView>
   );
+}
+
+function Metric({ value, label }: { value: string; label: string }) { return <View className="flex-1 items-center rounded-xl bg-secondary px-2 py-3"><Text className="text-center font-bold">{value}</Text><Text className="mt-1 text-center text-xs text-muted-foreground">{label}</Text></View>; }
+
+function InfoTab({ shop, location, saved, saving, compared, onSave, onCompare }: { shop: Shop; location: { lat: number; lng: number } | null; saved: boolean; saving: boolean; compared: boolean; onSave: () => void; onCompare: () => void }) {
+  return <View className="gap-4"><View className="gap-2"><Text className="text-xl font-bold">Location reference</Text><ShopLocationMap shop={shop} userLocation={location} /></View><View className="flex-row gap-2"><Button className="flex-1" variant={saved ? 'default' : 'outline'} loading={saving} loadingLabel="Saving…" onPress={onSave}><Text>{saved ? 'Saved' : 'Save shop'}</Text></Button><Button className="flex-1" variant={compared ? 'secondary' : 'default'} onPress={onCompare}><Text>{compared ? 'In comparison' : 'Add to compare'}</Text></Button></View><Card><CardHeader className="gap-3"><CardTitle>Amenities</CardTitle><View className="flex-row flex-wrap gap-x-6 gap-y-3"><Amenity icon={<Icon as={Wifi} size={16} className={shop.hasWifi ? 'text-success-foreground' : 'text-muted-foreground'} />} label={shop.hasWifi ? 'Free WiFi' : 'No WiFi'} /><Amenity icon={<Icon as={MapPin} size={16} className="text-primary" />} label={openAmenityLabel(shop)} />{shop.tags.map((tag) => <Amenity key={tag} icon={<Text className="text-accent">✓</Text>} label={tag} />)}</View></CardHeader></Card></View>;
+}
+
+function openAmenityLabel(shop: Shop) { return isOpenNow(shop.hours) ? 'Open now' : 'Currently closed'; }
+function Amenity({ icon, label }: { icon: React.ReactNode; label: string }) { return <View className="min-w-[42%] flex-row items-center gap-2">{icon}<Text className="text-sm">{label}</Text></View>; }
+
+function MenuTab({ products }: { products: Product[] }) {
+  return <View className="gap-5">{PRODUCT_CATEGORIES.map((category) => { const items = products.filter((product) => product.category === category); if (!items.length) return null; return <View key={category} className="gap-2"><Text className="text-sm font-bold tracking-wider text-muted-foreground">{category.toUpperCase()}</Text>{items.map((product) => <Card key={product.id} className="py-3"><CardHeader><View className="flex-row justify-between gap-3"><View className="flex-1"><CardTitle>{product.name}{!product.available ? ' · Unavailable' : ''}</CardTitle>{product.description ? <CardDescription>{product.description}</CardDescription> : null}</View><Text className="font-bold">₱{product.price}</Text></View></CardHeader></Card>)}</View>; })}{products.length === 0 ? <Text className="py-8 text-center text-muted-foreground">This shop has not added menu items yet.</Text> : null}</View>;
+}
+
+function ReviewsTab({ reviews, ratingCounts, user, control, errors, isSubmitting, onSubmit, hasOwnReview }: { reviews: Review[]; ratingCounts: Record<'1' | '2' | '3' | '4' | '5', number>; user: { uid: string } | null; control: ReturnType<typeof useForm<ReviewFormInput, any, ReviewFormValues>>['control']; errors: ReturnType<typeof useForm<ReviewFormInput, any, ReviewFormValues>>['formState']['errors']; isSubmitting: boolean; onSubmit: () => void; hasOwnReview: boolean }) {
+  const total = Object.values(ratingCounts).reduce((sum, count) => sum + count, 0);
+  return <View className="gap-4"><Card className="py-4"><CardHeader className="gap-2"><CardTitle>Ratings overview</CardTitle>{[5, 4, 3, 2, 1].map((rating) => <View key={rating} className="flex-row items-center gap-2"><Text className="w-5 text-sm">{rating}★</Text><View className="h-2 flex-1 overflow-hidden rounded-full bg-secondary"><View className="h-full bg-accent" style={{ width: `${total ? ((ratingCounts[String(rating) as keyof typeof ratingCounts] / total) * 100) : 0}%` }} /></View><Text className="w-10 text-right text-xs text-muted-foreground">{total ? Math.round((ratingCounts[String(rating) as keyof typeof ratingCounts] / total) * 100) : 0}%</Text></View>)}</CardHeader></Card>{user ? <Card><CardHeader className="gap-3"><CardTitle>Your review</CardTitle><Controller control={control} name="rating" render={({ field }) => <View className="flex-row gap-1">{[1, 2, 3, 4, 5].map((star) => <Button key={star} size="icon" variant={star <= field.value ? 'default' : 'outline'} onPress={() => field.onChange(star)}><Text>{star <= field.value ? '★' : '☆'}</Text></Button>)}</View>} />{errors.rating ? <Text className="text-destructive">{errors.rating.message}</Text> : null}<Controller control={control} name="text" render={({ field }) => <Input className="min-h-24 py-3" multiline maxLength={1000} placeholder="Share your experience (optional)" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />} />{errors.text ? <Text className="text-destructive">{errors.text.message}</Text> : null}<Button loading={isSubmitting} loadingLabel="Posting review…" onPress={onSubmit}><Text>{hasOwnReview ? 'Update review' : 'Post review'}</Text></Button></CardHeader></Card> : <Text className="text-muted-foreground">Log in to leave a review.</Text>}{reviews.map((review) => <Card key={review.id}><CardHeader><View className="flex-row justify-between gap-2"><CardTitle className="flex-1">{review.userName}</CardTitle><Text>★ {review.rating}/5</Text></View><CardDescription>{review.text || 'No written comment.'}</CardDescription><Text className="text-xs text-muted-foreground">{review.createdAt ? dayjs(review.createdAt.toDate()).fromNow() : 'Just now'}</Text>{review.ownerReply ? <View className="mt-2 rounded-lg bg-secondary p-3"><Text className="font-semibold">Owner response</Text><Text className="mt-1 text-sm">{review.ownerReply.text}</Text></View> : null}</CardHeader></Card>)}{reviews.length === 0 ? <Text className="text-muted-foreground">No reviews yet. Be the first to share one.</Text> : null}</View>;
 }

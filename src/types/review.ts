@@ -7,4 +7,5 @@ export interface Review {
   rating: number;
   text: string;
   createdAt: Timestamp | null;
+  ownerReply?: { text: string; repliedAt: Timestamp } | null;
 }

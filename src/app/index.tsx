@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Text } from '@/components/ui/text';
 
 export default function Index() {
-  const { user, role, loading } = useAuth();
+  const { user, role, status, loading } = useAuth();
 
   if (loading) {
     return (
@@ -15,6 +15,7 @@ export default function Index() {
   }
 
   if (!user) return <Redirect href="/(auth)/login" />;
+  if (status === 'suspended') return <Redirect href={'/(auth)/suspended' as never} />;
   if (role === 'owner') return <Redirect href="/(owner)" />;
   if (role === 'admin') return <Redirect href="/(admin)" />;
   return <Redirect href="/(user)" />;

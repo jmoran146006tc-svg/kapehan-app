@@ -1,11 +1,29 @@
 import { collection, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { withTimeout } from '@/lib/timeout';
 
 interface ShopRatingData {
   ownerId: string;
   name: string;
   avgRating?: number;
   reviewCount?: number;
+  ratingCounts?: Record<'1' | '2' | '3' | '4' | '5', number>;
+}
+
+function nextRatingCounts(
+  counts: ShopRatingData['ratingCounts'],
+  previousRating: number,
+  rating: number,
+): ShopRatingData['ratingCounts'] | undefined {
+  if (!counts) return undefined;
+  const next = { ...counts };
+  if (previousRating >= 1 && previousRating <= 5) {
+    const key = String(previousRating) as keyof typeof next;
+    next[key] = Math.max(0, next[key] - 1);
+  }
+  const nextKey = String(rating) as keyof typeof next;
+  next[nextKey] = (next[nextKey] ?? 0) + 1;
+  return next;
 }
 
 export async function submitReview(
@@ -23,7 +41,7 @@ export async function submitReview(
   // A UID document ID lets the transaction safely choose between a first review and an edit.
   const reviewRef = doc(db, 'shops', shopId, 'reviews', userId);
 
-  await runTransaction(db, async (tx) => {
+  await withTimeout(runTransaction(db, async (tx) => {
     // Firestore requires all transaction reads before its writes.
     const shopSnap = await tx.get(shopRef);
     const reviewSnap = await tx.get(reviewRef);
@@ -40,7 +58,12 @@ export async function submitReview(
     const nextAverage = (previousTotal - previousRating + rating) / nextCount;
 
     tx.set(reviewRef, { userId, userName, rating, text, createdAt: serverTimestamp() }, { merge: true });
-    tx.update(shopRef, { avgRating: nextAverage, reviewCount: nextCount });
+    const ratingCounts = nextRatingCounts(shop.ratingCounts, previousRating, rating);
+    tx.update(shopRef, {
+      avgRating: nextAverage,
+      reviewCount: nextCount,
+      ...(ratingCounts ? { ratingCounts } : {}),
+    });
 
     if (shop.ownerId !== userId) {
       const notificationRef = doc(collection(db, 'users', shop.ownerId, 'notifications'));
@@ -52,5 +75,5 @@ export async function submitReview(
         createdAt: serverTimestamp(),
       });
     }
-  });
+  }));
 }

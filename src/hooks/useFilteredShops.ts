@@ -24,7 +24,8 @@ export function useFilteredShops() {
           filters.priceBuckets.length &&
           (shop.priceMin == null || !filters.priceBuckets.includes(getPriceBucket(shop.priceMin)))
         ) return false;
-        if (filters.wifiRating.length && !filters.wifiRating.includes(shop.wifiRating)) return false;
+        if (filters.wifiOnly && !shop.hasWifi) return false;
+        if (filters.tags.length && !filters.tags.every((tag) => shop.tags?.includes(tag))) return false;
         if (filters.openNowOnly && !shop.openNow) return false;
         if (filters.maxDistanceKm != null && (shop.distanceKm == null || shop.distanceKm > filters.maxDistanceKm))
           return false;
