@@ -1,4 +1,4 @@
-// ⚠️ MERGE this into your EXISTING app/_layout.tsx — do not overwrite.
+// Important: merge this into an existing app layout rather than overwriting it.
 // Your current file already has ThemeProvider / font-loading / SplashScreen
 // logic from the Expo template — keep all of that. The only two things this
 // scaffold actually needs:

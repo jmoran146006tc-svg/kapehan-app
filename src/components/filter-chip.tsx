@@ -9,8 +9,8 @@ interface FilterChipProps {
 
 export function FilterChip({ label, selected = false, onPress }: FilterChipProps) {
   return (
-    <Button size="sm" variant={selected ? 'default' : 'outline'} className={selected ? 'rounded-full bg-accent' : 'rounded-full bg-secondary'} onPress={onPress}>
-      <Text>{label}</Text>
+    <Button size="sm" variant={selected ? 'default' : 'outline'} className={selected ? 'shrink-0 rounded-full bg-accent' : 'shrink-0 rounded-full bg-secondary'} onPress={onPress}>
+      <Text className={selected ? 'text-accent-foreground' : 'text-foreground'}>{label}</Text>
     </Button>
   );
 }

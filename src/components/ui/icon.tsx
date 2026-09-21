@@ -42,13 +42,14 @@ cssInterop(IconImpl as React.ComponentType<any>, {
  * @param {number} size - Icon size (defaults to 14).
  * @param {...LucideProps} ...props - Additional Lucide icon props passed to the "as" icon.
  */
-function Icon({ as: IconComponent, className, size = 14, ...props }: IconProps) {
+function Icon({ as: IconComponent, className, size = 14, strokeWidth = 2.75, ...props }: IconProps) {
   const textClass = React.useContext(TextClassContext);
   return (
     <IconImpl
       as={IconComponent}
       className={cn('text-foreground', textClass, className)}
       size={size}
+      strokeWidth={strokeWidth}
       {...props}
     />
   );

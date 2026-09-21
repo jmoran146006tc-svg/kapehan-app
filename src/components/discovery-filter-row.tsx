@@ -9,7 +9,7 @@ export function DiscoveryFilterRow() {
   const hasActiveFilter = wifiOnly || openNowOnly || priceBuckets.length > 0 || tags.length > 0;
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 pr-4">
+    <ScrollView horizontal className="min-h-11" showsHorizontalScrollIndicator={false} contentContainerClassName="items-center gap-2 py-1 pr-4">
       <FilterChip label="All" selected={!hasActiveFilter} onPress={reset} />
       <FilterChip label="Open Now" selected={openNowOnly} onPress={() => setFilter('openNowOnly', !openNowOnly)} />
       <FilterChip label="WiFi" selected={wifiOnly} onPress={() => setFilter('wifiOnly', !wifiOnly)} />

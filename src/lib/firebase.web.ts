@@ -1,8 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore } from 'firebase/firestore';
+import { initializeFirestore, setLogLevel } from 'firebase/firestore';
 import { firebaseConfig } from './firebaseConfig';
-import { setLogLevel } from 'firebase/firestore';
 
 if (__DEV__) setLogLevel('debug');
 

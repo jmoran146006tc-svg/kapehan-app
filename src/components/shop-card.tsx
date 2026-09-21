@@ -42,9 +42,9 @@ export function ShopCard({ shop, onPress, saved = false, saving = false, onToggl
         <CardHeader className="gap-1 pb-1">
           <CardTitle>{shop.name}</CardTitle>
           {shop.description ? <CardDescription numberOfLines={1}>{shop.description}</CardDescription> : null}
-          <View className="flex-row flex-wrap items-center gap-2">
+          <View className="flex-row items-center gap-2">
             <View className="flex-row items-center gap-1">
-              <Icon as={Star} size={14} className="text-primary" />
+              <Icon as={Star} size={14} fill="currentColor" className="text-accent" />
               <Text className="text-sm">{shop.avgRating.toFixed(1)} ({shop.reviewCount})</Text>
             </View>
             {shop.distanceKm != null ? (
@@ -59,7 +59,7 @@ export function ShopCard({ shop, onPress, saved = false, saving = false, onToggl
 
       {onToggleSaved ? (
         <Button size="icon" variant="secondary" className="absolute right-3 top-3 rounded-full bg-card/95" loading={saving} loadingLabel="…" onPress={onToggleSaved}>
-          <Icon as={Heart} size={18} className={saved ? 'fill-accent text-accent' : 'text-foreground'} />
+          <Icon as={Heart} size={18} fill={saved ? 'currentColor' : 'none'} className={saved ? 'text-accent' : 'text-foreground'} />
         </Button>
       ) : null}
 

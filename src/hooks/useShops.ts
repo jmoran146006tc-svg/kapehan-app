@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Shop } from '@/types/shop';
+import { toShop, type Shop } from '@/types/shop';
 
 export function useShops() {
   const [shops, setShops] = useState<Shop[]>([]);
@@ -12,7 +12,7 @@ export function useShops() {
     return onSnapshot(
   q,
   (snap) => {
-    setShops(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Shop)));
+    setShops(snap.docs.map((shop) => toShop(shop.id, shop.data())));
     setLoading(false);
   },
   (error) => {

@@ -7,22 +7,21 @@ import { withTimeout } from '@/lib/timeout';
 
 export function useSavedShops() {
   const { user } = useAuth();
-  const [savedShopIds, setSavedShopIds] = useState<string[]>([]);
+  const [savedSnapshot, setSavedSnapshot] = useState<{ userId: string | null; ids: string[] }>({ userId: null, ids: [] });
   const [savingShopId, setSavingShopId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
-      setSavedShopIds([]);
-      return;
-    }
+    if (!user) return;
 
     return onSnapshot(
       doc(db, 'users', user.uid),
-      (snapshot) => setSavedShopIds(snapshot.data()?.savedShopIds ?? []),
+      (snapshot) => setSavedSnapshot({ userId: user.uid, ids: snapshot.data()?.savedShopIds ?? [] }),
       (snapshotError) => setError(getUserFriendlyError(snapshotError, 'We could not load your saved shops. Please try again.')),
     );
   }, [user]);
+
+  const savedShopIds = savedSnapshot.userId === user?.uid ? savedSnapshot.ids : [];
 
   async function toggleSavedShop(shopId: string) {
     if (!user) {

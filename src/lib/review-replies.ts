@@ -12,7 +12,7 @@ export async function saveOwnerReply(shopId: string, reviewId: string, text: str
     const [shopSnapshot, reviewSnapshot] = await Promise.all([transaction.get(shopRef), transaction.get(reviewRef)]);
     if (!shopSnapshot.exists() || !reviewSnapshot.exists()) throw new Error('This review is no longer available.');
     const review = reviewSnapshot.data();
-    const isFirstReply = !review.ownerReply;
+    const isFirstReply = !review.ownerReply?.text;
 
     transaction.update(reviewRef, { ownerReply: { text: reply, repliedAt: serverTimestamp() } });
     if (isFirstReply) {

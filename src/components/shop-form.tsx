@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Image, Pressable } from 'react-native';
+import { View, Image, Pressable, ScrollView } from 'react-native';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
@@ -132,7 +132,7 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
       )} />
 
       <Text className="font-semibold">Tags</Text>
-      <View className="flex-row flex-wrap gap-2">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 pr-4">
         {TAG_OPTIONS.map((tag) => {
           const selected = tags.includes(tag);
           return (
@@ -147,7 +147,7 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
             </Button>
           );
         })}
-      </View>
+      </ScrollView>
       <Text className="text-muted-foreground text-xs -mt-2">Choose up to {MAX_TAGS_PER_SHOP} tags.</Text>
       {errors.tags && <Text className="text-destructive">{errors.tags.message}</Text>}
 

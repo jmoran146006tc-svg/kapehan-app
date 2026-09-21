@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import { signOut } from 'firebase/auth';
+import { LogOut } from 'lucide-react-native';
 import { auth } from '@/lib/firebase';
 import { getUserFriendlyError } from '@/lib/errors';
 import { withTimeout } from '@/lib/timeout';
 import { Button, type ButtonProps } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 
 type LogoutButtonProps = Pick<ButtonProps, 'className' | 'size' | 'variant'>;
@@ -27,6 +29,7 @@ export function LogoutButton({ className, size, variant = 'outline' }: LogoutBut
 
   return (
     <Button className={className} size={size} variant={variant} loading={isSigningOut} loadingLabel="Logging out…" onPress={handleSignOut}>
+      <Icon as={LogOut} size={16} className={variant === 'ghost' ? 'text-primary-foreground' : undefined} />
       <Text className={variant === 'ghost' ? 'text-primary-foreground' : undefined}>Log Out</Text>
     </Button>
   );

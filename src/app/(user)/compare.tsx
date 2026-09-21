@@ -1,6 +1,6 @@
 import { Image, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowLeft, X } from 'lucide-react-native';
+import { ArrowLeft, Star, X } from 'lucide-react-native';
 import { useCompareStore } from '@/store/compareStore';
 import { useShops } from '@/hooks/useShops';
 import { isOpenNow } from '@/utils/hours';
@@ -18,7 +18,7 @@ type Row = {
 };
 
 const BASE_ROWS: Row[] = [
-  { label: 'Rating', value: (shop) => `★ ${shop.avgRating.toFixed(1)}`, score: (shop) => shop.avgRating },
+  { label: 'Rating', value: (shop) => shop.avgRating.toFixed(1), score: (shop) => shop.avgRating },
   { label: 'Reviews', value: (shop) => String(shop.reviewCount), score: (shop) => shop.reviewCount },
   { label: 'Price', value: (shop) => formatPriceRange(shop.priceMin, shop.priceMax), score: (shop) => shop.priceMin, lowerWins: true },
   { label: 'Distance', value: () => 'Location-based', score: () => null, lowerWins: true },
@@ -37,14 +37,20 @@ function isBest(row: Row, shop: Shop, selected: Shop[]) {
 }
 
 export default function CompareScreen() {
-  const { ids, toggle } = useCompareStore();
-  const { shops } = useShops();
-  const selected = shops.filter((shop) => ids.includes(shop.id));
+  const ids = useCompareStore((state) => state.ids);
+  const toggle = useCompareStore((state) => state.toggle);
+  const { shops, loading } = useShops();
+  const shopsById = new Map(shops.map((shop) => [shop.id, shop]));
+  const selected = ids.map((id) => shopsById.get(id)).filter((shop): shop is Shop => Boolean(shop));
   const tagRows: Row[] = [...new Set(selected.flatMap((shop) => shop.tags ?? []))].map((tag) => ({
     label: tag,
     value: (shop) => shop.tags?.includes(tag) ? 'Yes' : 'No',
   }));
   const rows = [...BASE_ROWS, ...tagRows];
+
+  if (loading && ids.length > 0) {
+    return <View className="flex-1 items-center justify-center bg-background p-6"><Text className="text-muted-foreground">Loading your comparison…</Text></View>;
+  }
 
   if (selected.length === 0) {
     return <View className="flex-1 items-center justify-center gap-3 bg-background p-6"><Text className="text-center text-muted-foreground">Tap “+ Compare” on two or three coffee shops first.</Text><Button onPress={() => router.replace('/(user)/search')}><Text>Browse shops</Text></Button></View>;
@@ -68,7 +74,7 @@ export default function CompareScreen() {
               <View className="flex-row items-start gap-1"><Text numberOfLines={1} className="flex-1 font-bold">{shop.name}</Text><Button size="sm" variant="ghost" className="h-6 w-6 px-0" onPress={() => toggle(shop.id)}><Icon as={X} size={14} /></Button></View>
               <Text numberOfLines={1} className="text-xs text-muted-foreground">{shop.description || 'Coffee shop in Tagum'}</Text>
             </View>
-            {rows.map((row) => <View key={row.label} className={isBest(row, shop, selected) ? 'min-h-14 border-b border-l-4 border-accent bg-accent/10 px-2 py-4' : 'min-h-14 border-b border-border px-2 py-4'}><Text className="text-center text-sm">{row.value(shop)}</Text></View>)}
+            {rows.map((row) => <View key={row.label} className={isBest(row, shop, selected) ? 'min-h-14 border-b border-l-4 border-accent bg-accent/10 px-2 py-4' : 'min-h-14 border-b border-border px-2 py-4'}>{row.label === 'Rating' ? <View className="flex-row items-center justify-center gap-1"><Icon as={Star} size={14} fill="currentColor" className="text-accent" /><Text className="text-center text-sm">{row.value(shop)}</Text></View> : <Text className="text-center text-sm">{row.value(shop)}</Text>}</View>)}
           </View>
         ))}
       </ScrollView>

@@ -1,6 +1,6 @@
 import { ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowRight, MapPin, Search } from 'lucide-react-native';
+import { ArrowRight, MapPin, Moon, Search, Sun } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFilteredShops } from '@/hooks/useFilteredShops';
 import { useCompareStore } from '@/store/compareStore';
@@ -10,7 +10,6 @@ import { ShopCard } from '@/components/shop-card';
 import { UserNotificationButton } from '@/components/user-notification-button';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
-import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { isOpenNow } from '@/utils/hours';
 
@@ -18,7 +17,8 @@ export default function HomeScreen() {
   const shops = useFilteredShops();
   const featured = [...shops].sort((a, b) => b.avgRating - a.avgRating).slice(0, 5);
   const openCount = shops.filter((shop) => isOpenNow(shop.hours)).length;
-  const { ids, toggle } = useCompareStore();
+  const ids = useCompareStore((state) => state.ids);
+  const toggle = useCompareStore((state) => state.toggle);
   const { savedShopIds, savingShopId, toggleSavedShop, error: savedError } = useSavedShops();
 
   return (
@@ -27,7 +27,7 @@ export default function HomeScreen() {
         <View className="gap-4 bg-primary px-4 pb-5 pt-3">
           <View className="flex-row items-start justify-between">
             <View>
-              <Text className="text-sm text-primary-foreground/70">{greeting()}</Text>
+              <View className="flex-row items-center gap-2"><Icon as={greeting().icon} size={16} className="text-primary-foreground/70" /><Text className="text-sm text-primary-foreground/70">{greeting().label}</Text></View>
               <Text className="mt-1 text-3xl font-bold text-primary-foreground">Find Your Kape</Text>
             </View>
             <UserNotificationButton />
@@ -40,9 +40,9 @@ export default function HomeScreen() {
         </View>
 
         <View className="gap-4 px-4">
-          <Button variant="secondary" className="h-auto items-center justify-between rounded-2xl bg-secondary px-4 py-4" onPress={() => router.push('/(user)/map' as never)}>
-            <View className="flex-1 gap-1">
-              <View className="flex-row items-center gap-2"><Icon as={MapPin} size={17} className="text-primary" /><Text className="font-bold">Explore on Maps</Text></View>
+          <Button variant="secondary" className="h-auto items-center justify-between rounded-2xl bg-secondary px-5 py-5" onPress={() => router.push('/(user)/map' as never)}>
+            <View className="flex-1 gap-2">
+              <View className="flex-row items-center gap-3"><Icon as={MapPin} size={18} className="text-primary" /><Text className="font-bold">Explore on Maps</Text></View>
               <Text className="text-sm text-muted-foreground">{openCount} shop{openCount === 1 ? '' : 's'} open near you</Text>
             </View>
             <View className="h-9 w-9 items-center justify-center rounded-full bg-accent"><Icon as={ArrowRight} size={18} className="text-white" /></View>
@@ -65,9 +65,9 @@ export default function HomeScreen() {
   );
 }
 
-function greeting() {
+function greeting(): { label: string; icon: typeof Sun } {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning ☀️';
-  if (hour < 18) return 'Good afternoon ☀️';
-  return 'Good evening 🌙';
+  if (hour < 12) return { label: 'Good morning', icon: Sun };
+  if (hour < 18) return { label: 'Good afternoon', icon: Sun };
+  return { label: 'Good evening', icon: Moon };
 }

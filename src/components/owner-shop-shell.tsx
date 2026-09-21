@@ -3,7 +3,7 @@ import { Image, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Shop } from '@/types/shop';
+import { toShop, type Shop } from '@/types/shop';
 import { LogoutButton } from '@/components/logout-button';
 import { StatTile } from '@/components/stat-tile';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ export function OwnerShopShell({ active, children }: { active: OwnerTab; childre
 
   useEffect(() => {
     if (!id) return;
-    return onSnapshot(doc(db, 'shops', id), (snapshot) => setShop(snapshot.exists() ? ({ id: snapshot.id, ...snapshot.data() } as Shop) : null));
+    return onSnapshot(doc(db, 'shops', id), (snapshot) => setShop(snapshot.exists() ? toShop(snapshot.id, snapshot.data()) : null));
   }, [id]);
 
   if (!shop) return <View className="flex-1 items-center justify-center bg-background"><Text className="text-muted-foreground">Loading shop dashboard…</Text></View>;
