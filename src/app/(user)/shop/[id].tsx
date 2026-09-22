@@ -72,7 +72,7 @@ export default function ShopDetailScreen() {
 
   useEffect(() => {
     if (!user || !id) return;
-    void logShopView(user.uid, id).catch(() => undefined);
+    void logShopView(user.uid, id).catch((error) => console.error('Failed to log shop view', error));
   }, [id, user]);
 
   useEffect(() => {
@@ -126,7 +126,7 @@ function openAmenityLabel(shop: Shop) { return isOpenNow(shop.hours) ? 'Open now
 function Amenity({ icon, label }: { icon: React.ReactNode; label: string }) { return <View className="flex-row items-center gap-2">{icon}<Text className="text-sm">{label}</Text></View>; }
 
 function MenuTab({ products }: { products: Product[] }) {
-  return <View className="gap-5">{PRODUCT_CATEGORIES.map((category) => { const items = products.filter((product) => product.category === category); if (!items.length) return null; return <View key={category} className="gap-2"><Text className="text-sm font-bold tracking-wider text-muted-foreground">{category.toUpperCase()}</Text>{items.map((product) => <Card key={product.id} className="py-3"><CardHeader><View className="flex-row justify-between gap-3"><View className="flex-1"><CardTitle>{product.name}{!product.available ? ' · Unavailable' : ''}</CardTitle>{product.description ? <CardDescription>{product.description}</CardDescription> : null}</View><Text className="font-bold">PHP {product.price}</Text></View></CardHeader></Card>)}</View>; })}{products.length === 0 ? <Text className="py-8 text-center text-muted-foreground">This shop has not added menu items yet.</Text> : null}</View>;
+  return <View className="gap-5">{PRODUCT_CATEGORIES.map((category) => { const items = products.filter((product) => product.category === category); if (!items.length) return null; return <View key={category} className="gap-2"><Text className="text-sm font-bold tracking-wider text-muted-foreground">{category.toUpperCase()}</Text>{items.map((product) => <Card key={product.id} className="py-3"><CardHeader><View className="flex-row items-center gap-3"><View className="h-12 w-12 overflow-hidden rounded-lg bg-secondary">{product.photoUrl ? <Image source={{ uri: product.photoUrl }} className="h-full w-full" resizeMode="cover" /> : null}</View><View className="flex-1 flex-row justify-between gap-3"><View className="flex-1"><CardTitle>{product.name}{!product.available ? ' · Unavailable' : ''}</CardTitle>{product.description ? <CardDescription>{product.description}</CardDescription> : null}</View><Text className="font-bold">PHP {product.price}</Text></View></View></CardHeader></Card>)}</View>; })}{products.length === 0 ? <Text className="py-8 text-center text-muted-foreground">This shop has not added menu items yet.</Text> : null}</View>;
 }
 
 function ReviewsTab({ reviews, ratingCounts, user, control, errors, isSubmitting, onSubmit, hasOwnReview }: { reviews: Review[]; ratingCounts: Record<'1' | '2' | '3' | '4' | '5', number>; user: { uid: string } | null; control: ReturnType<typeof useForm<ReviewFormInput, any, ReviewFormValues>>['control']; errors: ReturnType<typeof useForm<ReviewFormInput, any, ReviewFormValues>>['formState']['errors']; isSubmitting: boolean; onSubmit: () => void; hasOwnReview: boolean }) {

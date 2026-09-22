@@ -39,9 +39,9 @@ export default function HomeScreen() {
           <DiscoveryFilterRow />
         </View>
 
-        <View className="gap-4 px-4">
-          <Button variant="secondary" className="h-auto items-center justify-between rounded-2xl bg-secondary px-5 py-5" onPress={() => router.push('/(user)/map' as never)}>
-            <View className="flex-1 gap-2">
+        <View className="mx-auto w-full max-w-2xl gap-4 px-4">
+          <Button variant="secondary" className="h-auto items-center justify-between rounded-2xl bg-secondary px-6 py-6" onPress={() => router.push('/(user)/map' as never)}>
+            <View className="flex-1 gap-3">
               <View className="flex-row items-center gap-3"><Icon as={MapPin} size={18} className="text-primary" /><Text className="font-bold">Explore on Maps</Text></View>
               <Text className="text-sm text-muted-foreground">{openCount} shop{openCount === 1 ? '' : 's'} open near you</Text>
             </View>

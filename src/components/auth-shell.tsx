@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { Coffee } from 'lucide-react-native';
 import { Link } from 'expo-router';
 import { Icon } from '@/components/ui/icon';
@@ -19,7 +19,7 @@ export function AuthShell({ active, children }: AuthShellProps) {
         <Text className="font-serif text-4xl font-bold text-primary-foreground">Kapehan</Text>
         <Text className="text-center text-sm text-primary-foreground/75">Discover your perfect cup in Tagum City</Text>
       </View>
-      <View className="min-h-[62%] flex-1 gap-5 rounded-t-3xl bg-background px-6 py-6">
+      <ScrollView className="min-h-[62%] flex-1 rounded-t-3xl bg-background" contentContainerClassName="gap-5 px-6 py-6" keyboardShouldPersistTaps="handled">
         <View className="flex-row rounded-full bg-secondary p-1">
           <Link href="/(auth)/login" className={active === 'login' ? 'flex-1 rounded-full bg-primary px-3 py-2 text-center' : 'flex-1 rounded-full px-3 py-2 text-center'}>
             <Text className={active === 'login' ? 'text-center font-semibold text-primary-foreground' : 'text-center font-semibold'}>Log In</Text>
@@ -29,7 +29,7 @@ export function AuthShell({ active, children }: AuthShellProps) {
           </Link>
         </View>
         {children}
-      </View>
+      </ScrollView>
     </View>
   );
 }
