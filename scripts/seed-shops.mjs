@@ -162,9 +162,8 @@ const TAGUM_CENTER = { lat: 7.4478, lng: 125.8078 }; // Tagum City proper, appro
 const JITTER_DEG = 0.02; // spreads pins across roughly a 2km radius
 
 const TAG_OPTIONS = [
-  "Quiet", "Study-Friendly", "Airconditioned", "Open 24/7", "Nature", "Cozy",
-  "Pet-Friendly", "Outdoor Seating", "Free Parking", "Vegan Options",
-  "Live Music", "Power Outlets", "Group-Friendly",
+  "Quiet", "Study-Friendly", "Airconditioned", "Open 24/7", "Outdoor Seating",
+  "Vegan Options", "Power Outlets", "Group-Friendly",
 ];
 
 const PRODUCT_POOL = [

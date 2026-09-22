@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
-import { Check, Coffee, X } from 'lucide-react-native';
+import { Calendar, Check, Coffee, Mail, Star, X } from 'lucide-react-native';
 import { collection, collectionGroup, doc, onSnapshot, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
@@ -41,13 +41,28 @@ export default function AdminDashboardScreen() {
   const reviews = Object.values(reviewCounts).reduce((sum, count) => sum + count, 0);
 
   async function setUserStatus(account: AdminUser, status: 'active' | 'suspended') { setError(null); setUpdatingId(account.id); try { await withTimeout(writeUserStatus(account.id, status)); } catch (actionError) { setError(getUserFriendlyError(actionError, 'We could not update this account. Please try again.')); } finally { setUpdatingId(null); } }
-  async function setShopStatus(shop: Shop, status: 'approved' | 'rejected') { setError(null); setUpdatingId(shop.id); try { await withTimeout(writeShopStatus(shop, status)); } catch (actionError) { setError(getUserFriendlyError(actionError, 'We could not update this listing. Please try again.')); } finally { setUpdatingId(null); } }
+  async function setShopStatus(shop: Shop, status: 'approved' | 'rejected') {
+    setError(null);
+    setUpdatingId(shop.id);
+    try {
+      await withTimeout(writeShopStatus(shop, status));
+    } catch (actionError) {
+      const code = typeof actionError === 'object' && actionError !== null && 'code' in actionError ? String(actionError.code) : 'unknown';
+      const message = actionError instanceof Error ? actionError.message : String(actionError);
+      console.warn('Admin shop status update failed', { shopId: shop.id, status, code, message });
+      setError(getUserFriendlyError(actionError, 'We could not update this listing. Please try again.'));
+    } finally {
+      setUpdatingId(null);
+    }
+  }
 
   return <ScrollView className="flex-1 bg-background" contentContainerClassName="mx-auto w-full max-w-2xl gap-4 pb-8"><View className="gap-4 bg-primary px-4 pb-5 pt-12"><View className="flex-row items-center justify-between"><View><Text className="text-2xl font-bold text-primary-foreground">Admin Dashboard</Text><Text className="text-sm text-primary-foreground/70">Kapehan · Content Management</Text></View><LogoutButton size="sm" variant="ghost" /></View><View className="flex-row gap-2"><StatTile value={users.length} label="Users" tone="onDark" className="border-primary-foreground/10 bg-primary-foreground/10" /><StatTile value={owners} label="Owners" tone="onDark" className="border-primary-foreground/10 bg-primary-foreground/10" /><StatTile value={pending} label="Pending" tone="onDark" className="border-primary-foreground/10 bg-primary-foreground/10" /><StatTile value={reviews} label="Reviews" tone="onDark" className="border-primary-foreground/10 bg-primary-foreground/10" /></View></View><View className="gap-4 px-4"><View className="flex-row border-b border-border"><Button variant="ghost" className={tab === 'users' ? 'flex-1 rounded-none border-b-2 border-accent' : 'flex-1 rounded-none'} onPress={() => setTab('users')}><Text className={tab === 'users' ? 'font-bold text-accent' : undefined}>Users</Text></Button><Button variant="ghost" className={tab === 'owners' ? 'flex-1 rounded-none border-b-2 border-accent' : 'flex-1 rounded-none'} onPress={() => setTab('owners')}><Text className={tab === 'owners' ? 'font-bold text-accent' : undefined}>Owners {pending ? `(${pending})` : ''}</Text></Button></View>{error ? <Text accessibilityRole="alert" className="text-destructive">{error}</Text> : null}{tab === 'users' ? <UsersList users={customerUsers} reviewCounts={reviewCounts} adminId={admin?.uid} updatingId={updatingId} onStatus={setUserStatus} /> : <OwnersList shops={shops} updatingId={updatingId} onStatus={setShopStatus} />}</View></ScrollView>;
 }
 
 function UsersList({ users, reviewCounts, adminId, updatingId, onStatus }: { users: AdminUser[]; reviewCounts: Record<string, number>; adminId?: string; updatingId: string | null; onStatus: (account: AdminUser, status: 'active' | 'suspended') => void }) {
   const [viewingAccount, setViewingAccount] = useState<AdminUser | null>(null);
+  const viewingInitials = (viewingAccount?.name || viewingAccount?.email || 'U').split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+  const viewingStatus = viewingAccount?.status ?? 'active';
 
   return <>
     <View className="gap-3">
@@ -61,13 +76,15 @@ function UsersList({ users, reviewCounts, adminId, updatingId, onStatus }: { use
     </View>
     <Dialog open={!!viewingAccount} onOpenChange={(open) => { if (!open) setViewingAccount(null); }}>
       <DialogContent>
-        <DialogHeader><DialogTitle>{viewingAccount?.name || 'Unnamed user'}</DialogTitle></DialogHeader>
-        <View className="gap-2">
-          <Text>Email: {viewingAccount?.email || 'No email on file'}</Text>
-          <Text>Role: {viewingAccount?.role}</Text>
-          <Text>Status: {viewingAccount?.status ?? 'active'}</Text>
-          <Text>Joined: {viewingAccount?.createdAt ? dayjs(viewingAccount.createdAt.toDate()).format('MMM D, YYYY') : 'Unknown'}</Text>
-          <Text>Reviews written: {reviewCounts[viewingAccount?.id ?? ''] ?? 0}</Text>
+        <DialogHeader className="items-center gap-3">
+          <View className="h-16 w-16 items-center justify-center rounded-full bg-secondary"><Text className="text-xl font-bold">{viewingInitials}</Text></View>
+          <DialogTitle>{viewingAccount?.name || 'Unnamed user'}</DialogTitle>
+        </DialogHeader>
+        <View className="gap-3">
+          <View className="flex-row items-center gap-3"><Icon as={Mail} size={18} className="text-muted-foreground" /><View className="flex-1"><Text className="text-xs text-muted-foreground">Email</Text><Text>{viewingAccount?.email || 'No email on file'}</Text></View></View>
+          <View className="flex-row gap-3"><View className="flex-1 gap-1"><Text className="text-xs text-muted-foreground">Role</Text><Badge variant="secondary"><Text>{viewingAccount?.role ?? 'user'}</Text></Badge></View><View className="flex-1 gap-1"><Text className="text-xs text-muted-foreground">Status</Text><Badge className={viewingStatus === 'active' ? 'border-transparent bg-green-100' : 'border-transparent bg-red-100'} variant="secondary"><Text className={viewingStatus === 'active' ? 'text-green-800' : 'text-red-700'}>{viewingStatus}</Text></Badge></View></View>
+          <View className="flex-row items-center gap-3"><Icon as={Calendar} size={18} className="text-muted-foreground" /><View><Text className="text-xs text-muted-foreground">Joined</Text><Text>{viewingAccount?.createdAt ? dayjs(viewingAccount.createdAt.toDate()).format('MMM D, YYYY') : 'Unknown'}</Text></View></View>
+          <View className="flex-row items-center gap-3"><Icon as={Star} size={18} className="text-accent" /><View><Text className="text-xs text-muted-foreground">Reviews written</Text><Text>{reviewCounts[viewingAccount?.id ?? ''] ?? 0}</Text></View></View>
         </View>
       </DialogContent>
     </Dialog>

@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { collection, doc, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Check, MapPin, Star, Wifi, type LucideIcon } from 'lucide-react-native';
+import { ArrowLeft, Check, MapPin, Star, Tag, Wifi, type LucideIcon } from 'lucide-react-native';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserLocation } from '@/hooks/useUserLocation';
@@ -109,14 +109,24 @@ export default function ShopDetailScreen() {
       <Button size="icon" variant="secondary" className="absolute left-4 top-12 rounded-full bg-card/95" onPress={() => router.back()}><Icon as={ArrowLeft} /></Button>
       <ScrollView horizontal className="absolute bottom-3 left-3 right-3" showsHorizontalScrollIndicator={false} contentContainerClassName="items-center gap-2"><Badge className="bg-card" variant="secondary"><Text>{priceChip}</Text></Badge><Badge className="bg-card" variant="secondary"><Text>{openNow ? 'Open now' : 'Closed'}</Text></Badge>{(shop.tags ?? []).map((tag) => <Badge key={tag} className="bg-card" variant="secondary"><Text>{tag}</Text></Badge>)}</ScrollView>
     </View>
-    <View className="gap-4 px-4"><View><Text className="text-3xl font-bold">{shop.name}</Text><Text className="mt-1 text-muted-foreground">{shop.description || shop.address}</Text></View><View className="flex-row gap-2"><Metric icon={Star} value={shop.avgRating.toFixed(1)} label={`${shop.reviewCount} reviews`} /><Metric value={distanceKm == null ? '—' : `${distanceKm.toFixed(1)} km`} label="from you" /><Metric value={formatPriceRange(shop.priceMin, shop.priceMax)} label="price range" /></View></View>
+    <View className="gap-4 px-4"><View><Text className="text-3xl font-bold">{shop.name}</Text><Text className="mt-1 text-muted-foreground">{shop.description || shop.address}</Text></View><View className="flex-row gap-2"><Metric icon={Star} value={shop.avgRating.toFixed(1)} label={`${shop.reviewCount} reviews`} /><Metric icon={MapPin} value={distanceKm == null ? '—' : `${distanceKm.toFixed(1)} km`} label="from you" /><Metric icon={Tag} value={formatPriceRange(shop.priceMin, shop.priceMax)} label="price range" /></View></View>
     <View className="flex-row border-b border-border px-4">{(['info', 'menu', 'reviews'] as ShopTab[]).map((item) => <Button key={item} variant="ghost" className={tab === item ? 'flex-1 border-b-2 border-accent rounded-none' : 'flex-1 rounded-none'} onPress={() => setTab(item)}><Text className={tab === item ? 'font-bold text-accent' : undefined}>{item === 'reviews' ? `Reviews (${shop.reviewCount})` : item[0].toUpperCase() + item.slice(1)}</Text></Button>)}</View>
     <View className="px-4">{tab === 'info' ? <InfoTab shop={shop} location={location} saved={saved} saving={savingShopId === shop.id} compared={ids.includes(shop.id)} onSave={() => void toggleSavedShop(shop.id)} onCompare={() => toggle(shop.id)} /> : null}{tab === 'menu' ? <MenuTab products={products} /> : null}{tab === 'reviews' ? <ReviewsTab reviews={reviews} ratingCounts={ratingCounts} user={user ? { uid: user.uid } : null} control={control} errors={errors} isSubmitting={isSubmittingReview} onSubmit={handleSubmit(handleReviewSubmit)} hasOwnReview={ownReview} /> : null}</View>
     {actionError || savedError || loadError ? <Text accessibilityRole="alert" className="px-4 text-destructive">{actionError || savedError || loadError}</Text> : null}
   </ScrollView>;
 }
 
-function Metric({ icon, value, label }: { icon?: LucideIcon; value: string; label: string }) { return <View className="flex-1 items-center rounded-xl bg-secondary px-2 py-3">{icon ? <Icon as={icon} size={15} fill="currentColor" className="text-accent" /> : null}<Text className="text-center font-bold">{value}</Text><Text className="mt-1 text-center text-xs text-muted-foreground">{label}</Text></View>; }
+function Metric({ icon, value, label }: { icon?: LucideIcon; value: string; label: string }) {
+  return (
+    <View className="flex-1 items-center gap-1 rounded-xl bg-secondary px-2 py-3">
+      <View className="h-4 items-center justify-center">
+        {icon ? <Icon as={icon} size={15} fill="currentColor" className="text-accent" /> : null}
+      </View>
+      <Text className="text-center font-bold">{value}</Text>
+      <Text className="text-center text-xs text-muted-foreground">{label}</Text>
+    </View>
+  );
+}
 
 function InfoTab({ shop, location, saved, saving, compared, onSave, onCompare }: { shop: Shop; location: { lat: number; lng: number } | null; saved: boolean; saving: boolean; compared: boolean; onSave: () => void; onCompare: () => void }) {
   return <View className="gap-4"><View className="gap-2"><Text className="text-xl font-bold">Location reference</Text><ShopLocationMap shop={shop} userLocation={location} /></View><View className="flex-row gap-2"><Button className="flex-1" variant={saved ? 'default' : 'outline'} loading={saving} loadingLabel="Saving…" onPress={onSave}><Text>{saved ? 'Saved' : 'Save shop'}</Text></Button><Button className="flex-1" variant={compared ? 'secondary' : 'default'} onPress={onCompare}><Text>{compared ? 'In comparison' : 'Add to compare'}</Text></Button></View><Card><CardHeader className="gap-3"><CardTitle>Amenities</CardTitle><View className="gap-3"><Amenity icon={<Icon as={Wifi} size={16} className={shop.hasWifi ? 'text-success-foreground' : 'text-muted-foreground'} />} label={shop.hasWifi ? 'Free WiFi' : 'No WiFi'} /><Amenity icon={<Icon as={MapPin} size={16} className="text-primary" />} label={openAmenityLabel(shop)} />{(shop.tags ?? []).map((tag) => <Amenity key={tag} icon={<Icon as={Check} size={16} className="text-accent" />} label={tag} />)}</View></CardHeader></Card></View>;

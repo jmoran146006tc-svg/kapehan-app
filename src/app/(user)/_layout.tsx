@@ -10,9 +10,9 @@ export default function UserTabsLayout() {
   return (
     <View style={{ flex: 1 }}>
       <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: '#D9722F', tabBarInactiveTintColor: '#7D6656' }}>
-        <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: ({ color, size, focused }) => <Home color={color as string} size={focused ? size + 2 : size} strokeWidth={2.75} fill={focused ? color as string : 'none'} /> }} />
-        <Tabs.Screen name="search" options={{ title: 'Search', tabBarIcon: ({ color, size, focused }) => <Search color={color as string} size={focused ? size + 2 : size} strokeWidth={2.75} /> }} />
-        <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, size, focused }) => <User color={color as string} size={focused ? size + 2 : size} strokeWidth={2.75} fill={focused ? color as string : 'none'} /> }} />
+        <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: ({ color, size }) => <Home color={color as string} size={size} strokeWidth={2.75} /> }} />
+        <Tabs.Screen name="search" options={{ title: 'Search', tabBarIcon: ({ color, size }) => <Search color={color as string} size={size} strokeWidth={2.75} /> }} />
+        <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, size }) => <User color={color as string} size={size} strokeWidth={2.75} /> }} />
 
         <Tabs.Screen name="saved" options={{ href: null }} />
         <Tabs.Screen name="compare" options={{ href: null }} />

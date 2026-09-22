@@ -31,9 +31,10 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
   resolver: zodResolver(shopFormSchema),
   defaultValues: {
     name: '', address: '', lat: '', lng: '',
-    priceMin: 60, priceMax: 150, hasWifi: true, tags: [], description: '',
+    priceMin: 60, priceMax: 150, hasWifi: true, description: '',
     hours: DEFAULT_HOURS, photos: [],
     ...defaultValues,
+    tags: (defaultValues?.tags ?? []).filter((tag) => TAG_OPTIONS.includes(tag)),
   },
 });
 

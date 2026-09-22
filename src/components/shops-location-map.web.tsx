@@ -2,8 +2,12 @@ import { useEffect, useMemo } from 'react';
 import L from 'leaflet';
 import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { View } from 'react-native';
+import { Image, View } from 'react-native';
 import type { Shop } from '@/types/shop';
+
+const appIconUri = Image.resolveAssetSource(require('../../assets/images/map-pin.svg')).uri;
+const shopMarkerIcon = L.icon({ iconUrl: appIconUri, iconSize: [40, 40], iconAnchor: [20, 40] });
+const selectedShopMarkerIcon = L.icon({ iconUrl: appIconUri, iconSize: [48, 48], iconAnchor: [24, 48] });
 
 interface ShopsLocationMapProps {
   shops: Shop[];
@@ -30,21 +34,13 @@ export function ShopsLocationMap({ shops, selectedShopId, onSelect }: ShopsLocat
             key={shop.id}
             position={[shop.lat, shop.lng]}
             eventHandlers={{ click: () => onSelect(shop) }}
-            opacity={shop.id === selectedShopId ? 1 : 0.9}
+            icon={shop.id === selectedShopId ? selectedShopMarkerIcon : shopMarkerIcon}
           />
         ))}
       </MapContainer>
     </View>
   );
 }
-
-L.Icon.Default.mergeOptions({
-  // Leaflet's package-relative images are not emitted by Metro's web bundle.
-  // Pin the versioned assets so every marker has an explicit, dependable icon.
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
 
 function MapViewport({ shops, selectedShopId }: Pick<ShopsLocationMapProps, 'shops' | 'selectedShopId'>) {
   const map = useMap();

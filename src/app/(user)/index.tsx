@@ -11,12 +11,10 @@ import { UserNotificationButton } from '@/components/user-notification-button';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { isOpenNow } from '@/utils/hours';
 
 export default function HomeScreen() {
   const shops = useFilteredShops();
   const featured = [...shops].sort((a, b) => b.avgRating - a.avgRating).slice(0, 5);
-  const openCount = shops.filter((shop) => isOpenNow(shop.hours)).length;
   const ids = useCompareStore((state) => state.ids);
   const toggle = useCompareStore((state) => state.toggle);
   const { savedShopIds, savingShopId, toggleSavedShop, error: savedError } = useSavedShops();
@@ -41,9 +39,9 @@ export default function HomeScreen() {
 
         <View className="mx-auto w-full max-w-2xl gap-4 px-4">
           <Button variant="secondary" className="h-auto items-center justify-between rounded-2xl bg-secondary px-6 py-6" onPress={() => router.push('/(user)/map' as never)}>
-            <View className="flex-1 gap-3">
-              <View className="flex-row items-center gap-3"><Icon as={MapPin} size={18} className="text-primary" /><Text className="font-bold">Explore on Maps</Text></View>
-              <Text className="text-sm text-muted-foreground">{openCount} shop{openCount === 1 ? '' : 's'} open near you</Text>
+            <View className="flex-1 flex-row items-center gap-3">
+              <Icon as={MapPin} size={18} className="text-primary" />
+              <Text className="font-bold">Explore on Maps</Text>
             </View>
             <View className="h-9 w-9 items-center justify-center rounded-full bg-accent"><Icon as={ArrowRight} size={18} className="text-white" /></View>
           </Button>
