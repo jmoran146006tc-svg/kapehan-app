@@ -24,4 +24,5 @@ export interface AppUserDocument {
   savedShopIds?: string[];
   recentlyViewed?: RecentlyViewedEntry[];
   visitCount?: number;
+  reviewCount?: number;
 }

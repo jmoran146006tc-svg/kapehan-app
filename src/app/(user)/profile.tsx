@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Image, ScrollView, Switch, View } from 'react-native';
-import { collectionGroup, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Heart, MapPin, Star } from 'lucide-react-native';
@@ -27,7 +27,6 @@ export default function ProfileScreen() {
   const { shops } = useShops();
   const { savedShopIds, savingShopId, toggleSavedShop, error: savedError } = useSavedShops();
   const [profile, setProfile] = useState<AppUserDocument | null>(null);
-  const [reviewCount, setReviewCount] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -45,15 +44,6 @@ export default function ProfileScreen() {
       reset({ wifiOnly: preferences?.wifiOnly ?? false, tags: preferences?.tags ?? [], priceBuckets: preferences?.priceBuckets ?? [], openNowOnly: preferences?.openNowOnly ?? false });
     }, (error) => setLoadError(getUserFriendlyError(error, 'We could not load your profile. Please try again.')));
   }, [reset, user]);
-
-  useEffect(() => {
-    if (!user) return;
-    return onSnapshot(
-      query(collectionGroup(db, 'reviews'), where('userId', '==', user.uid)),
-      (snapshot) => setReviewCount(snapshot.size),
-      (error) => setLoadError(getUserFriendlyError(error, 'We could not load your review count. Please try again.')),
-    );
-  }, [user]);
 
   const savedShops = useMemo(() => shops.filter((shop) => savedShopIds.includes(shop.id)), [savedShopIds, shops]);
   const viewedEntries = [...(profile?.recentlyViewed ?? [])].sort((left, right) => timestampMs(right) - timestampMs(left));
@@ -77,7 +67,7 @@ export default function ProfileScreen() {
   }
 
   return <ScrollView className="flex-1 bg-background" contentContainerClassName="mx-auto w-full max-w-2xl gap-5 pb-8">
-    <View className="gap-4 bg-primary px-4 pb-6 pt-12"><View className="flex-row items-center justify-between"><Text className="text-2xl font-bold text-primary-foreground">My Profile</Text><LogoutButton size="sm" variant="ghost" /></View><View className="flex-row items-center gap-3"><View className="h-14 w-14 items-center justify-center rounded-full bg-accent"><Text className="text-xl font-bold text-white">{initials}</Text></View><View className="flex-1"><Text className="text-lg font-bold text-primary-foreground">{profile?.name || 'Kapehan guest'}</Text><Text className="text-sm text-primary-foreground/75">{profile?.email || user?.email}</Text><View className="mt-1 flex-row items-center gap-1"><Icon as={MapPin} size={13} className="text-primary-foreground/70" /><Text className="text-xs text-primary-foreground/70">Tagum City</Text></View></View></View><View className="flex-row gap-2"><StatTile value={profile?.visitCount ?? 0} label="Visits" className="border-primary-foreground/10 bg-primary-foreground/10" /><StatTile value={reviewCount} label="Reviews" className="border-primary-foreground/10 bg-primary-foreground/10" /><StatTile value={savedShopIds.length} label="Favorites" className="border-primary-foreground/10 bg-primary-foreground/10" /></View></View>
+    <View className="gap-4 bg-primary px-4 pb-6 pt-12"><View className="flex-row items-center justify-between"><Text className="text-2xl font-bold text-primary-foreground">My Profile</Text><LogoutButton size="sm" variant="ghost" /></View><View className="flex-row items-center gap-3"><View className="h-14 w-14 items-center justify-center rounded-full bg-accent"><Text className="text-xl font-bold text-white">{initials}</Text></View><View className="flex-1"><Text className="text-lg font-bold text-primary-foreground">{profile?.name || 'Kapehan guest'}</Text><Text className="text-sm text-primary-foreground/75">{profile?.email || user?.email}</Text><View className="mt-1 flex-row items-center gap-1"><Icon as={MapPin} size={13} className="text-primary-foreground/70" /><Text className="text-xs text-primary-foreground/70">Tagum City</Text></View></View></View><View className="flex-row gap-2"><StatTile value={profile?.visitCount ?? 0} label="Visits" tone="onDark" className="border-primary-foreground/10 bg-primary-foreground/10" /><StatTile value={profile?.reviewCount ?? 0} label="Reviews" tone="onDark" className="border-primary-foreground/10 bg-primary-foreground/10" /><StatTile value={savedShopIds.length} label="Favorites" tone="onDark" className="border-primary-foreground/10 bg-primary-foreground/10" /></View></View>
     <View className="gap-5 px-4">
       {loadError || savedError ? <Text accessibilityRole="alert" className="text-destructive">{loadError || savedError}</Text> : null}
       <View className="gap-3"><Text className="text-xl font-bold">Favorite Shops</Text>{savedShops.map((shop) => <View key={shop.id} className="flex-row items-center gap-3 rounded-xl border border-border bg-card p-3"><View className="h-12 w-12 overflow-hidden rounded-lg bg-secondary">{shop.photos[0] ? <Image source={{ uri: shop.photos[0] }} className="h-full w-full" /> : null}</View><View className="flex-1"><Text className="font-semibold">{shop.name}</Text><View className="flex-row items-center gap-1"><Icon as={Star} size={14} fill="currentColor" className="text-accent" /><Text className="text-sm text-muted-foreground">{shop.avgRating.toFixed(1)} · {shop.reviewCount} reviews</Text></View></View><Button size="icon" variant="ghost" loading={savingShopId === shop.id} loadingLabel="…" onPress={() => void toggleSavedShop(shop.id)}><Icon as={Heart} fill="currentColor" className="text-accent" /></Button></View>)}{savedShops.length === 0 ? <Text className="text-muted-foreground">Save shops you want to revisit.</Text> : null}</View>

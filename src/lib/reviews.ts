@@ -40,11 +40,13 @@ export async function submitReview(
   const shopRef = doc(db, 'shops', shopId);
   // A UID document ID lets the transaction safely choose between a first review and an edit.
   const reviewRef = doc(db, 'shops', shopId, 'reviews', userId);
+  const userRef = doc(db, 'users', userId);
 
   await withTimeout(runTransaction(db, async (tx) => {
     // Firestore requires all transaction reads before its writes.
     const shopSnap = await tx.get(shopRef);
     const reviewSnap = await tx.get(reviewRef);
+    const userSnap = await tx.get(userRef);
 
     if (!shopSnap.exists()) throw new Error('This shop is no longer available');
 
@@ -64,6 +66,11 @@ export async function submitReview(
       reviewCount: nextCount,
       ...(ratingCounts ? { ratingCounts } : {}),
     });
+
+    if (isNewReview) {
+      const previousReviewCount = userSnap.exists() ? (userSnap.data().reviewCount ?? 0) : 0;
+      tx.set(userRef, { reviewCount: previousReviewCount + 1 }, { merge: true });
+    }
 
     if (shop.ownerId !== userId) {
       const notificationRef = doc(collection(db, 'users', shop.ownerId, 'notifications'));

@@ -124,7 +124,9 @@ service cloud.firestore {
           ((request.resource.data.type == 'listing_approved' && shopAfter.data.status == 'approved') ||
             (request.resource.data.type == 'listing_rejected' && shopAfter.data.status == 'rejected'))) ||
           (shopBefore.data.status == 'approved' && request.resource.data.type == 'listing_rejected' &&
-            shopAfter.data.status == 'rejected'));
+            shopAfter.data.status == 'rejected') ||
+          (shopBefore.data.status == 'rejected' && request.resource.data.type == 'listing_approved' &&
+            shopAfter.data.status == 'approved'));
     }
 
     function isReviewNotification(uid) {
@@ -160,7 +162,7 @@ service cloud.firestore {
         (!('visitCount' in request.resource.data) || (request.resource.data.visitCount is int && request.resource.data.visitCount >= 0));
       // Admin accounts are provisioned with privileged credentials, not by changing a client profile.
       allow update: if isOwner(uid) &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'preferences', 'savedShopIds', 'recentlyViewed', 'visitCount']);
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'preferences', 'savedShopIds', 'recentlyViewed', 'visitCount', 'reviewCount']);
       // The profile owner cannot silently unsuspend their own account.
       allow update: if isAdmin() &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
@@ -200,7 +202,8 @@ service cloud.firestore {
         (!('viewCount' in request.resource.data) || request.resource.data.viewCount == 0);
       allow update: if (isAdmin() && validShop(request.resource.data) &&
           ((resource.data.status == 'pending' && request.resource.data.status in ['approved', 'rejected']) ||
-            (resource.data.status == 'approved' && request.resource.data.status == 'rejected')) &&
+            (resource.data.status == 'approved' && request.resource.data.status == 'rejected') ||
+            (resource.data.status == 'rejected' && request.resource.data.status == 'approved')) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])) ||
         (isOwner(resource.data.ownerId) && validShop(request.resource.data) &&
           request.resource.data.ownerId == resource.data.ownerId &&

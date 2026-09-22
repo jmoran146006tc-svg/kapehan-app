@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
 export type Role = 'user' | 'owner' | 'admin';
@@ -33,17 +33,38 @@ export function useAuth(): AuthState {
 
   useEffect(() => {
     if (!user) return;
-    const unsubDoc = onSnapshot(doc(db, 'users', user.uid), (snap) => {
-      setRole((snap.data()?.role as Role) ?? null);
-      // Older profiles predate suspension support; treat them as active until
-      // an admin explicitly assigns a status.
-      setStatus((snap.data()?.status as AccountStatus | undefined) ?? 'active');
-      setLoading(false);
-    },
-    (error) => {
-    console.error('useAuth role listener error:', error);
-  }
-  );
+    const userRef = doc(db, 'users', user.uid);
+    const unsubDoc = onSnapshot(
+      userRef,
+      (snap) => {
+        if (!snap.exists()) {
+          // Repairs an Auth account that never got, or later lost, its profile.
+          // The original registration role cannot be inferred, so it defaults to user.
+          void setDoc(
+            userRef,
+            {
+              name: user.displayName ?? '',
+              email: user.email ?? '',
+              role: 'user',
+              status: 'active',
+              createdAt: serverTimestamp(),
+              preferences: {},
+              savedShopIds: [],
+              recentlyViewed: [],
+              visitCount: 0,
+            },
+            { merge: true },
+          ).catch((error) => console.error('Failed to repair missing user profile', error));
+          return;
+        }
+        setRole((snap.data()?.role as Role) ?? null);
+        // Older profiles predate suspension support; treat them as active until
+        // an admin explicitly assigns a status.
+        setStatus((snap.data()?.status as AccountStatus | undefined) ?? 'active');
+        setLoading(false);
+      },
+      (error) => console.error('useAuth role listener error:', error),
+    );
     return unsubDoc;
   }, [user]);
 

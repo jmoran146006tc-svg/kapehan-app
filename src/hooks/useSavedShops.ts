@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { arrayRemove, arrayUnion, doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { arrayRemove, arrayUnion, doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { getUserFriendlyError } from '@/lib/errors';
@@ -32,9 +32,9 @@ export function useSavedShops() {
     setError(null);
     setSavingShopId(shopId);
     try {
-      await withTimeout(updateDoc(doc(db, 'users', user.uid), {
+      await withTimeout(setDoc(doc(db, 'users', user.uid), {
         savedShopIds: savedShopIds.includes(shopId) ? arrayRemove(shopId) : arrayUnion(shopId),
-      }));
+      }, { merge: true }));
     } catch (saveError) {
       setError(getUserFriendlyError(saveError, 'We could not update your saved shops. Please try again.'));
     } finally {
