@@ -98,19 +98,18 @@ export default function AdminReviewListingScreen() {
       {actionError && <Text accessibilityRole="alert" className="text-destructive mb-4">{actionError}</Text>}
 
       <SafeAreaView edges={['bottom']}>
-        <View className="flex-row gap-3">
-          <Button className="flex-1" disabled={updating} onPress={() => setStatus('approved')}>
-            <Text>Approve</Text>
-          </Button>
-          <Button
-            className="flex-1"
-            variant="destructive"
-            disabled={updating}
-            onPress={() => setStatus('rejected')}
-          >
-            <Text>Reject</Text>
-          </Button>
-        </View>
+        {shop.status === 'pending' ? (
+          <View className="flex-row gap-3">
+            <Button className="flex-1" disabled={updating} onPress={() => setStatus('approved')}>
+              <Text>Approve</Text>
+            </Button>
+            <Button className="flex-1" variant="destructive" disabled={updating} onPress={() => setStatus('rejected')}>
+              <Text>Reject</Text>
+            </Button>
+          </View>
+        ) : null}
+        {shop.status === 'approved' ? <Button variant="destructive" disabled={updating} onPress={() => setStatus('rejected')}><Text>Revoke Listing</Text></Button> : null}
+        {shop.status === 'rejected' ? <Button disabled={updating} onPress={() => setStatus('approved')}><Text>Restore Listing</Text></Button> : null}
       </SafeAreaView>
     </ScrollView>
   );
