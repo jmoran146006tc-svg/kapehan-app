@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import MapView, { Marker } from 'react-native-maps';
 import type { Shop } from '@/types/shop';
+import { MAP_MARKER_COLORS } from '@/constants/map';
 
 interface ShopsLocationMapProps {
   shops: Shop[];
@@ -30,7 +31,7 @@ export function ShopsLocationMap({ shops, selectedShopId, onSelect }: ShopsLocat
 
   return (
     <MapView ref={mapRef} className="flex-1" initialRegion={region} onMapReady={() => { setReady(true); frameShops(); }} onLayout={() => { if (ready) frameShops(); }}>
-      {shops.map((shop) => <Marker key={shop.id} coordinate={{ latitude: shop.lat, longitude: shop.lng }} title={shop.name} pinColor={shop.id === selectedShopId ? '#D9722F' : '#6B4226'} onPress={() => onSelect(shop)} />)}
+      {shops.map((shop) => <Marker key={shop.id} coordinate={{ latitude: shop.lat, longitude: shop.lng }} title={shop.name} pinColor={shop.id === selectedShopId ? MAP_MARKER_COLORS.selectedShop : MAP_MARKER_COLORS.shop} onPress={() => onSelect(shop)} />)}
     </MapView>
   );
 }

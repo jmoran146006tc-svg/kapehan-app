@@ -1,6 +1,7 @@
 import { ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowRight, MapPin, Moon, Search, Sun } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFilteredShops } from '@/hooks/useFilteredShops';
 import { useCompareStore } from '@/store/compareStore';
@@ -38,13 +39,15 @@ export default function HomeScreen() {
         </View>
 
         <View className="mx-auto w-full max-w-2xl gap-4 px-4">
-          <Button variant="secondary" className="h-auto items-center justify-between rounded-2xl bg-secondary px-6 py-6" onPress={() => router.push('/(user)/map' as never)}>
-            <View className="flex-1 flex-row items-center gap-3">
-              <Icon as={MapPin} size={18} className="text-primary" />
-              <Text className="font-bold">Explore on Maps</Text>
-            </View>
-            <View className="h-9 w-9 items-center justify-center rounded-full bg-accent"><Icon as={ArrowRight} size={18} className="text-white" /></View>
-          </Button>
+          <LinearGradient colors={['#382016', '#D9722F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="overflow-hidden rounded-2xl">
+            <Button variant="ghost" className="h-auto items-center justify-between rounded-2xl px-6 py-6" onPress={() => router.push('/(user)/map' as never)}>
+              <View className="flex-1 flex-row items-center gap-3">
+                <Icon as={MapPin} size={18} className="text-primary-foreground" />
+                <Text className="font-bold text-primary-foreground">Explore on Maps</Text>
+              </View>
+              <View className="h-9 w-9 items-center justify-center rounded-full bg-card/20"><Icon as={ArrowRight} size={18} className="text-white" /></View>
+            </Button>
+          </LinearGradient>
 
           <View className="flex-row items-center justify-between">
             <Text className="text-xl font-bold">Featured Today</Text>

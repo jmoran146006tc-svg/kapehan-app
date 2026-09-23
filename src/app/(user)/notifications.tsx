@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react-native';
 import { collection, doc, onSnapshot, orderBy, query, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
+import { goBack } from '@/lib/navigation';
 import type { AppNotification } from '@/types/notification';
 import { NotificationList } from '@/components/notification-list';
 import { Button } from '@/components/ui/button';
@@ -20,5 +21,5 @@ export default function UserNotificationsScreen() {
     return onSnapshot(query(collection(db, 'users', user.uid, 'notifications'), orderBy('createdAt', 'desc')), (snapshot) => setNotifications(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as AppNotification)));
   }, [user]);
 
-  return <View className="flex-1 bg-background"><View className="flex-row items-center gap-2 bg-primary px-4 pb-4 pt-12"><Button size="icon" variant="ghost" onPress={() => router.back()}><Icon as={ArrowLeft} className="text-primary-foreground" /></Button><Text className="text-2xl font-bold text-primary-foreground">Notifications</Text></View><NotificationList notifications={notifications} onPress={(notification) => { if (user && !notification.read) void updateDoc(doc(db, 'users', user.uid, 'notifications', notification.id), { read: true }); if (notification.shopId) router.push({ pathname: '/(user)/shop/[id]', params: { id: notification.shopId } }); }} /></View>;
+  return <View className="flex-1 bg-background"><View className="flex-row items-center gap-2 bg-primary px-4 pb-4 pt-12"><Button size="icon" variant="ghost" onPress={() => goBack('/(user)')}><Icon as={ArrowLeft} className="text-primary-foreground" /></Button><Text className="text-2xl font-bold text-primary-foreground">Notifications</Text></View><NotificationList notifications={notifications} onPress={(notification) => { if (user && !notification.read) void updateDoc(doc(db, 'users', user.uid, 'notifications', notification.id), { read: true }); if (notification.shopId) router.push({ pathname: '/(user)/shop/[id]', params: { id: notification.shopId } }); }} /></View>;
 }

@@ -19,6 +19,10 @@ service cloud.firestore {
       return myRole() == 'admin';
     }
 
+    function currentViewCount(data) {
+      return ('viewCount' in data) ? data.viewCount : 0;
+    }
+
     function validShop(data) {
       return data.keys().hasOnly([
           'name', 'ownerId', 'address', 'lat', 'lng', 'priceMin', 'priceMax',
@@ -217,7 +221,7 @@ service cloud.firestore {
         (isSignedIn() && resource.data.status == 'approved' &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']) &&
           request.resource.data.viewCount is int &&
-          request.resource.data.viewCount == resource.data.viewCount + 1) ||
+          request.resource.data.viewCount == currentViewCount(resource.data) + 1) ||
         (isSignedIn() && aggregateMatchesReview(shopId));
 
       match /products/{productId} {

@@ -4,6 +4,7 @@ import { ArrowLeft, Star, X } from 'lucide-react-native';
 import { useCompareStore } from '@/store/compareStore';
 import { useShops } from '@/hooks/useShops';
 import { useUserLocation } from '@/hooks/useUserLocation';
+import { goBack } from '@/lib/navigation';
 import { isOpenNow } from '@/utils/hours';
 import { haversineKm } from '@/utils/distance';
 import { formatPriceRange } from '@/utils/price';
@@ -79,7 +80,7 @@ export default function CompareScreen() {
   return (
     <View className="flex-1 bg-background">
       <View className="gap-1 bg-primary px-4 pb-5 pt-4">
-        <Button size="icon" variant="ghost" className="-ml-2 self-start" onPress={() => router.back()}><Icon as={ArrowLeft} className="text-primary-foreground" /></Button>
+        <Button size="icon" variant="ghost" className="-ml-2 self-start" onPress={() => goBack('/(user)')}><Icon as={ArrowLeft} className="text-primary-foreground" /></Button>
         <Text className="text-2xl font-bold text-primary-foreground">Side-by-Side</Text>
         <Text className="text-sm text-primary-foreground/70">See which coffee shop fits you best</Text>
       </View>

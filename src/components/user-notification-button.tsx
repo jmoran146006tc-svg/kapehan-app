@@ -27,7 +27,7 @@ export function UserNotificationButton() {
         <Icon as={Bell} size={21} className="text-primary-foreground" />
       </Button>
       {count > 0 ? (
-        <View className="absolute -right-0.5 -top-0.5 min-w-4 items-center rounded-full bg-accent px-1">
+        <View className="absolute -right-0.5 -top-0.5 h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1">
           <Text className="text-[10px] font-bold text-white">{count > 9 ? '9+' : count}</Text>
         </View>
       ) : null}

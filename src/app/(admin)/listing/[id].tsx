@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Image, ScrollView, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { collection, doc, onSnapshot, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, X } from 'lucide-react-native';
@@ -13,6 +13,7 @@ import { Text } from '@/components/ui/text';
 import { formatPriceRange } from '@/utils/price';
 import { getListingStatusBadgeVariant } from '@/utils/listing';
 import { getUserFriendlyError } from '@/lib/errors';
+import { goBack } from '@/lib/navigation';
 
 interface ShopDoc {
   name: string;
@@ -58,7 +59,7 @@ export default function AdminReviewListingScreen() {
         createdAt: serverTimestamp(),
       });
       await batch.commit();
-      router.back();
+      goBack('/(admin)');
     } catch (actionError) {
       const code = typeof actionError === 'object' && actionError !== null && 'code' in actionError ? String(actionError.code) : 'unknown';
       const message = actionError instanceof Error ? actionError.message : String(actionError);

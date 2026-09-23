@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { auth } from '@/lib/firebase';
 import { withTimeout } from '@/lib/timeout';
 import { getUserFriendlyError } from '@/lib/errors';
+import { goBack } from '@/lib/navigation';
 import { emailSchema } from '@/lib/schemas/auth';
 import { AuthShell } from '@/components/auth-shell';
 import { Button } from '@/components/ui/button';
@@ -36,5 +37,5 @@ export default function ForgotPasswordScreen() {
     }
   }
 
-  return <View className="flex-1 bg-primary"><AuthShell active="login"><View className="gap-4"><Text className="text-2xl font-bold">Reset your password</Text><Text className="text-muted-foreground">Enter your account email and we’ll send a secure reset link.</Text>{sent ? <View className="gap-4"><Text className="rounded-xl bg-success p-3 text-success-foreground">Check your inbox for a password-reset link.</Text><Button onPress={() => router.replace('/(auth)/login')}><Text>Back to Log In</Text></Button></View> : <><Controller control={control} name="email" render={({ field }) => <Input autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder="you@email.com" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />} />{errors.email ? <Text className="text-destructive">{errors.email.message}</Text> : null}{error ? <Text accessibilityRole="alert" className="text-destructive">{error}</Text> : null}<Button loading={isSubmitting} loadingLabel="Sending reset email…" onPress={handleSubmit(submit)}><Text>Send reset email</Text></Button><Button variant="link" onPress={() => router.back()}><Text>Back to Log In</Text></Button></>}</View></AuthShell></View>;
+  return <View className="flex-1 bg-primary"><AuthShell active="login"><View className="gap-4"><Text className="text-2xl font-bold">Reset your password</Text><Text className="text-muted-foreground">Enter your account email and we’ll send a secure reset link.</Text>{sent ? <View className="gap-4"><Text className="rounded-xl bg-success p-3 text-success-foreground">Check your inbox for a password-reset link.</Text><Button onPress={() => router.replace('/(auth)/login')}><Text>Back to Log In</Text></Button></View> : <><Controller control={control} name="email" render={({ field }) => <Input autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder="you@email.com" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />} />{errors.email ? <Text className="text-destructive">{errors.email.message}</Text> : null}{error ? <Text accessibilityRole="alert" className="text-destructive">{error}</Text> : null}<Button loading={isSubmitting} loadingLabel="Sending reset email…" onPress={handleSubmit(submit)}><Text>Send reset email</Text></Button><Button variant="link" onPress={() => goBack('/(auth)/login')}><Text>Back to Log In</Text></Button></>}</View></AuthShell></View>;
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Image, ScrollView, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { collection, doc, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,6 +19,7 @@ import { logShopView } from '@/lib/recentlyViewed';
 import { submitReview } from '@/lib/reviews';
 import { reviewFormSchema, type ReviewFormInput, type ReviewFormValues } from '@/lib/schemas/review';
 import { getUserFriendlyError } from '@/lib/errors';
+import { goBack } from '@/lib/navigation';
 import { sortProducts, toProduct, type Product } from '@/types/product';
 import { toReview, type Review } from '@/types/review';
 import { toShop, type Shop } from '@/types/shop';
@@ -46,7 +47,7 @@ export default function ShopDetailScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const { control, handleSubmit, reset, formState: { errors } } = useForm<ReviewFormInput, any, ReviewFormValues>({ resolver: zodResolver(reviewFormSchema), defaultValues: { rating: 5, text: '' } });
+  const { control, handleSubmit, reset, formState: { errors } } = useForm<ReviewFormInput, any, ReviewFormValues>({ resolver: zodResolver(reviewFormSchema), defaultValues: { rating: 0, text: '' } });
 
   useEffect(() => {
     if (!id) return;
@@ -77,7 +78,7 @@ export default function ShopDetailScreen() {
 
   useEffect(() => {
     const ownReview = reviews.find((review) => review.userId === user?.uid);
-    reset(ownReview ? { rating: ownReview.rating, text: ownReview.text } : { rating: 5, text: '' });
+    reset(ownReview ? { rating: ownReview.rating, text: ownReview.text } : { rating: 0, text: '' });
   }, [reset, reviews, user]);
 
   const distanceKm = shop && location ? haversineKm(location.lat, location.lng, shop.lat, shop.lng) : null;
@@ -106,7 +107,7 @@ export default function ShopDetailScreen() {
   return <ScrollView className="flex-1 bg-background" contentContainerClassName="mx-auto w-full max-w-2xl gap-4 pb-8">
     <View className="relative h-64 bg-secondary">
       {shop.photos[0] ? <Image source={{ uri: shop.photos[0] }} className="h-full w-full" resizeMode="cover" /> : <View className="h-full w-full items-center justify-center"><Text className="text-muted-foreground">No cover photo yet</Text></View>}
-      <Button size="icon" variant="secondary" className="absolute left-4 top-12 rounded-full bg-card/95" onPress={() => router.back()}><Icon as={ArrowLeft} /></Button>
+      <Button size="icon" variant="secondary" className="absolute left-4 top-12 rounded-full bg-card/95" onPress={() => goBack('/(user)')}><Icon as={ArrowLeft} /></Button>
       <ScrollView horizontal className="absolute bottom-3 left-3 right-3" showsHorizontalScrollIndicator={false} contentContainerClassName="items-center gap-2"><Badge className="bg-card" variant="secondary"><Text>{priceChip}</Text></Badge><Badge className="bg-card" variant="secondary"><Text>{openNow ? 'Open now' : 'Closed'}</Text></Badge>{(shop.tags ?? []).map((tag) => <Badge key={tag} className="bg-card" variant="secondary"><Text>{tag}</Text></Badge>)}</ScrollView>
     </View>
     <View className="gap-4 px-4"><View><Text className="text-3xl font-bold">{shop.name}</Text><Text className="mt-1 text-muted-foreground">{shop.description || shop.address}</Text></View><View className="flex-row gap-2"><Metric icon={Star} value={shop.avgRating.toFixed(1)} label={`${shop.reviewCount} reviews`} /><Metric icon={MapPin} value={distanceKm == null ? '—' : `${distanceKm.toFixed(1)} km`} label="from you" /><Metric icon={Tag} value={formatPriceRange(shop.priceMin, shop.priceMax)} label="price range" /></View></View>
@@ -136,7 +137,7 @@ function openAmenityLabel(shop: Shop) { return isOpenNow(shop.hours) ? 'Open now
 function Amenity({ icon, label }: { icon: React.ReactNode; label: string }) { return <View className="flex-row items-center gap-2">{icon}<Text className="text-sm">{label}</Text></View>; }
 
 function MenuTab({ products }: { products: Product[] }) {
-  return <View className="gap-5">{PRODUCT_CATEGORIES.map((category) => { const items = products.filter((product) => product.category === category); if (!items.length) return null; return <View key={category} className="gap-2"><Text className="text-sm font-bold tracking-wider text-muted-foreground">{category.toUpperCase()}</Text>{items.map((product) => <Card key={product.id} className="py-3"><CardHeader><View className="flex-row items-center gap-3"><View className="h-12 w-12 overflow-hidden rounded-lg bg-secondary">{product.photoUrl ? <Image source={{ uri: product.photoUrl }} className="h-full w-full" resizeMode="cover" /> : null}</View><View className="flex-1 flex-row justify-between gap-3"><View className="flex-1"><CardTitle>{product.name}{!product.available ? ' · Unavailable' : ''}</CardTitle>{product.description ? <CardDescription>{product.description}</CardDescription> : null}</View><Text className="font-bold">PHP {product.price}</Text></View></View></CardHeader></Card>)}</View>; })}{products.length === 0 ? <Text className="py-8 text-center text-muted-foreground">This shop has not added menu items yet.</Text> : null}</View>;
+  return <View className="gap-5">{PRODUCT_CATEGORIES.map((category) => { const items = products.filter((product) => product.category === category); if (!items.length) return null; return <View key={category} className="gap-2"><Text className="text-sm font-bold tracking-wider text-muted-foreground">{category.toUpperCase()}</Text>{items.map((product) => <Card key={product.id} className="py-3"><CardHeader><View className="flex-row items-center gap-3"><View className="h-12 w-12 overflow-hidden rounded-lg bg-secondary">{product.photoUrl ? <Image source={{ uri: product.photoUrl }} className="h-full w-full" resizeMode="cover" /> : null}</View><View className="flex-1 min-w-0 flex-row justify-between gap-3"><View className="flex-1 min-w-0"><CardTitle numberOfLines={1}>{product.name}{!product.available ? ' · Unavailable' : ''}</CardTitle>{product.description ? <CardDescription numberOfLines={2}>{product.description}</CardDescription> : null}</View><Text numberOfLines={1} ellipsizeMode="tail" className="font-bold">PHP {product.price}</Text></View></View></CardHeader></Card>)}</View>; })}{products.length === 0 ? <Text className="py-8 text-center text-muted-foreground">This shop has not added menu items yet.</Text> : null}</View>;
 }
 
 function ReviewsTab({ reviews, ratingCounts, user, control, errors, isSubmitting, onSubmit, hasOwnReview }: { reviews: Review[]; ratingCounts: Record<'1' | '2' | '3' | '4' | '5', number>; user: { uid: string } | null; control: ReturnType<typeof useForm<ReviewFormInput, any, ReviewFormValues>>['control']; errors: ReturnType<typeof useForm<ReviewFormInput, any, ReviewFormValues>>['formState']['errors']; isSubmitting: boolean; onSubmit: () => void; hasOwnReview: boolean }) {

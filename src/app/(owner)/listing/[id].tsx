@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { db } from '@/lib/firebase';
@@ -9,6 +9,7 @@ import { Text } from '@/components/ui/text';
 import type { ShopFormValues } from '@/lib/schemas/shop';
 import { withTimeout } from '@/lib/timeout';
 import { getUserFriendlyError } from '@/lib/errors';
+import { goBack } from '@/lib/navigation';
 
 export default function EditListingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -36,7 +37,7 @@ export default function EditListingScreen() {
     // Resets status to "pending" on every save — an edited listing goes
     // back through admin review before it's visible again.
     await withTimeout(updateDoc(doc(db, 'shops', id), { ...values, status: 'pending' }));
-    router.back();
+    goBack('/(owner)');
   }
 
   if (!initialValues || !id) {

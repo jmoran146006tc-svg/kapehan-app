@@ -1,7 +1,6 @@
 import { ScrollView, View } from 'react-native';
-import { Coffee } from 'lucide-react-native';
 import { Link } from 'expo-router';
-import { Icon } from '@/components/ui/icon';
+import { Logo } from '@/components/logo';
 import { Text } from '@/components/ui/text';
 
 interface AuthShellProps {
@@ -14,7 +13,7 @@ export function AuthShell({ active, children }: AuthShellProps) {
     <View className="flex-1 bg-primary">
       <View className="h-[38%] items-center justify-center gap-2 px-6">
         <View className="h-14 w-14 items-center justify-center rounded-2xl bg-accent">
-          <Icon as={Coffee} size={30} className="text-white" />
+          <Logo width={42} height={42} accessibilityLabel="Kapehan" />
         </View>
         <Text className="font-serif text-4xl font-bold text-primary-foreground">Kapehan</Text>
         <Text className="text-center text-sm text-primary-foreground/75">Discover your perfect cup in Tagum City</Text>

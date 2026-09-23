@@ -26,9 +26,9 @@ export function OwnerNotificationButton() {
   return (
     <Button size="icon" variant="ghost" onPress={() => router.push('/(owner)/notifications')}>
       <View className="relative">
-        <Icon as={Bell} />
+        <Icon as={Bell} className="text-primary-foreground" />
         {unreadCount > 0 && (
-          <View className="absolute -right-3 -top-3 min-w-5 items-center rounded-full bg-destructive px-1">
+          <View className="absolute -right-3 -top-3 h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1">
             <Text className="text-[10px] text-white">{unreadCount > 99 ? '99+' : unreadCount}</Text>
           </View>
         )}

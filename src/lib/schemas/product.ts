@@ -10,7 +10,7 @@ export const productFormSchema = z.object({
   description: z.string().trim().max(300, 'Keep the description under 300 characters.').optional().or(z.literal('')),
   price: z.preprocess(
     requiredPrice,
-    z.coerce.number({ error: 'Price is required.' }).finite('Price must be a number.').min(0, 'Price cannot be negative.'),
+    z.coerce.number({ error: 'Price is required.' }).finite('Price must be a number.').min(0, 'Price cannot be negative.').max(1_000_000, 'Keep the price under ₱1,000,000.'),
   ),
   category: z.enum(PRODUCT_CATEGORIES),
   photoUrl: z.string().url('Enter a valid image URL.').optional().or(z.literal('')),

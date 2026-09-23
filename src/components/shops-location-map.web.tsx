@@ -1,14 +1,9 @@
 import { useEffect, useMemo } from 'react';
-import L from 'leaflet';
 import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Asset } from 'expo-asset';
 import { View } from 'react-native';
 import type { Shop } from '@/types/shop';
-
-const appIconUri = Asset.fromModule(require('../../assets/images/map-pin.svg')).uri;
-const shopMarkerIcon = L.icon({ iconUrl: appIconUri, iconSize: [40, 40], iconAnchor: [20, 40] });
-const selectedShopMarkerIcon = L.icon({ iconUrl: appIconUri, iconSize: [48, 48], iconAnchor: [24, 48] });
+import { selectedShopMarkerIcon, shopMarkerIcon } from '@/lib/map-markers.web';
 
 interface ShopsLocationMapProps {
   shops: Shop[];
