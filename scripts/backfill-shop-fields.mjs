@@ -7,21 +7,34 @@
  * Usage from the project root:
  *   $env:GOOGLE_APPLICATION_CREDENTIALS='C:\\path\\to\\service-account.json'
  *   node scripts/backfill-shop-fields.mjs
- *   node scripts/backfill-shop-fields.mjs --apply --price-min=60 --price-max=150
+ *   node scripts/backfill-shop-fields.mjs --shop=22-27-cafe --shop=5NGl7VaM5gvb1NzhGnkK
+ *   node scripts/backfill-shop-fields.mjs --shop=22-27-cafe --apply --price-min=60 --price-max=150
  *
  * Reviewed fallback prices are required only for shops with an invalid or
  * missing price range. The script never guesses a real shop's pricing.
  */
 
 import { applicationDefault, getApps, initializeApp } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
 const MAX_BATCH_WRITES = 450;
 const ZERO_RATING_COUNTS = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+const ALLOWED_SHOP_FIELDS = new Set([
+  'name', 'ownerId', 'address', 'lat', 'lng', 'priceMin', 'priceMax',
+  'hasWifi', 'tags', 'description', 'photos', 'hours', 'status', 'avgRating', 'reviewCount',
+  'ratingCounts', 'viewCount',
+]);
 
 function option(name) {
   const argument = process.argv.find((value) => value.startsWith(`${name}=`));
   return argument?.slice(name.length + 1);
+}
+
+function options(name) {
+  return process.argv
+    .filter((value) => value.startsWith(`${name}=`))
+    .map((value) => value.slice(name.length + 1))
+    .filter(Boolean);
 }
 
 function validPrice(value) {
@@ -55,6 +68,13 @@ function validPriceRange(data) {
 function buildPlan(data, reviewedPrices) {
   const update = {};
   const changes = [];
+
+  for (const field of Object.keys(data)) {
+    if (!ALLOWED_SHOP_FIELDS.has(field)) {
+      update[field] = FieldValue.delete();
+      changes.push(`${field}: removed`);
+    }
+  }
 
   if (!Number.isInteger(data.viewCount) || data.viewCount < 0) {
     update.viewCount = 0;
@@ -93,11 +113,19 @@ async function main() {
   const apply = process.argv.includes('--apply');
   const app = getApps()[0] ?? initializeApp({ credential: applicationDefault() });
   const db = getFirestore(app);
-  const snapshot = await db.collection('shops').get();
-  const plans = snapshot.docs.map((shop) => ({ id: shop.id, ...buildPlan(shop.data(), reviewedPrices) }))
+  const requestedIds = options('--shop');
+  const snapshot = requestedIds.length === 0 ? await db.collection('shops').get() : null;
+  const requestedShops = requestedIds.length === 0
+    ? snapshot.docs
+    : await Promise.all(requestedIds.map((id) => db.collection('shops').doc(id).get()));
+  const missingIds = requestedShops.filter((shop) => !shop.exists).map((shop) => shop.id);
+  if (missingIds.length > 0) {
+    throw new Error(`Could not find: ${missingIds.map((id) => `shops/${id}`).join(', ')}.`);
+  }
+  const plans = requestedShops.map((shop) => ({ id: shop.id, ...buildPlan(shop.data(), reviewedPrices) }))
     .filter((plan) => plan.changes.length > 0 || plan.needsPriceReview);
 
-  console.log(`${apply ? 'Applying' : 'Previewing'} schema repairs for ${plans.length} of ${snapshot.size} shops.`);
+  console.log(`${apply ? 'Applying' : 'Previewing'} schema repairs for ${plans.length} of ${requestedShops.length} shops.`);
   for (const plan of plans) {
     console.log(`  shops/${plan.id}: ${plan.needsPriceReview ? 'priceMin/priceMax need reviewed fallback values' : plan.changes.join('; ')}`);
   }

@@ -21,19 +21,24 @@ import { Text } from '@/components/ui/text';
 
 type AdminTab = 'users' | 'owners';
 type AdminUser = AppUserDocument & { id: string };
+type AdminShop = Shop & { fieldNames?: string[] };
 
 export default function AdminDashboardScreen() {
   const { user: admin } = useAuth();
   const [tab, setTab] = useState<AdminTab>('users');
   const [users, setUsers] = useState<AdminUser[]>([]);
-  const [shops, setShops] = useState<Shop[]>([]);
+  const [shops, setShops] = useState<AdminShop[]>([]);
   const [reviewCounts, setReviewCounts] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => onSnapshot(collection(db, 'users'), (snapshot) => setUsers(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as AdminUser)), (snapshotError) => setError(getUserFriendlyError(snapshotError, 'We could not load user accounts. Please try again.'))), []);
-  useEffect(() => onSnapshot(collection(db, 'shops'), (snapshot) => setShops(snapshot.docs.map((item) => toShop(item.id, item.data()))), (snapshotError) => setError(getUserFriendlyError(snapshotError, 'We could not load listings. Please try again.'))), []);
-  useEffect(() => onSnapshot(collectionGroup(db, 'reviews'), (snapshot) => setReviewCounts(snapshot.docs.reduce<Record<string, number>>((counts, item) => { const uid = String(item.data().userId ?? ''); return uid ? { ...counts, [uid]: (counts[uid] ?? 0) + 1 } : counts; }, {})), () => undefined), []);
+  useEffect(() => onSnapshot(collection(db, 'shops'), (snapshot) => setShops(snapshot.docs.map((item) => ({ ...toShop(item.id, item.data()), fieldNames: Object.keys(item.data()).sort() }))), (snapshotError) => setError(getUserFriendlyError(snapshotError, 'We could not load listings. Please try again.'))), []);
+  useEffect(() => onSnapshot(
+    collectionGroup(db, 'reviews'),
+    (snapshot) => setReviewCounts(snapshot.docs.reduce<Record<string, number>>((counts, item) => { const uid = String(item.data().userId ?? ''); return uid ? { ...counts, [uid]: (counts[uid] ?? 0) + 1 } : counts; }, {})),
+    (snapshotError) => setError(getUserFriendlyError(snapshotError, 'We could not load review counts. Please try again.')),
+  ), []);
 
   const customerUsers = useMemo(() => users.filter((account) => account.role === 'user'), [users]);
   const owners = users.filter((account) => account.role === 'owner').length;
@@ -41,7 +46,7 @@ export default function AdminDashboardScreen() {
   const reviews = Object.values(reviewCounts).reduce((sum, count) => sum + count, 0);
 
   async function setUserStatus(account: AdminUser, status: 'active' | 'suspended') { setError(null); setUpdatingId(account.id); try { await withTimeout(writeUserStatus(account.id, status)); } catch (actionError) { setError(getUserFriendlyError(actionError, 'We could not update this account. Please try again.')); } finally { setUpdatingId(null); } }
-  async function setShopStatus(shop: Shop, status: 'approved' | 'rejected') {
+  async function setShopStatus(shop: AdminShop, status: 'approved' | 'rejected') {
     setError(null);
     setUpdatingId(shop.id);
     try {
@@ -50,6 +55,9 @@ export default function AdminDashboardScreen() {
       const code = typeof actionError === 'object' && actionError !== null && 'code' in actionError ? String(actionError.code) : 'unknown';
       const message = actionError instanceof Error ? actionError.message : String(actionError);
       console.warn('Admin shop status update failed', { shopId: shop.id, status, code, message });
+      if (code === 'permission-denied') {
+        console.error('Admin shop status update was permission-denied; current shop fields', { shopId: shop.id, fieldNames: shop.fieldNames ?? Object.keys(shop).sort(), actionError });
+      }
       setError(getUserFriendlyError(actionError, 'We could not update this listing. Please try again.'));
     } finally {
       setUpdatingId(null);
