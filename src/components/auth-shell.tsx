@@ -12,9 +12,7 @@ export function AuthShell({ active, children }: AuthShellProps) {
   return (
     <View className="flex-1 bg-primary">
       <View className="h-[38%] items-center justify-center gap-2 px-6">
-        <View className="h-14 w-14 items-center justify-center rounded-2xl bg-accent">
-          <Logo width={42} height={42} accessibilityLabel="Kapehan" />
-        </View>
+        <Logo width={96} height={96} accessibilityLabel="Kapehan" />
         <Text className="font-serif text-4xl font-bold text-primary-foreground">Kapehan</Text>
         <Text className="text-center text-sm text-primary-foreground/75">Discover your perfect cup in Tagum City</Text>
       </View>

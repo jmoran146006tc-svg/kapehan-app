@@ -1,6 +1,6 @@
-import { ScrollView, View } from 'react-native';
+import { ImageBackground, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowRight, MapPin, Moon, Search, Sun } from 'lucide-react-native';
+import { ArrowRight, Moon, Search, Sun } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFilteredShops } from '@/hooks/useFilteredShops';
@@ -16,6 +16,7 @@ import { Text } from '@/components/ui/text';
 export default function HomeScreen() {
   const shops = useFilteredShops();
   const featured = [...shops].sort((a, b) => b.avgRating - a.avgRating).slice(0, 5);
+  const openCount = shops.filter((shop) => shop.openNow).length;
   const ids = useCompareStore((state) => state.ids);
   const toggle = useCompareStore((state) => state.toggle);
   const { savedShopIds, savingShopId, toggleSavedShop, error: savedError } = useSavedShops();
@@ -39,15 +40,25 @@ export default function HomeScreen() {
         </View>
 
         <View className="mx-auto w-full max-w-2xl gap-4 px-4">
-          <LinearGradient colors={['#382016', '#D9722F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} className="overflow-hidden rounded-2xl">
-            <Button variant="ghost" className="h-auto items-center justify-between rounded-2xl px-6 py-6" onPress={() => router.push('/(user)/map' as never)}>
-              <View className="flex-1 flex-row items-center gap-3">
-                <Icon as={MapPin} size={18} className="text-primary-foreground" />
-                <Text className="font-bold text-primary-foreground">Explore on Maps</Text>
+          <Pressable accessibilityRole="button" onPress={() => router.push('/(user)/map' as never)} className="overflow-hidden rounded-2xl">
+            <ImageBackground source={require('../../../assets/images/map-preview.png')} resizeMode="cover" className="px-6 py-6">
+              <LinearGradient
+                colors={['rgba(32,18,10,0.55)', 'rgba(32,18,10,0.88)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <View className="flex-row items-center justify-between">
+                <View className="flex-1 gap-1">
+                  <Text className="text-lg font-bold text-white">Explore on Maps</Text>
+                  <Text className="text-sm text-white/70">{openCount} shop{openCount === 1 ? '' : 's'} open now</Text>
+                </View>
+                <View className="h-11 w-11 items-center justify-center rounded-full bg-accent">
+                  <Icon as={ArrowRight} size={20} className="text-white" />
+                </View>
               </View>
-              <View className="h-9 w-9 items-center justify-center rounded-full bg-card/20"><Icon as={ArrowRight} size={18} className="text-white" /></View>
-            </Button>
-          </LinearGradient>
+            </ImageBackground>
+          </Pressable>
 
           <View className="flex-row items-center justify-between">
             <Text className="text-xl font-bold">Featured Today</Text>
