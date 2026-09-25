@@ -34,13 +34,11 @@ export function CompareFloatingButton({ measuredTabHeight }: { measuredTabHeight
   return (
     <Popover className="absolute right-4 z-50" style={{ bottom: tabHeight + 16 }}>
       <Animated.View style={animatedStyle}>
-        <PopoverTrigger asChild>
-          <Pressable className="rounded-full bg-primary px-4 py-3 shadow-lg shadow-black/20"
-            onPressIn={() => { scale.set(withSpring(0.97, { reduceMotion: ReduceMotion.System })); }}
-            onPressOut={() => { scale.set(withSpring(1, { reduceMotion: ReduceMotion.System })); }}
-            accessibilityLabel="Manage compared shops">
-            <Text className="font-medium text-primary-foreground">Compare ({ids.length})</Text>
-          </Pressable>
+        <PopoverTrigger className="rounded-full bg-primary px-4 py-3 shadow-lg shadow-black/20"
+          onPressIn={() => { scale.set(withSpring(0.97, { reduceMotion: ReduceMotion.System })); }}
+          onPressOut={() => { scale.set(withSpring(1, { reduceMotion: ReduceMotion.System })); }}
+          accessibilityLabel="Manage compared shops">
+          <Text className="font-medium text-primary-foreground">Compare ({ids.length})</Text>
         </PopoverTrigger>
       </Animated.View>
       <PopoverPortal>
@@ -53,8 +51,8 @@ export function CompareFloatingButton({ measuredTabHeight }: { measuredTabHeight
             <Pressable onPress={() => toggle(id)} accessibilityLabel="Remove shop from comparison" className="rounded-full p-2"><Icon as={X} size={16} /></Pressable>
           </View>)}
           <View className="flex-row items-center justify-between">
-            <PopoverClose asChild><Pressable className="rounded-md px-3 py-2" onPress={clear}><Text className="text-sm">Clear all</Text></Pressable></PopoverClose>
-            <PopoverClose asChild><Pressable className="rounded-md bg-primary px-3 py-2" onPress={() => router.push('/(user)/compare')}><Text className="text-sm text-primary-foreground">Compare →</Text></Pressable></PopoverClose>
+            <PopoverClose className="rounded-md px-3 py-2" onPress={clear}><Text className="text-sm">Clear all</Text></PopoverClose>
+            <PopoverClose className="rounded-md bg-primary px-3 py-2" onPress={() => router.push('/(user)/compare')}><Text className="text-sm text-primary-foreground">Compare →</Text></PopoverClose>
           </View>
         </PopoverContent>
       </PopoverPortal>

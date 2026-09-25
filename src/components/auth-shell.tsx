@@ -14,7 +14,7 @@ export function AuthShell({ active, children }: AuthShellProps) {
   const pathname = usePathname();
   const [progress] = useState(() => new Animated.Value(0));
   useEffect(() => {
-    Animated.timing(progress, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+    Animated.timing(progress, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
   }, [progress]);
   const offset = pathname.includes('forgot-password') ? 24 : 10;
   return (
