@@ -1,8 +1,6 @@
 import { View } from 'react-native';
 import { router } from 'expo-router';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { withTimeout } from '@/lib/timeout';
+import { saveOwnerShopUpdate } from '@/lib/owner-shop-update';
 import { OwnerShopShell } from '@/components/owner-shop-shell';
 import { ShopForm } from '@/components/shop-form';
 import type { ShopFormValues } from '@/lib/schemas/shop';
@@ -14,7 +12,7 @@ import type { Shop } from '@/types/shop';
 export default function OwnerShopInfoScreen() {
   const { showToast } = useToast();
   async function updateShop(shop: Shop, values: ShopFormValues) {
-    await withTimeout(updateDoc(doc(db, 'shops', shop.id), { ...values, status: 'pending' }));
+    await saveOwnerShopUpdate(shop.id, values);
     showToast({ type: 'success', message: 'Changes saved — your listing is back in review' });
     if (JSON.stringify(shop.hours) !== JSON.stringify(values.hours)) {
       try { await notifyFavoriteShopUpdate(shop.id, shop.name, 'shop_hours_updated'); }

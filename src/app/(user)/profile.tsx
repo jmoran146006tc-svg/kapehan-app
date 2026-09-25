@@ -13,6 +13,7 @@ import { dayjs } from '@/lib/dayjs';
 import type { AppUserDocument, RecentlyViewedEntry } from '@/types/user';
 import { preferencesSchema, type PreferencesValues } from '@/lib/schemas/preferences';
 import { getUserFriendlyError } from '@/lib/errors';
+import { useAsyncToastAction } from '@/hooks/useAsyncToastAction';
 import { withTimeout } from '@/lib/timeout';
 import { PRICE_BUCKET_LABELS, type PriceBucket } from '@/utils/price';
 import { TAG_OPTIONS } from '@/constants/tags';
@@ -29,7 +30,7 @@ export default function ProfileScreen() {
   const { shops } = useShops();
   const { savedShopIds, savingShopId, toggleSavedShop, error: savedError } = useSavedShops();
   const [profile, setProfile] = useState<AppUserDocument | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const { run: runToastAction, pending: isSaving } = useAsyncToastAction();
   const { showToast } = useToast();
   const [loadError, setLoadError] = useState<string | null>(null);
   const { control, handleSubmit, reset } = useForm<PreferencesValues>({
@@ -54,18 +55,14 @@ export default function ProfileScreen() {
 
   async function savePreferences(values: PreferencesValues) {
     if (!user) return showToast({ type: 'error', message: 'Log in to save preferences.' });
-    setIsSaving(true);
-    try {
-      await withTimeout(updateDoc(doc(db, 'users', user.uid), { preferences: values }));
-      showToast({ type: 'success', message: 'Preferences saved' });
-    } catch (error) {
-      const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : 'unknown';
-      const message = error instanceof Error ? error.message : String(error);
-      console.warn('Profile preference save failed', { code, message });
-      showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not save your preferences. Please try again.') });
-    } finally {
-      setIsSaving(false);
-    }
+    await runToastAction(
+      () => withTimeout(updateDoc(doc(db, 'users', user.uid), { preferences: values })),
+      { success: 'Preferences saved', error: 'We could not save your preferences. Please try again.', onError: (error) => {
+        const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : 'unknown';
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn('Profile preference save failed', { code, message });
+      } },
+    );
   }
 
   return <ScrollView className="flex-1 bg-background" contentContainerClassName="mx-auto w-full max-w-2xl gap-5 pb-8">

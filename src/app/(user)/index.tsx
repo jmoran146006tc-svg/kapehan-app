@@ -8,13 +8,14 @@ import { useCompareStore } from '@/store/compareStore';
 import { useSavedShops } from '@/hooks/useSavedShops';
 import { DiscoveryFilterRow } from '@/components/discovery-filter-row';
 import { ShopCard } from '@/components/shop-card';
+import { ShopCardSkeleton } from '@/components/shop-card-skeleton';
 import { UserNotificationButton } from '@/components/user-notification-button';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 
 export default function HomeScreen() {
-  const shops = useFilteredShops();
+  const { shops, loading } = useFilteredShops();
   const featured = [...shops].sort((a, b) => b.avgRating - a.avgRating).slice(0, 5);
   const openCount = shops.filter((shop) => shop.openNow).length;
   const ids = useCompareStore((state) => state.ids);
@@ -66,10 +67,10 @@ export default function HomeScreen() {
           </View>
           {savedError ? <Text accessibilityRole="alert" className="text-destructive">{savedError}</Text> : null}
           <View className="gap-3">
-            {featured.map((shop) => (
+            {loading ? [0, 1, 2].map((index) => <ShopCardSkeleton key={index} />) : featured.map((shop) => (
               <ShopCard key={shop.id} shop={shop} onPress={() => router.push({ pathname: '/(user)/shop/[id]', params: { id: shop.id } })} saved={savedShopIds.includes(shop.id)} saving={savingShopId === shop.id} onToggleSaved={() => void toggleSavedShop(shop.id)} compared={ids.includes(shop.id)} onToggleCompare={() => toggle(shop.id)} />
             ))}
-            {featured.length === 0 ? <Text className="py-8 text-center text-muted-foreground">No approved coffee shops match these filters yet.</Text> : null}
+            {!loading && featured.length === 0 ? <Text className="py-8 text-center text-muted-foreground">No approved coffee shops match these filters yet.</Text> : null}
           </View>
         </View>
       </ScrollView>

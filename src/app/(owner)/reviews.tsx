@@ -5,12 +5,12 @@ import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestor
 import { Star } from 'lucide-react-native';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
-import { dayjs } from '@/lib/dayjs';
 import { toShop, type Shop } from '@/types/shop';
 import { toReview, type Review } from '@/types/review';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import { OwnerReplyLabel, ReviewTime } from '@/components/review-edit-markers';
 
 export default function OwnerReviewsScreen() {
   const { user } = useAuth();
@@ -51,10 +51,8 @@ export default function OwnerReviewsScreen() {
               <View className="flex-row items-center gap-1"><Icon as={Star} size={14} fill="currentColor" className="text-accent" /><Text>{review.rating}/5</Text></View>
             </View>
             <CardDescription>{review.text || 'No written comment.'}</CardDescription>
-            <Text className="text-xs text-muted-foreground">
-              {review.createdAt ? dayjs(review.createdAt.toDate()).fromNow() : 'Just now'}
-            </Text>
-            {review.ownerReply?.text ? <View className="mt-2 rounded-lg bg-secondary p-3"><Text className="text-xs font-semibold text-muted-foreground">Owner replied</Text><Text className="mt-1 text-sm">{review.ownerReply.text}</Text></View> : null}
+            <ReviewTime review={review} />
+            {review.ownerReply?.text ? <View className="mt-2 rounded-lg bg-secondary p-3"><OwnerReplyLabel edited={Boolean(review.ownerReply.editedAt)} /><Text className="mt-1 text-sm">{review.ownerReply.text}</Text></View> : null}
           </CardHeader>
         </Card>
       ))}

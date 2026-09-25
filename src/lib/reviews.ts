@@ -59,7 +59,11 @@ export async function submitReview(
     // Remove an edited rating before adding the replacement so edits never inflate the average.
     const nextAverage = (previousTotal - previousRating + rating) / nextCount;
 
-    tx.set(reviewRef, { userId, userName, rating, text, createdAt: serverTimestamp() }, { merge: true });
+    if (isNewReview) {
+      tx.set(reviewRef, { userId, userName, rating, text, createdAt: serverTimestamp() });
+    } else {
+      tx.update(reviewRef, { rating, text, editedAt: serverTimestamp() });
+    }
     const ratingCounts = nextRatingCounts(shop.ratingCounts, previousRating, rating);
     tx.update(shopRef, {
       avgRating: nextAverage,

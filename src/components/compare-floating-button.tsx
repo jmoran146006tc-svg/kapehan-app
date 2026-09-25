@@ -5,7 +5,6 @@ import { X } from 'lucide-react-native';
 import { useCompareStore } from '@/store/compareStore';
 import { useShops } from '@/hooks/useShops';
 import { BottomTabInset } from '@/constants/theme';
-import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Popover, PopoverClose, PopoverContent, PopoverOverlay, PopoverPortal, PopoverTrigger } from '@/components/ui/popover';
 import { Text } from '@/components/ui/text';
@@ -36,12 +35,12 @@ export function CompareFloatingButton({ measuredTabHeight }: { measuredTabHeight
     <Popover className="absolute right-4 z-50" style={{ bottom: tabHeight + 16 }}>
       <Animated.View style={animatedStyle}>
         <PopoverTrigger asChild>
-          <Button className="rounded-full shadow-lg shadow-black/20"
+          <Pressable className="rounded-full bg-primary px-4 py-3 shadow-lg shadow-black/20"
             onPressIn={() => { scale.set(withSpring(0.97, { reduceMotion: ReduceMotion.System })); }}
             onPressOut={() => { scale.set(withSpring(1, { reduceMotion: ReduceMotion.System })); }}
             accessibilityLabel="Manage compared shops">
-            <Text>Compare ({ids.length})</Text>
-          </Button>
+            <Text className="font-medium text-primary-foreground">Compare ({ids.length})</Text>
+          </Pressable>
         </PopoverTrigger>
       </Animated.View>
       <PopoverPortal>
@@ -54,8 +53,8 @@ export function CompareFloatingButton({ measuredTabHeight }: { measuredTabHeight
             <Pressable onPress={() => toggle(id)} accessibilityLabel="Remove shop from comparison" className="rounded-full p-2"><Icon as={X} size={16} /></Pressable>
           </View>)}
           <View className="flex-row items-center justify-between">
-            <PopoverClose asChild><Button size="sm" variant="ghost" onPress={clear}><Text>Clear all</Text></Button></PopoverClose>
-            <PopoverClose asChild><Button size="sm" onPress={() => router.push('/(user)/compare')}><Text>Compare →</Text></Button></PopoverClose>
+            <PopoverClose asChild><Pressable className="rounded-md px-3 py-2" onPress={clear}><Text className="text-sm">Clear all</Text></Pressable></PopoverClose>
+            <PopoverClose asChild><Pressable className="rounded-md bg-primary px-3 py-2" onPress={() => router.push('/(user)/compare')}><Text className="text-sm text-primary-foreground">Compare →</Text></Pressable></PopoverClose>
           </View>
         </PopoverContent>
       </PopoverPortal>

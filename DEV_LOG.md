@@ -56,3 +56,28 @@
 ### Follow-up
 
 - Exercise favorite notifications, admin actions, owner scrolling, compare controls, map markers, and focus transitions with signed-in accounts on desktop and native devices after deploying rules and backfilling follower records.
+
+## 2026-09-25 — Round 2 fixes and quality pass
+
+### Completed
+
+1. Deployed the current Firestore rules to `kapehan-app-4c616`; the final deployment compiled the review timestamp rules and confirmed the release. Previewed the favorite-follower backfill, created the 2 missing records, and confirmed the next preview found 0 missing records across 4 users.
+2. Changed the global compare popover trigger and close controls to use a single direct pressable child, and limited background follower reconciliation to one attempt per user/shop per app session. Favorite writes now report a failed follower write instead of silently saving an incomplete favorite.
+3. Centralized owner listing updates in one helper that writes only owner-editable content and always sets `status: 'pending'`. The owner rule already requires the resulting status to be pending; both edit screens show the return-to-review confirmation.
+4. Gave toasts a styled opaque card and leading success/error icon inside the animation wrapper, with safe-area-aware spacing above the tab bar. Added shared async action/toast handling for preference saves and a single compare-limit constant.
+5. Added a visible auth form entrance on web/native and a directional reset-password transition. Home, Search, Saved, owner, and admin shop lists now show skeletons until their first snapshots finish.
+6. Preserved original review and owner-reply timestamps on edits, wrote separate `editedAt` timestamps, displayed muted edited markers in customer and owner review lists, and deployed narrow security-rule validation for the new fields.
+
+### Validation
+
+| Check | Result | Notes |
+| --- | --- | --- |
+| Firestore rules deployment | Passed | Final rules compiled and were released to `cloud.firestore` in the verified project. |
+| Favorite-follower backfill | Passed | Preview 2 → applied 2 → post-apply preview 0. |
+| Signed-in Firestore rules smoke test | Passed | A customer favorite created a follower; the owner could add a menu item and send a notification the customer read; a customer shop edit was denied; an owner edit became pending and appeared in an admin pending query. Temporary test data was removed and original fields restored. |
+| Review/reply timestamp smoke test | Passed | A seeded customer edited a review and the owner edited its reply; both gained `editedAt` while their original posting times stayed unchanged. The original review and notification state were restored. |
+| `npx tsc --noEmit` | Passed | Final workspace check. |
+| `npx expo lint --no-cache` | Passed | Final uncached check with no warnings. |
+| `git diff --check` | Passed | No whitespace errors. |
+| Web export | Passed | `npx expo export --platform web` bundled successfully. |
+| Signed-in and visual regression | Pending | The local Metro watcher failed to start; the exported site served locally, but the in-app browser twice timed out attaching to it. Browser test logins have been requested. Compare popover, toast appearance, auth motion, and viewport behavior still need a visual pass. |

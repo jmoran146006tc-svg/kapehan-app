@@ -61,21 +61,23 @@ service cloud.firestore {
     }
 
     function validReviewFields() {
-      return request.resource.data.keys().hasOnly(['userId', 'userName', 'rating', 'text', 'createdAt', 'ownerReply']) &&
+      return request.resource.data.keys().hasOnly(['userId', 'userName', 'rating', 'text', 'createdAt', 'editedAt', 'ownerReply']) &&
         request.resource.data.keys().hasAll(['userId', 'userName', 'rating', 'text', 'createdAt']) &&
         request.resource.data.userId == request.auth.uid &&
         request.resource.data.userName is string &&
         request.resource.data.rating is int &&
         request.resource.data.rating >= 1 && request.resource.data.rating <= 5 &&
         request.resource.data.text is string && request.resource.data.text.size() <= 1000 &&
-        request.resource.data.createdAt == request.time &&
+        request.resource.data.createdAt is timestamp &&
+        (!('editedAt' in request.resource.data) || request.resource.data.editedAt is timestamp) &&
         (!('ownerReply' in request.resource.data) ||
           (request.resource.data.ownerReply is map &&
-            request.resource.data.ownerReply.keys().hasOnly(['text', 'repliedAt']) &&
+            request.resource.data.ownerReply.keys().hasOnly(['text', 'repliedAt', 'editedAt']) &&
             request.resource.data.ownerReply.keys().hasAll(['text', 'repliedAt']) &&
             request.resource.data.ownerReply.text is string &&
             request.resource.data.ownerReply.text.size() <= 500 &&
-            request.resource.data.ownerReply.repliedAt is timestamp));
+            request.resource.data.ownerReply.repliedAt is timestamp &&
+            (!('editedAt' in request.resource.data.ownerReply) || request.resource.data.ownerReply.editedAt is timestamp)));
     }
 
     function aggregateMatchesReview(shopId) {
@@ -106,7 +108,9 @@ service cloud.firestore {
         reviewAfter.data.userId == request.auth.uid &&
         reviewAfter.data.rating is int &&
         reviewAfter.data.rating >= 1 && reviewAfter.data.rating <= 5 &&
-        reviewAfter.data.createdAt == request.time &&
+        (reviewAlreadyExists
+          ? reviewAfter.data.createdAt == get(reviewBeforePath).data.createdAt
+          : reviewAfter.data.createdAt == request.time) &&
         shopAfter.data.reviewCount == nextCount &&
         shopAfter.data.avgRating == nextAverage;
     }
@@ -138,7 +142,9 @@ service cloud.firestore {
       let reviewAfter = getAfter(/databases/$(database)/documents/shops/$(request.resource.data.shopId)/reviews/$(request.auth.uid));
       return isSignedIn() && request.auth.uid != uid &&
         request.resource.data.type == 'review_received' && shop.data.ownerId == uid &&
-        reviewAfter.data.userId == request.auth.uid && reviewAfter.data.createdAt == request.time;
+        reviewAfter.data.userId == request.auth.uid &&
+        (reviewAfter.data.createdAt == request.time ||
+          (('editedAt' in reviewAfter.data) && reviewAfter.data.editedAt == request.time));
     }
 
     function isReviewReplyNotification(uid) {
@@ -267,18 +273,27 @@ service cloud.firestore {
       match /reviews/{reviewId} {
         allow read: if true;
         // The review UID is the author UID and the parent aggregate must change in this same transaction.
-        allow create: if isOwner(reviewId) && validReviewFields() && aggregateMatchesReview(shopId);
+        allow create: if isOwner(reviewId) && validReviewFields() &&
+          request.resource.data.createdAt == request.time &&
+          !('editedAt' in request.resource.data) && !('ownerReply' in request.resource.data) &&
+          aggregateMatchesReview(shopId);
         allow update: if isOwner(reviewId) && validReviewFields() &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'text', 'createdAt']) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'text', 'editedAt']) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.editedAt == request.time &&
           aggregateMatchesReview(shopId);
         allow update: if isSignedIn() &&
           get(/databases/$(database)/documents/shops/$(shopId)).data.ownerId == request.auth.uid &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ownerReply']) &&
           request.resource.data.ownerReply is map &&
-          request.resource.data.ownerReply.keys().hasOnly(['text', 'repliedAt']) &&
+          request.resource.data.ownerReply.keys().hasOnly(['text', 'repliedAt', 'editedAt']) &&
           request.resource.data.ownerReply.keys().hasAll(['text', 'repliedAt']) &&
           request.resource.data.ownerReply.text is string && request.resource.data.ownerReply.text.size() <= 500 &&
-          request.resource.data.ownerReply.repliedAt == request.time;
+          (('ownerReply' in resource.data)
+            ? (request.resource.data.ownerReply.repliedAt == resource.data.ownerReply.repliedAt &&
+              request.resource.data.ownerReply.editedAt == request.time)
+            : (request.resource.data.ownerReply.repliedAt == request.time &&
+              !('editedAt' in request.resource.data.ownerReply)));
         // Deletion is intentionally unavailable until it also recalculates the parent summary atomically.
         allow delete: if false;
       }

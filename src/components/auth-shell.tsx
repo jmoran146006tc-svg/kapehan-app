@@ -1,5 +1,6 @@
-import { ScrollView, View, useWindowDimensions } from 'react-native';
-import { Link } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Animated, Easing, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Link, usePathname } from 'expo-router';
 import { Logo } from '@/components/logo';
 import { Text } from '@/components/ui/text';
 
@@ -10,6 +11,12 @@ interface AuthShellProps {
 
 export function AuthShell({ active, children }: AuthShellProps) {
   const { width } = useWindowDimensions();
+  const pathname = usePathname();
+  const [progress] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    Animated.timing(progress, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, [progress]);
+  const offset = pathname.includes('forgot-password') ? 24 : 10;
   return (
     <View className="flex-1 bg-primary">
       <View className="h-[38%] items-center justify-center gap-2 px-6">
@@ -27,7 +34,9 @@ export function AuthShell({ active, children }: AuthShellProps) {
             <Text className={active === 'register' ? 'text-center font-semibold text-primary-foreground' : 'text-center font-semibold'}>Register</Text>
           </Link>
         </View>
-        {children}
+        <Animated.View style={{ opacity: progress, transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [offset, 0] }) }] }}>
+          {children}
+        </Animated.View>
         </View>
       </ScrollView>
     </View>

@@ -14,7 +14,9 @@ export async function saveOwnerReply(shopId: string, reviewId: string, text: str
     const review = reviewSnapshot.data();
     const isFirstReply = !review.ownerReply?.text;
 
-    transaction.update(reviewRef, { ownerReply: { text: reply, repliedAt: serverTimestamp() } });
+    transaction.update(reviewRef, { ownerReply: isFirstReply
+      ? { text: reply, repliedAt: serverTimestamp() }
+      : { text: reply, repliedAt: review.ownerReply.repliedAt, editedAt: serverTimestamp() } });
     if (isFirstReply) {
       transaction.set(doc(collection(db, 'users', review.userId, 'notifications')), {
         type: 'review_reply',

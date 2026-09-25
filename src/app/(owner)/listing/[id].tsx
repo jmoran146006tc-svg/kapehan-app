@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { db } from '@/lib/firebase';
 import { ShopForm } from '@/components/shop-form';
 import { Text } from '@/components/ui/text';
 import type { ShopFormValues } from '@/lib/schemas/shop';
-import { withTimeout } from '@/lib/timeout';
 import { getUserFriendlyError } from '@/lib/errors';
 import { goBack } from '@/lib/navigation';
 import { useToast } from '@/hooks/useToast';
 import { notifyFavoriteShopUpdate } from '@/lib/favorite-shop-updates';
 import { Skeleton } from '@/components/ui/skeleton';
+import { saveOwnerShopUpdate } from '@/lib/owner-shop-update';
 
 export default function EditListingScreen() {
   const { showToast } = useToast();
@@ -38,9 +38,7 @@ export default function EditListingScreen() {
 
   async function handleUpdate(values: ShopFormValues) {
     if (!id) throw new Error('This listing could not be found.');
-    // Resets status to "pending" on every save — an edited listing goes
-    // back through admin review before it's visible again.
-    await withTimeout(updateDoc(doc(db, 'shops', id), { ...values, status: 'pending' }));
+    await saveOwnerShopUpdate(id, values);
     showToast({ type: 'success', message: 'Changes saved — your listing is back in review' });
     if (JSON.stringify(initialValues?.hours) !== JSON.stringify(values.hours)) {
       try { await notifyFavoriteShopUpdate(id, values.name, 'shop_hours_updated'); }

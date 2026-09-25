@@ -1,9 +1,9 @@
+import { OwnerReplyLabel, ReviewTime } from '@/components/review-edit-markers';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { Pencil, Star } from 'lucide-react-native';
 import { db } from '@/lib/firebase';
-import { dayjs } from '@/lib/dayjs';
 import { getUserFriendlyError } from '@/lib/errors';
 import { saveOwnerReply } from '@/lib/review-replies';
 import { toReview, type Review } from '@/types/review';
@@ -80,7 +80,7 @@ function OwnerReviewsContent({ shop }: { shop: Shop }) {
       const replyExists = hasReply(review);
       const isEditing = editing[review.id] === true;
       const draft = drafts[review.id] ?? '';
-      return <Card key={review.id}><CardHeader className="gap-3"><View className="flex-row items-start justify-between gap-3"><View className="flex-1"><CardTitle>{review.userName}</CardTitle><Text className="text-xs text-muted-foreground">{review.createdAt ? dayjs(review.createdAt.toDate()).fromNow() : 'Just now'}</Text></View><View className="flex-row items-center gap-1"><Icon as={Star} size={14} fill="currentColor" className="text-accent" /><Text>{review.rating}/5</Text></View></View><CardDescription>{review.text || 'No written comment.'}</CardDescription>{replyExists && !isEditing ? <View className="gap-2 rounded-lg bg-secondary p-3"><Text className="text-xs font-semibold text-muted-foreground">Owner replied</Text><Text>{review.ownerReply?.text}</Text><Button size="sm" variant="outline" className="self-start" onPress={() => beginEdit(review)}><Icon as={Pencil} size={14} /><Text>Edit</Text></Button></View> : <View className="gap-2"><Input multiline className="min-h-16 py-2" placeholder="Reply to this review…" value={draft} onChangeText={(text) => setDrafts((current) => ({ ...current, [review.id]: text }))} /><View className="flex-row gap-2"><Button size="sm" loading={submitting === review.id} loadingLabel="Sending…" disabled={!draft.trim()} onPress={() => void reply(review)}><Text>{replyExists ? 'Update reply' : 'Post reply'}</Text></Button>{replyExists ? <Button size="sm" variant="outline" onPress={() => cancelEdit(review.id)}><Text>Cancel</Text></Button> : null}</View></View>}</CardHeader></Card>;
+      return <Card key={review.id}><CardHeader className="gap-3"><View className="flex-row items-start justify-between gap-3"><View className="flex-1"><CardTitle>{review.userName}</CardTitle><ReviewTime review={review} /></View><View className="flex-row items-center gap-1"><Icon as={Star} size={14} fill="currentColor" className="text-accent" /><Text>{review.rating}/5</Text></View></View><CardDescription>{review.text || 'No written comment.'}</CardDescription>{replyExists && !isEditing ? <View className="gap-2 rounded-lg bg-secondary p-3"><OwnerReplyLabel edited={Boolean(review.ownerReply?.editedAt)} /><Text>{review.ownerReply?.text}</Text><Button size="sm" variant="outline" className="self-start" onPress={() => beginEdit(review)}><Icon as={Pencil} size={14} /><Text>Edit</Text></Button></View> : <View className="gap-2"><Input multiline className="min-h-16 py-2" placeholder="Reply to this review…" value={draft} onChangeText={(text) => setDrafts((current) => ({ ...current, [review.id]: text }))} /><View className="flex-row gap-2"><Button size="sm" loading={submitting === review.id} loadingLabel="Sending…" disabled={!draft.trim()} onPress={() => void reply(review)}><Text>{replyExists ? 'Update reply' : 'Post reply'}</Text></Button>{replyExists ? <Button size="sm" variant="outline" onPress={() => cancelEdit(review.id)}><Text>Cancel</Text></Button> : null}</View></View>}</CardHeader></Card>;
     })}
     {reviews.length === 0 ? <View className="items-center gap-2 py-8"><Icon as={Star} size={28} className="text-accent" /><Text className="text-center text-muted-foreground">Customer reviews will appear here.</Text></View> : null}
   </View>;

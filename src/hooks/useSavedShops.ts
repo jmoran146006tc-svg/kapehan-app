@@ -6,6 +6,9 @@ import { getUserFriendlyError } from '@/lib/errors';
 import { withTimeout } from '@/lib/timeout';
 import { useToast } from '@/hooks/useToast';
 
+// Shared by every useSavedShops instance, including screens mounted later in this app session.
+const followerSyncAttempts = new Set<string>();
+
 export function useSavedShops() {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -29,10 +32,13 @@ export function useSavedShops() {
   useEffect(() => {
     if (!user || savedSnapshot.userId !== user.uid) return;
     for (const shopId of savedSnapshot.ids) {
+      const attemptKey = `${user.uid}/${shopId}`;
+      if (followerSyncAttempts.has(attemptKey)) continue;
+      followerSyncAttempts.add(attemptKey);
       const followerRef = doc(db, 'shops', shopId, 'followers', user.uid);
       void getDoc(followerRef).then((snap) => {
         if (!snap.exists()) return setDoc(followerRef, { createdAt: serverTimestamp() });
-      }).catch((syncError) => console.error('Could not sync favorite follower', syncError));
+      }).catch((syncError) => console.warn('Favorite follower sync skipped:', syncError instanceof Error ? syncError.message : syncError));
     }
   }, [savedKey, savedSnapshot.ids, savedSnapshot.userId, user]);
 
@@ -51,17 +57,7 @@ export function useSavedShops() {
       const followerRef = doc(db, 'shops', shopId, 'followers', user.uid);
       if (removing) batch.delete(followerRef);
       else batch.set(followerRef, { createdAt: serverTimestamp() });
-      try {
-        await withTimeout(batch.commit());
-      } catch (batchError) {
-        // During rollout, deployed rules may not yet allow follower records.
-        // Keep the existing favorite action working until those rules deploy.
-        const code = typeof batchError === 'object' && batchError !== null && 'code' in batchError ? String(batchError.code) : '';
-        if (code !== 'permission-denied') throw batchError;
-        await withTimeout(setDoc(doc(db, 'users', user.uid), {
-          savedShopIds: removing ? arrayRemove(shopId) : arrayUnion(shopId),
-        }, { merge: true }));
-      }
+      await withTimeout(batch.commit());
       showToast({ type: 'success', message: savedShopIds.includes(shopId) ? 'Removed from favorites' : 'Added to favorites' });
     } catch (saveError) {
       showToast({ type: 'error', message: getUserFriendlyError(saveError, 'We could not update your saved shops. Please try again.') });

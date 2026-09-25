@@ -7,11 +7,11 @@ import { isOpenNow } from '@/utils/hours';
 import { getPriceBucket } from '@/utils/price';
 
 export function useFilteredShops() {
-  const { shops } = useShops();
+  const { shops, loading } = useShops();
   const filters = useFilterStore();
   const location = useUserLocation();
 
-  return useMemo(() => {
+  const filteredShops = useMemo(() => {
     return shops
       .map((shop) => ({
         ...shop,
@@ -33,4 +33,5 @@ export function useFilteredShops() {
       })
       .sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
   }, [shops, filters, location]);
+  return { shops: filteredShops, loading };
 }

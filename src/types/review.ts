@@ -7,7 +7,8 @@ export interface Review {
   rating: number;
   text: string;
   createdAt: Timestamp | null;
-  ownerReply: { text: string; repliedAt: Timestamp | null } | null;
+  editedAt: Timestamp | null;
+  ownerReply: { text: string; repliedAt: Timestamp | null; editedAt: Timestamp | null } | null;
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -27,8 +28,9 @@ export function toReview(id: string, data: unknown): Review {
     rating: typeof source.rating === 'number' && Number.isFinite(source.rating) ? source.rating : 0,
     text: typeof source.text === 'string' ? source.text : '',
     createdAt: (source.createdAt as Timestamp | null | undefined) ?? null,
+    editedAt: (source.editedAt as Timestamp | null | undefined) ?? null,
     ownerReply: typeof reply.text === 'string' && reply.text.trim()
-      ? { text: reply.text, repliedAt: (reply.repliedAt as Timestamp | null | undefined) ?? null }
+      ? { text: reply.text, repliedAt: (reply.repliedAt as Timestamp | null | undefined) ?? null, editedAt: (reply.editedAt as Timestamp | null | undefined) ?? null }
       : null,
   };
 }

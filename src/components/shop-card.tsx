@@ -1,7 +1,7 @@
 import { Image, Platform, Pressable, View } from 'react-native';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
-import { useCompareStore } from '@/store/compareStore';
+import { MAX_COMPARED_SHOPS, useCompareStore } from '@/store/compareStore';
 import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Heart, MapPin, Star } from 'lucide-react-native';
 import type { Shop } from '@/types/shop';
@@ -73,7 +73,7 @@ export function ShopCard({ shop, onPress, saved = false, saving = false, onToggl
       ) : null}
 
       {onToggleCompare ? (
-        <Button size="sm" variant={compared ? 'default' : 'outline'} className="mx-6 mb-5 self-start rounded-full" onPress={() => { if (!compared && compareCount >= 3) { showToast({ type: 'error', message: 'Compare up to three shops at a time.' }); return; } onToggleCompare(); showToast({ type: 'success', message: compared ? 'Removed from comparison' : 'Added to comparison' }); }}>
+        <Button size="sm" variant={compared ? 'default' : 'outline'} className="mx-6 mb-5 self-start rounded-full" onPress={() => { if (!compared && compareCount >= MAX_COMPARED_SHOPS) { showToast({ type: 'error', message: `Compare up to ${MAX_COMPARED_SHOPS} shops at a time.` }); return; } onToggleCompare(); showToast({ type: 'success', message: compared ? 'Removed from comparison' : 'Added to comparison' }); }}>
           <Text>{compared ? 'Added to compare' : '+ Compare'}</Text>
         </Button>
       ) : null}
