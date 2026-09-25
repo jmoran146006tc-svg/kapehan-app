@@ -114,7 +114,7 @@ service cloud.firestore {
     function validNotification() {
       return request.resource.data.keys().hasOnly(['type', 'message', 'shopId', 'read', 'createdAt']) &&
         request.resource.data.keys().hasAll(['type', 'message', 'shopId', 'read', 'createdAt']) &&
-        request.resource.data.type in ['listing_approved', 'listing_rejected', 'review_received', 'review_reply'] &&
+        request.resource.data.type in ['listing_approved', 'listing_rejected', 'review_received', 'review_reply', 'shop_hours_updated', 'shop_menu_updated'] &&
         request.resource.data.message is string && request.resource.data.message.size() <= 1000 &&
         request.resource.data.shopId is string && request.resource.data.read == false &&
         request.resource.data.createdAt == request.time;
@@ -152,6 +152,16 @@ service cloud.firestore {
         reviewAfter.data.ownerReply.repliedAt == request.time;
     }
 
+    function isFavoriteShopUpdateNotification(uid) {
+      let shop = get(/databases/$(database)/documents/shops/$(request.resource.data.shopId));
+      let recipient = get(/databases/$(database)/documents/users/$(uid));
+      return isSignedIn() &&
+        request.resource.data.type in ['shop_hours_updated', 'shop_menu_updated'] &&
+        shop.data.ownerId == request.auth.uid &&
+        recipient.data.savedShopIds is list &&
+        recipient.data.savedShopIds.hasAny([request.resource.data.shopId]);
+    }
+
     match /users/{uid} {
       allow read: if isOwner(uid) || isAdmin();
       // Admin accounts are intentionally provisioned outside this client app.
@@ -186,7 +196,7 @@ service cloud.firestore {
       match /notifications/{notificationId} {
         allow read: if isOwner(uid);
         // Notification creators must be the matching admin decision or review transaction.
-        allow create: if validNotification() && (isAdminStatusNotification(uid) || isReviewNotification(uid) || isReviewReplyNotification(uid));
+        allow create: if validNotification() && (isAdminStatusNotification(uid) || isReviewNotification(uid) || isReviewReplyNotification(uid) || isFavoriteShopUpdateNotification(uid));
         allow update: if isOwner(uid) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) &&
           request.resource.data.read is bool;
@@ -194,6 +204,15 @@ service cloud.firestore {
     }
 
     match /shops/{shopId} {
+      match /followers/{uid} {
+        allow read: if isOwner(uid) || isOwner(get(/databases/$(database)/documents/shops/$(shopId)).data.ownerId);
+        allow create: if isOwner(uid) &&
+          request.resource.data.keys().hasOnly(['createdAt']) &&
+          request.resource.data.createdAt == request.time &&
+          getAfter(/databases/$(database)/documents/users/$(uid)).data.savedShopIds.hasAny([shopId]);
+        allow delete: if isOwner(uid) &&
+          !getAfter(/databases/$(database)/documents/users/$(uid)).data.savedShopIds.hasAny([shopId]);
+      }
       allow read: if resource.data.status == 'approved' || isOwner(resource.data.ownerId) || isAdmin();
       allow create: if myRole() == 'owner' && validShop(request.resource.data) &&
         request.resource.data.ownerId == request.auth.uid &&

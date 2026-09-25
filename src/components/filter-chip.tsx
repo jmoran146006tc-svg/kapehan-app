@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
+import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 interface FilterChipProps {
   label: string;
@@ -10,7 +11,10 @@ interface FilterChipProps {
 }
 
 export function FilterChip({ label, selected = false, onPress }: FilterChipProps) {
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
+    <Animated.View style={animatedStyle}>
     <Button
       size="sm"
       variant={selected ? 'default' : 'outline'}
@@ -23,8 +27,11 @@ export function FilterChip({ label, selected = false, onPress }: FilterChipProps
             : 'transition-colors duration-150 hover:bg-secondary/70',
         }),
       )}
-      onPress={onPress}>
+      onPress={onPress}
+      onPressIn={() => { scale.set(withSpring(0.97, { reduceMotion: ReduceMotion.System })); }}
+      onPressOut={() => { scale.set(withSpring(1, { reduceMotion: ReduceMotion.System })); }}>
       <Text className={selected ? 'text-accent-foreground' : 'text-foreground'}>{label}</Text>
     </Button>
+    </Animated.View>
   );
 }

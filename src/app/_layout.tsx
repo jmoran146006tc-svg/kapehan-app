@@ -13,13 +13,14 @@ import { Slot } from 'expo-router';
 import { PortalHost } from '@rn-primitives/portal';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ConnectivityBanner } from '@/components/connectivity-banner';
+import { ToastProvider } from '@/components/ui/toast';
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <>
         <ConnectivityBanner />
-        <Slot />
+        <ToastProvider><Slot /></ToastProvider>
         <PortalHost />
       </>
     </SafeAreaProvider>

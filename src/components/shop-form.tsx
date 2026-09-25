@@ -12,6 +12,7 @@ import { Icon } from '@/components/ui/icon';
 import { X } from 'lucide-react-native';
 import { getUserFriendlyError } from '@/lib/errors';
 import { MAX_TAGS_PER_SHOP, TAG_OPTIONS, type ShopTag } from '@/constants/tags';
+import { useToast } from '@/hooks/useToast';
 
 interface ShopFormProps {
   defaultValues?: Partial<ShopFormValues>;
@@ -22,7 +23,7 @@ interface ShopFormProps {
 export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps) {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const { control, handleSubmit, setValue, formState: { errors } } = useForm
   <ShopFormInput,
@@ -43,7 +44,6 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
 
 
   async function pickPhoto() {
-    setSubmitError(null);
     try {
       const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
       if (result.canceled) return;
@@ -51,7 +51,7 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
       const url = await uploadToCloudinary(result.assets[0].uri);
       setValue('photos', [...photos, url], { shouldValidate: true });
     } catch (error) {
-      setSubmitError(getUserFriendlyError(error, 'We could not upload that photo. Please try again.'));
+      showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not upload that photo. Please try again.') });
     } finally {
       setUploading(false);
     }
@@ -62,12 +62,11 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
   }
 
   async function handleFormSubmit(values: ShopFormValues) {
-    setSubmitError(null);
     setSubmitting(true);
     try {
       await onSubmit(values);
     } catch (error) {
-      setSubmitError(getUserFriendlyError(error, 'We could not save this listing. Please try again.'));
+      showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not save this listing. Please try again.') });
     } finally {
       setSubmitting(false);
     }
@@ -186,7 +185,6 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
         </Button>
       </View>
 
-      {submitError && <Text accessibilityRole="alert" className="text-destructive">{submitError}</Text>}
       <Button loading={submitting} loadingLabel="Saving…" onPress={handleSubmit(handleFormSubmit)} disabled={uploading}>
         <Text>{submitLabel}</Text>
       </Button>

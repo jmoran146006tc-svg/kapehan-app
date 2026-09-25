@@ -10,8 +10,12 @@ import type { ShopFormValues } from '@/lib/schemas/shop';
 import { withTimeout } from '@/lib/timeout';
 import { getUserFriendlyError } from '@/lib/errors';
 import { goBack } from '@/lib/navigation';
+import { useToast } from '@/hooks/useToast';
+import { notifyFavoriteShopUpdate } from '@/lib/favorite-shop-updates';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function EditListingScreen() {
+  const { showToast } = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [initialValues, setInitialValues] = useState<Partial<ShopFormValues> | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -37,13 +41,18 @@ export default function EditListingScreen() {
     // Resets status to "pending" on every save — an edited listing goes
     // back through admin review before it's visible again.
     await withTimeout(updateDoc(doc(db, 'shops', id), { ...values, status: 'pending' }));
+    showToast({ type: 'success', message: 'Changes saved — your listing is back in review' });
+    if (JSON.stringify(initialValues?.hours) !== JSON.stringify(values.hours)) {
+      try { await notifyFavoriteShopUpdate(id, values.name, 'shop_hours_updated'); }
+      catch { showToast({ type: 'error', message: 'Changes saved, but followers could not be notified.' }); }
+    }
     goBack('/(owner)');
   }
 
   if (!initialValues || !id) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
-        <Text className={loadError || !id ? 'text-destructive' : 'text-muted-foreground'}>{loadError ?? (!id ? 'This listing could not be found.' : 'Loading…')}</Text>
+        {loadError || !id ? <Text className="text-destructive">{loadError ?? 'This listing could not be found.'}</Text> : <View className="w-full max-w-2xl gap-4 p-4"><Skeleton className="h-12 w-2/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-32 w-full" /></View>}
       </View>
     );
   }

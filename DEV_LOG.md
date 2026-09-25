@@ -31,3 +31,28 @@
 - Authentication now validates required name/email/password input before making a Firebase request and turns Firebase codes into user-facing messages.
 - Listing create/edit validates coordinates, PHP prices, price ordering, required text, and open-day 24-hour hours. Network/upload/save failures remain on the form as actionable feedback.
 - Preferences, saved shops, shop loading, reviews, and listing decisions now surface friendly Firestore failures instead of raw SDK messages or a silent failure.
+
+## 2026-09-25 — Bug fix and polish pass
+
+### Completed
+
+1. Corrected selected-tab hover colors, compare highlight borders and controls (including an accessible popover above the tab bar), rating breakdown spacing, and the owner shop page's nested scrolling.
+2. Restored the original custom map pin paths from Git history and used the existing shop, selected-shop, and user color tokens on web and native maps.
+3. Added admin account and listing search/status filters, owner role badges, and full listing review details (photos, hours, menu). Admin review totals now use stored aggregates instead of a collection-group listener; admin subscriptions wait for the resolved admin role.
+4. Added focus blurring before owner tab navigation and dialog closing, web form semantics for login and registration, and distinct `/owner/shop/:id` routes so direct `/shop/:id` links open the customer screen.
+5. Added action-result toasts, loading placeholders, empty-state illustrations, bounded authentication content, and gentle press/hover feedback.
+6. Added saved-shop hours/menu notifications using client-side fan-out and shop-scoped follower records. Without Cloud Functions or a scheduler, live open/closed transitions cannot be observed; notifications are sent after an owner saves changed hours or a menu item add/edit/remove. The follower backfill script previews existing favorites by default and writes only with `--apply`.
+
+### Validation
+
+| Check | Result | Notes |
+| --- | --- | --- |
+| `npx tsc --noEmit` | Passed | Rechecked after implementation groups. |
+| `npx expo lint` | Passed | Rechecked after implementation groups. |
+| `npx expo export --platform web` | Passed | Production web bundle built; Firestore debug scaffolding was absent from its JavaScript. |
+| Desktop/mobile browser snapshots | Partial | Login layout and direct-link route resolution were checked in headless Chrome; authenticated admin/owner/customer interactions need real accounts. |
+| Firestore rules and follower backfill | Pending | Production rules deployment and reviewed existing-favorite backfill require a project-confirmed credentialed run; the script has not written data. |
+
+### Follow-up
+
+- Exercise favorite notifications, admin actions, owner scrolling, compare controls, map markers, and focus transitions with signed-in accounts on desktop and native devices after deploying rules and backfilling follower records.

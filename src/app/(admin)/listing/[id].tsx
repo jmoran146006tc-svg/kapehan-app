@@ -14,6 +14,10 @@ import { formatPriceRange } from '@/utils/price';
 import { getListingStatusBadgeVariant } from '@/utils/listing';
 import { getUserFriendlyError } from '@/lib/errors';
 import { goBack } from '@/lib/navigation';
+import { DAYS } from '@/lib/schemas/shop';
+import { sortProducts, toProduct, type Product } from '@/types/product';
+import { useToast } from '@/hooks/useToast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ShopDoc {
   name: string;
@@ -24,15 +28,17 @@ interface ShopDoc {
   tags?: string[];
   description?: string;
   photos?: string[];
+  hours?: Partial<Record<(typeof DAYS)[number], { open: string; close: string; closed: boolean }>>;
   status: 'pending' | 'approved' | 'rejected';
   ownerId?: string;
 }
 
 export default function AdminReviewListingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { showToast } = useToast();
   const [shop, setShop] = useState<ShopDoc | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
   const [updating, setUpdating] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -40,10 +46,15 @@ export default function AdminReviewListingScreen() {
       setShop(snap.exists() ? (snap.data() as ShopDoc) : null);
     });
   }, [id]);
+  useEffect(() => {
+    if (!id) return;
+    return onSnapshot(collection(db, 'shops', id, 'products'), (snap) => {
+      setProducts(sortProducts(snap.docs.map((item) => toProduct(item.id, item.data()))));
+    });
+  }, [id]);
 
   async function setStatus(status: 'approved' | 'rejected') {
     if (!id) return;
-    setActionError(null);
     setUpdating(true);
     try {
       if (!shop?.ownerId) throw new Error('This listing has no owner to notify');
@@ -59,12 +70,10 @@ export default function AdminReviewListingScreen() {
         createdAt: serverTimestamp(),
       });
       await batch.commit();
+      showToast({ type: 'success', message: status === 'approved' ? 'Listing approved' : 'Listing rejected' });
       goBack('/(admin)');
     } catch (actionError) {
-      const code = typeof actionError === 'object' && actionError !== null && 'code' in actionError ? String(actionError.code) : 'unknown';
-      const message = actionError instanceof Error ? actionError.message : String(actionError);
-      console.warn('Admin shop status update failed', { shopId: id, status, code, message });
-      setActionError(getUserFriendlyError(actionError, 'We could not update this listing. Please try again.'));
+      showToast({ type: 'error', message: getUserFriendlyError(actionError, 'We could not update this listing. Please try again.') });
       setUpdating(false);
     }
   }
@@ -72,7 +81,7 @@ export default function AdminReviewListingScreen() {
   if (!shop) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
-        <Text className="text-muted-foreground">Loading…</Text>
+        <View className="w-full max-w-2xl gap-4 p-4"><Skeleton className="h-12 w-2/3" /><Skeleton className="h-48 w-full" /><Skeleton className="h-32 w-full" /></View>
       </View>
     );
   }
@@ -89,7 +98,7 @@ export default function AdminReviewListingScreen() {
           </View>
           {shop.address ? <Text className="text-muted-foreground">{shop.address}</Text> : null}
           {shop.description ? <Text className="text-muted-foreground">{shop.description}</Text> : null}
-          {shop.photos?.[0] ? <Image source={{ uri: shop.photos[0] }} className="h-48 w-full rounded-xl" resizeMode="cover" /> : <View className="h-48 w-full items-center justify-center rounded-xl bg-secondary"><Text className="text-muted-foreground">No photo yet</Text></View>}
+          {shop.photos?.length ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">{shop.photos.map((photo, index) => <Image key={`${photo}-${index}`} source={{ uri: photo }} className="h-48 w-60 rounded-xl" resizeMode="cover" />)}</ScrollView> : <View className="h-48 w-full items-center justify-center rounded-xl bg-secondary"><Text className="text-muted-foreground">No photo yet</Text></View>}
           <View className="gap-2">
             {(shop.priceMin != null || shop.priceMax != null) ? <Text>Price: {formatPriceRange(shop.priceMin, shop.priceMax)}</Text> : null}
             {shop.hasWifi != null ? <Text>{shop.hasWifi ? 'WiFi available' : 'No WiFi'}</Text> : null}
@@ -97,7 +106,13 @@ export default function AdminReviewListingScreen() {
           </View>
         </CardHeader>
       </Card>
-      {actionError && <Text accessibilityRole="alert" className="text-destructive mb-4">{actionError}</Text>}
+      <Card><CardHeader className="gap-3"><CardTitle>Opening hours</CardTitle>
+        {DAYS.map((day) => <View key={day} className="flex-row justify-between"><Text className="uppercase text-muted-foreground">{day}</Text><Text>{shop.hours?.[day] && !shop.hours[day]?.closed ? `${shop.hours[day]?.open}–${shop.hours[day]?.close}` : 'Closed'}</Text></View>)}
+      </CardHeader></Card>
+      <Card><CardHeader className="gap-3"><CardTitle>Menu</CardTitle>
+        {products.map((product) => <View key={product.id} className="flex-row justify-between gap-3 border-b border-border py-2"><View className="flex-1"><Text className="font-semibold">{product.name}</Text><Text className="text-xs text-muted-foreground">{product.category} · {product.available ? 'Available' : 'Unavailable'}</Text></View><Text>₱{product.price.toLocaleString()}</Text></View>)}
+        {products.length === 0 ? <Text className="text-muted-foreground">No menu items yet.</Text> : null}
+      </CardHeader></Card>
 
       <SafeAreaView edges={['bottom']}>
         {shop.status === 'pending' ? (

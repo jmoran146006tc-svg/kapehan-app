@@ -1,15 +1,19 @@
 import { Redirect, Tabs } from 'expo-router';
 import { View } from 'react-native';
+import { useState } from 'react';
+import { BottomTabBar } from 'expo-router/build/react-navigation/bottom-tabs';
 import { Home, Search, User } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { CompareFloatingButton } from '@/components/compare-floating-button';
 
 export default function UserTabsLayout() {
+  const [tabBarHeight, setTabBarHeight] = useState<number>();
   const { status } = useAuth();
   if (status === 'suspended') return <Redirect href={'/(auth)/suspended' as never} />;
   return (
     <View style={{ flex: 1 }}>
-      <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: '#D9722F', tabBarInactiveTintColor: '#7D6656' }}>
+      <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: '#D9722F', tabBarInactiveTintColor: '#7D6656' }}
+        tabBar={(props) => <View onLayout={(event) => setTabBarHeight(event.nativeEvent.layout.height)}><BottomTabBar {...props} /></View>}>
         <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: ({ color, size }) => <Home color={color as string} size={size} strokeWidth={2.75} /> }} />
         <Tabs.Screen name="search" options={{ title: 'Search', tabBarIcon: ({ color, size }) => <Search color={color as string} size={size} strokeWidth={2.75} /> }} />
         <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color, size }) => <User color={color as string} size={size} strokeWidth={2.75} /> }} />
@@ -20,7 +24,7 @@ export default function UserTabsLayout() {
         <Tabs.Screen name="map" options={{ href: null }} />
         <Tabs.Screen name="notifications" options={{ href: null }} />
       </Tabs>
-      <CompareFloatingButton />
+      <CompareFloatingButton measuredTabHeight={tabBarHeight} />
     </View>
   );
 }

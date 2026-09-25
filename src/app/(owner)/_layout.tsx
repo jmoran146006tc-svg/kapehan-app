@@ -15,7 +15,7 @@ export default function OwnerLayout() {
       <Stack.Screen name="notifications" options={{ headerShown: false }} />
       <Stack.Screen name="listing/create" options={{ title: 'New Listing', headerStyle: { backgroundColor: PRIMARY_HEX }, headerTintColor: PRIMARY_FOREGROUND_HEX }} />
       <Stack.Screen name="listing/[id]" options={{ title: 'Edit Listing', headerStyle: { backgroundColor: PRIMARY_HEX }, headerTintColor: PRIMARY_FOREGROUND_HEX }} />
-      <Stack.Screen name="shop/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="owner/shop/[id]" options={{ headerShown: false }} />
     </Stack>
   );
 }

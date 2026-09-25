@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Image, Platform, ScrollView, View } from 'react-native';
 import { collection, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { blurActiveElement } from '@/lib/navigation';
 import { getUserFriendlyError } from '@/lib/errors';
 import { sortProducts, toProduct, type Product } from '@/types/product';
 import type { Shop } from '@/types/shop';
@@ -13,6 +14,10 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
+import { Coffee } from 'lucide-react-native';
+import { Icon } from '@/components/ui/icon';
+import { useToast } from '@/hooks/useToast';
+import { notifyFavoriteShopUpdate } from '@/lib/favorite-shop-updates';
 
 export default function OwnerMenuScreen() {
   return <OwnerShopShell active="menu">{(shop) => <OwnerMenuContent key={shop.id} shop={shop} />}</OwnerShopShell>;
@@ -23,6 +28,7 @@ function OwnerMenuContent({ shop }: { shop: Shop }) {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const { showToast } = useToast();
   const editorOpen = adding || editing !== null;
 
   useEffect(() => onSnapshot(
@@ -32,6 +38,7 @@ function OwnerMenuContent({ shop }: { shop: Shop }) {
   ), [shop.id]);
 
   function closeEditor() {
+    blurActiveElement();
     setAdding(false);
     setEditing(null);
   }
@@ -40,13 +47,16 @@ function OwnerMenuContent({ shop }: { shop: Shop }) {
     setActionError(null);
     try {
       await deleteDoc(doc(db, 'shops', shop.id, 'products', product.id));
+      showToast({ type: 'success', message: 'Menu item removed' });
+      try { await notifyFavoriteShopUpdate(shop.id, shop.name, 'shop_menu_updated'); }
+      catch { showToast({ type: 'error', message: 'Item removed, but followers could not be notified.' }); }
     } catch (error) {
-      setActionError(getUserFriendlyError(error, 'We could not remove this menu item. Please try again.'));
+      showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not remove this menu item. Please try again.') });
     }
   }
 
   return <>
-    <ScrollView className="flex-1 bg-background px-4" contentContainerClassName="mx-auto w-full max-w-2xl gap-4 py-5 pb-8">
+    <View className="mx-auto w-full max-w-2xl gap-4 px-4 py-5 pb-8">
       <View className="flex-row items-center justify-between"><View><Text className="text-xl font-bold">Menu</Text><Text className="text-sm text-muted-foreground">{products.length} popular item{products.length === 1 ? '' : 's'} on menu</Text></View><Button size="sm" className="rounded-full bg-accent" onPress={() => { setEditing(null); setAdding(true); }}><Text>Add Item</Text></Button></View>
       {actionError ? <Text accessibilityRole="alert" className="text-destructive">{actionError}</Text> : null}
       {PRODUCT_CATEGORIES.map((category) => { const categoryProducts = products.filter((product) => product.category === category); if (!categoryProducts.length) return null; return <View key={category} className="gap-2"><Text className="text-sm font-bold tracking-wider text-muted-foreground">{category.toUpperCase()}</Text>{categoryProducts.map((product) => <Card key={product.id} className="py-3"><CardHeader className="min-w-0"><View className="w-full min-w-0 flex-row items-center gap-3"><View className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-secondary">{product.photoUrl ? <Image source={{ uri: product.photoUrl }} className="h-full w-full" /> : null}</View><Button
@@ -65,13 +75,13 @@ function OwnerMenuContent({ shop }: { shop: Shop }) {
   </View>
   <Text numberOfLines={1} className="shrink-0 font-bold">₱{product.price.toLocaleString()}</Text>
 </Button><Button size="sm" variant="outline" className="shrink-0" onPress={() => void removeProduct(product)}><Text>Remove</Text></Button></View></CardHeader></Card>)}</View>; })}
-      {products.length === 0 ? <Text className="py-8 text-center text-muted-foreground">Add the first menu item for this shop.</Text> : null}
-    </ScrollView>
+      {products.length === 0 ? <View className="items-center gap-2 py-8"><Icon as={Coffee} size={28} className="text-accent" /><Text className="text-center text-muted-foreground">Add the first menu item for this shop.</Text></View> : null}
+    </View>
     <Dialog open={editorOpen} onOpenChange={(open) => { if (!open) closeEditor(); }}>
       <DialogContent className="max-h-[90%] max-w-xl p-0">
         <ScrollView className="w-full" contentContainerClassName="gap-4 p-6">
           <DialogHeader><DialogTitle>{editing ? 'Edit Menu Item' : 'New Menu Item'}</DialogTitle></DialogHeader>
-          <ProductEditor shopId={shop.id} product={editing ?? undefined} onCancel={closeEditor} />
+          <ProductEditor shopId={shop.id} shopName={shop.name} product={editing ?? undefined} onCancel={closeEditor} />
         </ScrollView>
       </DialogContent>
     </Dialog>

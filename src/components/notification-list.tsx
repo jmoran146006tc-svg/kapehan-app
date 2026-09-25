@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, View } from 'react-native';
-import { Coffee, MessageCircle, Star } from 'lucide-react-native';
+import { Clock, Coffee, MessageCircle, Star } from 'lucide-react-native';
 import type { AppNotification } from '@/types/notification';
 import { dayjs } from '@/lib/dayjs';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +7,8 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 
 function notificationMeta(type: AppNotification['type']) {
+  if (type === 'shop_hours_updated') return { title: 'Hours updated', icon: Clock };
+  if (type === 'shop_menu_updated') return { title: 'Menu updated', icon: Coffee };
   if (type === 'review_received') return { title: 'New review', icon: Star };
   if (type === 'review_reply') return { title: 'Owner replied', icon: MessageCircle };
   return { title: 'Listing update', icon: Coffee };
@@ -44,7 +46,7 @@ export function NotificationList({ notifications, onPress }: NotificationListPro
           </Pressable>
         );
       })}
-      {notifications.length === 0 ? <Text className="py-8 text-center text-muted-foreground">No notifications yet.</Text> : null}
+      {notifications.length === 0 ? <View className="items-center gap-2 py-10"><Icon as={Coffee} size={28} className="text-accent" /><Text className="text-center font-semibold">All caught up</Text><Text className="text-center text-sm text-muted-foreground">Shop and review updates will appear here.</Text></View> : null}
     </ScrollView>
   );
 }

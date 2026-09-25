@@ -97,7 +97,7 @@ export default function CompareScreen() {
                   <View className="flex-row items-start gap-1"><Text numberOfLines={1} className="flex-1 font-bold">{shop.name}</Text><Button size="sm" variant="ghost" className="h-6 w-6 px-0" onPress={() => toggle(shop.id)}><Icon as={X} size={14} /></Button></View>
                   <Text numberOfLines={1} className="text-xs text-muted-foreground">{shop.description || 'Coffee shop in Tagum'}</Text>
                 </View>
-                {rows.map((row) => <View key={row.label} className={isBest(row, shop, selected) ? 'min-h-14 border-b border-l-4 border-accent bg-accent/10 px-2 py-4' : 'min-h-14 border-b border-border px-2 py-4'}>{row.label === 'Rating' ? <View className="flex-row items-center justify-center gap-1"><Icon as={Star} size={14} fill="currentColor" className="text-accent" /><Text className="text-center text-sm">{row.value(shop)}</Text></View> : <Text className="text-center text-sm">{row.value(shop)}</Text>}</View>)}
+                {rows.map((row) => <View key={row.label} className={isBest(row, shop, selected) ? 'min-h-14 rounded-md border-2 border-accent bg-accent/10 px-2 py-[15px]' : 'min-h-14 border-b border-border px-2 py-4'}>{row.label === 'Rating' ? <View className="flex-row items-center justify-center gap-1"><Icon as={Star} size={14} fill="currentColor" className="text-accent" /><Text className="text-center text-sm">{row.value(shop)}</Text></View> : <Text className="text-center text-sm">{row.value(shop)}</Text>}</View>)}
               </View>
             ))}
           </View>

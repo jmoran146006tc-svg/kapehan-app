@@ -8,9 +8,11 @@ import { ShopForm } from '@/components/shop-form';
 import { Text } from '@/components/ui/text';
 import type { ShopFormValues } from '@/lib/schemas/shop';
 import { withTimeout } from '@/lib/timeout';
+import { useToast } from '@/hooks/useToast';
 
 export default function CreateListingScreen() {
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   async function handleCreate(values: ShopFormValues) {
     if (!user) throw new Error('You must be logged in to create a listing.');
@@ -18,6 +20,7 @@ export default function CreateListingScreen() {
       ...values, ownerId: user.uid, status: 'pending', avgRating: 0, reviewCount: 0,
       ratingCounts: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 }, viewCount: 0,
     }));
+    showToast({ type: 'success', message: 'Listing saved' });
     router.replace('/(owner)');
   }
 

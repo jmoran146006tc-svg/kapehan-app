@@ -1,4 +1,8 @@
-import { Image, Pressable, View } from 'react-native';
+import { Image, Platform, Pressable, View } from 'react-native';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/useToast';
+import { useCompareStore } from '@/store/compareStore';
+import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Heart, MapPin, Star } from 'lucide-react-native';
 import type { Shop } from '@/types/shop';
 import { isOpenNow } from '@/utils/hours';
@@ -21,11 +25,16 @@ interface ShopCardProps {
 }
 
 export function ShopCard({ shop, onPress, saved = false, saving = false, onToggleSaved, compared = false, onToggleCompare }: ShopCardProps) {
+  const { showToast } = useToast();
+  const compareCount = useCompareStore((state) => state.ids.length);
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const openNow = shop.openNow ?? isOpenNow(shop.hours);
 
   return (
-    <Card className="overflow-hidden py-0">
-      <Pressable onPress={onPress} className="gap-3">
+    <Animated.View style={animatedStyle}>
+    <Card className={cn('overflow-hidden py-0', Platform.select({ web: 'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md' }))}>
+      <Pressable onPress={onPress} onPressIn={() => { scale.set(withSpring(0.97, { reduceMotion: ReduceMotion.System })); }} onPressOut={() => { scale.set(withSpring(1, { reduceMotion: ReduceMotion.System })); }} className="gap-3">
         <View className="relative h-40 bg-secondary">
           {shop.photos[0] ? (
             <Image source={{ uri: shop.photos[0] }} className="h-full w-full" resizeMode="cover" />
@@ -64,10 +73,11 @@ export function ShopCard({ shop, onPress, saved = false, saving = false, onToggl
       ) : null}
 
       {onToggleCompare ? (
-        <Button size="sm" variant={compared ? 'default' : 'outline'} className="mx-6 mb-5 self-start rounded-full" onPress={onToggleCompare}>
+        <Button size="sm" variant={compared ? 'default' : 'outline'} className="mx-6 mb-5 self-start rounded-full" onPress={() => { if (!compared && compareCount >= 3) { showToast({ type: 'error', message: 'Compare up to three shops at a time.' }); return; } onToggleCompare(); showToast({ type: 'success', message: compared ? 'Removed from comparison' : 'Added to comparison' }); }}>
           <Text>{compared ? 'Added to compare' : '+ Compare'}</Text>
         </Button>
       ) : null}
     </Card>
+    </Animated.View>
   );
 }

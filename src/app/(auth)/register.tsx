@@ -1,4 +1,3 @@
-import { View } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -14,9 +13,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { AuthShell } from '@/components/auth-shell';
+import { WebForm } from '@/components/web-form';
+import { useToast } from '@/hooks/useToast';
 
 export default function RegisterScreen() {
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { control, handleSubmit, formState: { errors } } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -24,7 +25,6 @@ export default function RegisterScreen() {
   });
 
   async function handleRegister(values: RegisterValues, role: 'user' | 'owner') {
-    setSubmitError(null);
     setIsSubmitting(true);
     try {
       const cred = await withTimeout(createUserWithEmailAndPassword(auth, values.email, values.password));
@@ -41,7 +41,7 @@ export default function RegisterScreen() {
       }));
       router.replace('/'); // index.tsx picks up the new role and redirects
     } catch (error) {
-      setSubmitError(getUserFriendlyError(error, 'We could not create your account. Please try again.'));
+      showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not create your account. Please try again.') });
     } finally {
       setIsSubmitting(false);
     }
@@ -50,7 +50,7 @@ export default function RegisterScreen() {
   return (
     <SafeAreaView edges={['bottom']} className="flex-1 bg-primary">
       <AuthShell active="register">
-        <View className="gap-4">
+        <WebForm className="gap-4" onSubmit={handleSubmit((values) => handleRegister(values, 'user'))}>
         <Text className="text-2xl font-bold">Join Kapehan</Text>
         <Controller control={control} name="name" render={({ field }) => (
           <Input placeholder="Maria Santos" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} autoComplete="name" />
@@ -65,14 +65,13 @@ export default function RegisterScreen() {
         )} />
         {errors.password && <Text className="text-destructive">{errors.password.message}</Text>}
 
-        {submitError && <Text accessibilityRole="alert" className="text-destructive">{submitError}</Text>}
         <Button loading={isSubmitting} loadingLabel="Creating account…" onPress={handleSubmit((values) => handleRegister(values, 'user'))}>
           <Text>Create Customer Account</Text>
         </Button>
         <Button className="bg-[#B85A20]" loading={isSubmitting} loadingLabel="Creating account…" onPress={handleSubmit((values) => handleRegister(values, 'owner'))}>
           <Text>Create Owner Account</Text>
         </Button>
-        </View>
+        </WebForm>
       </AuthShell>
     </SafeAreaView>
   );

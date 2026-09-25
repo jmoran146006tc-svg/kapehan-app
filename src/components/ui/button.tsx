@@ -93,12 +93,13 @@ type ButtonProps = React.ComponentProps<typeof Pressable> & React.RefAttributes<
   loadingLabel?: string;
 };
 
-function Button({ className, variant, size, loading = false, loadingLabel = 'Loading…', children, disabled, ...props }: ButtonProps) {
+function Button({ className, variant, size, loading = false, loadingLabel = 'Loading…', children, disabled, style, ...props }: ButtonProps) {
   const isDisabled = disabled || loading;
   return (
     <TextClassContext.Provider value={buttonTextVariants({ variant, size })}>
       <Pressable
-        className={cn(isDisabled && 'opacity-50', buttonVariants({ variant, size }), className)}
+        className={cn(isDisabled && 'opacity-50', buttonVariants({ variant, size }), Platform.select({ web: 'active:scale-[0.97] motion-reduce:transition-none' }), className)}
+        style={style}
         role="button"
         disabled={isDisabled}
         accessibilityState={{ disabled: isDisabled, busy: loading }}

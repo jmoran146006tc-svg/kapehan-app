@@ -1,4 +1,4 @@
-import { ScrollView, View } from 'react-native';
+import { ScrollView, View, useWindowDimensions } from 'react-native';
 import { Link } from 'expo-router';
 import { Logo } from '@/components/logo';
 import { Text } from '@/components/ui/text';
@@ -9,6 +9,7 @@ interface AuthShellProps {
 }
 
 export function AuthShell({ active, children }: AuthShellProps) {
+  const { width } = useWindowDimensions();
   return (
     <View className="flex-1 bg-primary">
       <View className="h-[38%] items-center justify-center gap-2 px-6">
@@ -16,7 +17,8 @@ export function AuthShell({ active, children }: AuthShellProps) {
         <Text className="font-serif text-4xl font-bold text-primary-foreground">Kapehan</Text>
         <Text className="text-center text-sm text-primary-foreground/75">Discover your perfect cup in Tagum City</Text>
       </View>
-      <ScrollView className="min-h-[62%] flex-1 rounded-t-3xl bg-background" contentContainerClassName="gap-5 px-6 py-6" keyboardShouldPersistTaps="handled">
+      <ScrollView className="min-h-[62%] flex-1 rounded-t-3xl bg-background" contentContainerClassName="items-center" keyboardShouldPersistTaps="handled">
+        <View className="gap-5 py-6" style={{ width: Math.min(Math.max(width - 48, 0), 624) }}>
         <View className="flex-row rounded-full bg-secondary p-1">
           <Link href="/(auth)/login" className={active === 'login' ? 'flex-1 rounded-full bg-primary px-3 py-2 text-center' : 'flex-1 rounded-full px-3 py-2 text-center'}>
             <Text className={active === 'login' ? 'text-center font-semibold text-primary-foreground' : 'text-center font-semibold'}>Log In</Text>
@@ -26,6 +28,7 @@ export function AuthShell({ active, children }: AuthShellProps) {
           </Link>
         </View>
         {children}
+        </View>
       </ScrollView>
     </View>
   );

@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import type { Shop } from '@/types/shop';
 import { MAP_MARKER_COLORS } from '@/constants/map';
+import { MapPinMarker } from '@/components/map-pin-marker';
 
 export function ShopLocationMap({ shop, userLocation }: {
   shop: Pick<Shop, 'lat' | 'lng' | 'name'>;
@@ -22,8 +23,8 @@ export function ShopLocationMap({ shop, userLocation }: {
     <View className="h-56 rounded-xl overflow-hidden">
       <MapView ref={mapRef} style={{ flex: 1 }}
         initialRegion={{ latitude: shop.lat, longitude: shop.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 }}>
-        <Marker coordinate={{ latitude: shop.lat, longitude: shop.lng }} title={shop.name} pinColor={MAP_MARKER_COLORS.selectedShop} />
-        {userLocation && <Marker coordinate={{ latitude: userLocation.lat, longitude: userLocation.lng }} title="You" pinColor={MAP_MARKER_COLORS.user} />}
+        <Marker coordinate={{ latitude: shop.lat, longitude: shop.lng }} title={shop.name} anchor={{ x: 0.5, y: 1 }}><MapPinMarker color={MAP_MARKER_COLORS.selectedShop} size={42} /></Marker>
+        {userLocation && <Marker coordinate={{ latitude: userLocation.lat, longitude: userLocation.lng }} title="You" anchor={{ x: 0.5, y: 1 }}><MapPinMarker color={MAP_MARKER_COLORS.user} /></Marker>}
       </MapView>
     </View>
   );
