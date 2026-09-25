@@ -25,9 +25,9 @@
  * - ownerId: a placeholder string, not a real Firebase Auth uid.
  *
  * PREREQUISITES
- * - Firestore rules still open ("test mode") -- this script uses the
- *   same public client config as the app itself, no admin credentials.
- * - Node 20.6+ (for --env-file). Your project already requires this.
+ * - Set GOOGLE_APPLICATION_CREDENTIALS to a service-account key for the
+ *   target project. The Admin SDK bypasses Firestore Security Rules.
+ * - Node 22.13+ and the project's installed dependencies.
  *
  * USAGE (run from the project root)
  *   node --env-file=.env scripts/seed-shops.mjs --dry-run   # preview only
@@ -35,8 +35,9 @@
  *   node --env-file=.env scripts/seed-shops.mjs --limit=20  # write just the first 20
  */
 
-import { initializeApp } from "firebase/app";
-import { getFirestore, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { applicationDefault, initializeApp } from "firebase-admin/app";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import { readFileSync } from "node:fs";
 
 // ---------------------------------------------------------------------------
 // 1. The list (order preserved from your notes)
@@ -290,16 +291,9 @@ function buildProducts(name) {
 // 4. Firebase + main
 // ---------------------------------------------------------------------------
 
-const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
-};
+const projectId = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID;
 
-if (!firebaseConfig.projectId) {
+if (!projectId) {
   console.error(
     "Missing Firebase config. Run with your env file loaded, e.g.:\n" +
       "  node --env-file=.env scripts/seed-shops.mjs"
@@ -307,7 +301,18 @@ if (!firebaseConfig.projectId) {
   process.exit(1);
 }
 
-const app = initializeApp(firebaseConfig);
+if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  console.error("Set GOOGLE_APPLICATION_CREDENTIALS to the target project's Firebase Admin SDK service-account key.");
+  process.exit(1);
+}
+
+const serviceAccount = JSON.parse(readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS, "utf8"));
+if (serviceAccount.type !== "service_account" || serviceAccount.project_id !== projectId) {
+  console.error(`The service-account key must belong to Firestore project "${projectId}".`);
+  process.exit(1);
+}
+
+const app = initializeApp({ credential: applicationDefault(), projectId });
 const db = getFirestore(app);
 
 async function main() {
@@ -317,7 +322,7 @@ async function main() {
   const names = SHOP_NAMES.slice(0, limit);
 
   console.log(
-    `${dryRun ? "[dry run] " : ""}Seeding ${names.length} of ${SHOP_NAMES.length} shops into Firestore project "${firebaseConfig.projectId}"...\n`
+    `${dryRun ? "[dry run] " : ""}Seeding ${names.length} of ${SHOP_NAMES.length} shops into Firestore project "${projectId}"...\n`
   );
 
   for (const name of names) {
@@ -331,13 +336,16 @@ async function main() {
     } else {
       // Overwrite the demo document so retired fields such as wifiRating and
       // tagline cannot survive a re-seed and make the stricter rules reject it.
-      await setDoc(doc(db, "shops", id), shop);
+      const shopRef = db.collection("shops").doc(id);
+      const batch = db.batch();
+      batch.set(shopRef, shop);
       for (const product of products) {
-        await setDoc(doc(db, "shops", id, "products", product.id), {
+        batch.set(shopRef.collection("products").doc(product.id), {
           ...product,
-          createdAt: serverTimestamp(),
+          createdAt: FieldValue.serverTimestamp(),
         }, { merge: true });
       }
+      await batch.commit();
       console.log(`  \u2713 ${name}  ->  shops/${id}`);
     }
   }

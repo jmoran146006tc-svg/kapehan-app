@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 /**
- * Wipes every document from Firestore (shops + all subcollections: reviews,
- * products; users + all subcollections: notifications, connectivity) using
- * the Admin SDK, which bypasses firestore.rules entirely.
+ * Wipes every top-level Firestore collection and its subcollections using the
+ * Admin SDK, which bypasses firestore.rules entirely.
  *
  * This is destructive and irreversible. There is no dry-run flag beyond the
  * counts printed below — read them before passing --yes.
@@ -18,13 +17,13 @@
  * Usage from the project root:
  *   $env:GOOGLE_APPLICATION_CREDENTIALS='C:\path\to\service-account.json'
  *   node scripts/reset-database.mjs            # preview counts only
- *   node scripts/reset-database.mjs --yes      # actually deletes everything
+ *   node scripts/reset-database.mjs --yes --project=YOUR_PROJECT_ID
+ *                                           # actually deletes everything
  */
 
 import { applicationDefault, getApps, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-
-const TOP_LEVEL_COLLECTIONS = ['shops', 'users'];
+import { readFileSync } from 'node:fs';
 
 async function main() {
   if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
@@ -34,16 +33,25 @@ async function main() {
   }
 
   const confirmed = process.argv.includes('--yes');
-  const app = getApps()[0] ?? initializeApp({ credential: applicationDefault() });
+  const serviceAccount = JSON.parse(readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS, 'utf8'));
+  const projectId = serviceAccount.project_id;
+  if (serviceAccount.type !== 'service_account' || !projectId) {
+    throw new Error('GOOGLE_APPLICATION_CREDENTIALS must point to a Firebase service-account key.');
+  }
+  const targetProject = process.argv.find((argument) => argument.startsWith('--project='))?.slice('--project='.length);
+  if (confirmed && targetProject !== projectId) {
+    throw new Error(`To wipe this database, pass --project=${projectId} alongside --yes.`);
+  }
+
+  const app = getApps()[0] ?? initializeApp({ credential: applicationDefault(), projectId });
   const db = getFirestore(app);
 
-  console.log(`Firestore reset for project "${app.options.projectId ?? '(unknown)'}"`);
+  console.log(`Firestore reset for project "${projectId}"`);
 
-  const counts = {};
-  for (const name of TOP_LEVEL_COLLECTIONS) {
-    const snapshot = await db.collection(name).count().get();
-    counts[name] = snapshot.data().count;
-    console.log(`  ${name}: ${counts[name]} top-level document(s) (subcollections included in the wipe)`);
+  const collections = await db.listCollections();
+  for (const collection of collections) {
+    const snapshot = await collection.count().get();
+    console.log(`  ${collection.id}: ${snapshot.data().count} top-level document(s) (subcollections included in the wipe)`);
   }
 
   if (!confirmed) {
@@ -51,9 +59,9 @@ async function main() {
     return;
   }
 
-  for (const name of TOP_LEVEL_COLLECTIONS) {
-    console.log(`Deleting ${name}...`);
-    await db.recursiveDelete(db.collection(name));
+  for (const collection of collections) {
+    console.log(`Deleting ${collection.id}...`);
+    await db.recursiveDelete(collection);
   }
 
   console.log('\nDone. Firestore is empty.');
