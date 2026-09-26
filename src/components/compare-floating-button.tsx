@@ -1,4 +1,4 @@
-import { Pressable, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { useBottomTabBarHeight } from 'expo-router/build/react-navigation/bottom-tabs';
 import { X } from 'lucide-react-native';
@@ -31,6 +31,21 @@ export function CompareFloatingButton({ measuredTabHeight }: { measuredTabHeight
 
   if (ids.length < 2 || pathname === '/compare' || pathname.endsWith('/compare')) return null;
 
+  const popoverContent = (
+    <PopoverContent side="top" align="end" sideOffset={8}
+      className="z-50 w-64 gap-3 rounded-2xl border border-border bg-card p-4 shadow-lg">
+      <Text className="font-bold">Compare shops</Text>
+      {ids.map((id) => <View key={id} className="flex-row items-center justify-between gap-2">
+        <Text numberOfLines={1} className="flex-1 text-sm">{shops.find((shop) => shop.id === id)?.name ?? 'Shop'}</Text>
+        <Pressable onPress={() => toggle(id)} accessibilityLabel="Remove shop from comparison" className="rounded-full p-2"><Icon as={X} size={16} /></Pressable>
+      </View>)}
+      <View className="flex-row items-center justify-between">
+        <PopoverClose className="rounded-md px-3 py-2" onPress={clear}><Text className="text-sm">Clear all</Text></PopoverClose>
+        <PopoverClose className="rounded-md bg-primary px-3 py-2" onPress={() => router.push('/(user)/compare')}><Text className="text-sm text-primary-foreground">Compare →</Text></PopoverClose>
+      </View>
+    </PopoverContent>
+  );
+
   return (
     <Popover className="absolute right-4 z-50" style={{ bottom: tabHeight + 16 }}>
       <Animated.View style={animatedStyle}>
@@ -42,19 +57,15 @@ export function CompareFloatingButton({ measuredTabHeight }: { measuredTabHeight
         </PopoverTrigger>
       </Animated.View>
       <PopoverPortal>
-        <PopoverOverlay className="absolute inset-0" />
-        <PopoverContent side="top" align="end" sideOffset={8}
-          className="z-50 w-64 gap-3 rounded-2xl border border-border bg-card p-4 shadow-lg">
-          <Text className="font-bold">Compare shops</Text>
-          {ids.map((id) => <View key={id} className="flex-row items-center justify-between gap-2">
-            <Text numberOfLines={1} className="flex-1 text-sm">{shops.find((shop) => shop.id === id)?.name ?? 'Shop'}</Text>
-            <Pressable onPress={() => toggle(id)} accessibilityLabel="Remove shop from comparison" className="rounded-full p-2"><Icon as={X} size={16} /></Pressable>
-          </View>)}
-          <View className="flex-row items-center justify-between">
-            <PopoverClose className="rounded-md px-3 py-2" onPress={clear}><Text className="text-sm">Clear all</Text></PopoverClose>
-            <PopoverClose className="rounded-md bg-primary px-3 py-2" onPress={() => router.push('/(user)/compare')}><Text className="text-sm text-primary-foreground">Compare →</Text></PopoverClose>
-          </View>
-        </PopoverContent>
+        {/* Radix's web portal slots onto one child; native still needs its dismiss overlay. */}
+        {Platform.OS === 'web' ? (
+          popoverContent
+        ) : (
+          <>
+            <PopoverOverlay className="absolute inset-0" />
+            {popoverContent}
+          </>
+        )}
       </PopoverPortal>
     </Popover>
   );

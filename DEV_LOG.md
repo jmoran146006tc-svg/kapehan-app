@@ -81,3 +81,9 @@
 | `git diff --check` | Passed | No whitespace errors. |
 | Web export | Passed | `npx expo export --platform web` bundled successfully. |
 | Signed-in and visual regression | Pending | The local Metro watcher failed to start; the exported site served locally, but the in-app browser twice timed out attaching to it. Browser test logins have been requested. Compare popover, toast appearance, auth motion, and viewport behavior still need a visual pass. |
+
+## 2026-09-26 — Comparison popover web crash
+
+- Traced the `Primitive.div failed to slot onto its children` exception to the web popover portal receiving both an overlay and content. The Radix portal uses `asChild` and requires one child. Web now portals the content directly; native retains its overlay.
+- Reproduced the exact exception with the installed Radix primitive using two children, then confirmed the single-child form renders.
+- Exported a temporary local comparison smoke route, opened the popover with two selected shops, and cleared the selection in the browser. The dialog appeared, closed cleanly, and the browser reported no console errors. Removed the temporary route and server afterward.
