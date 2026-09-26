@@ -10,17 +10,18 @@ interface AuthShellProps {
 }
 
 export function AuthShell({ active, children }: AuthShellProps) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const pathname = usePathname();
   const [progress] = useState(() => new Animated.Value(0));
   useEffect(() => {
     Animated.timing(progress, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
   }, [progress]);
   const offset = pathname.includes('forgot-password') ? 24 : 10;
+  const logoSize = Math.min(120, Math.max(72, Math.floor(height * 0.38 - 100)));
   return (
     <View className="flex-1 bg-primary">
       <View className="h-[38%] items-center justify-center gap-2 px-6">
-        <Logo width={96} height={96} accessibilityLabel="Kapehan" />
+        <Logo width={logoSize} height={logoSize} accessibilityLabel="Kapehan" />
         <Text className="font-serif text-4xl font-bold text-primary-foreground">Kapehan</Text>
         <Text className="text-center text-sm text-primary-foreground/75">Discover your perfect cup in Tagum City</Text>
       </View>
