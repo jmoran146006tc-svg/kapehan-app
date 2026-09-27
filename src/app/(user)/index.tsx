@@ -1,4 +1,4 @@
-import { ImageBackground, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ImageBackground, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowRight, Moon, Search, Sun } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,16 +15,15 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 
 export default function HomeScreen() {
-  const { shops, loading } = useFilteredShops();
+  const { shops, loading, refreshing, refresh, error } = useFilteredShops({ featuredOnly: true });
   const featured = [...shops].sort((a, b) => b.avgRating - a.avgRating).slice(0, 5);
-  const openCount = shops.filter((shop) => shop.openNow).length;
   const ids = useCompareStore((state) => state.ids);
   const toggle = useCompareStore((state) => state.toggle);
   const { savedShopIds, savingShopId, toggleSavedShop } = useSavedShops();
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background">
-      <ScrollView className="flex-1" contentContainerClassName="gap-4 pb-8">
+      <ScrollView className="flex-1" contentContainerClassName="gap-4 pb-8" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}>
         <View className="gap-4 bg-primary px-4 pb-5 pt-3">
           <View className="flex-row items-start justify-between">
             <View>
@@ -52,7 +51,7 @@ export default function HomeScreen() {
               <View className="flex-row items-center justify-between">
                 <View className="flex-1 gap-1">
                   <Text className="text-lg font-bold text-white">Explore on Maps</Text>
-                  <Text className="text-sm text-white/70">{openCount} shop{openCount === 1 ? '' : 's'} open now</Text>
+                  <Text className="text-sm text-white/70">Find your next stop in Tagum City</Text>
                 </View>
                 <View className="h-11 w-11 items-center justify-center rounded-full bg-accent">
                   <Icon as={ArrowRight} size={20} className="text-white" />
@@ -69,7 +68,7 @@ export default function HomeScreen() {
             {loading ? [0, 1, 2].map((index) => <ShopCardSkeleton key={index} />) : featured.map((shop) => (
               <ShopCard key={shop.id} shop={shop} onPress={() => router.push({ pathname: '/(user)/shop/[id]', params: { id: shop.id } })} saved={savedShopIds.includes(shop.id)} saving={savingShopId === shop.id} onToggleSaved={() => void toggleSavedShop(shop.id)} compared={ids.includes(shop.id)} onToggleCompare={() => toggle(shop.id)} />
             ))}
-            {!loading && featured.length === 0 ? <Text className="py-8 text-center text-muted-foreground">No approved coffee shops match these filters yet.</Text> : null}
+            {!loading && featured.length === 0 ? <Text className="py-8 text-center text-muted-foreground">{error ? 'Coffee shops are unavailable. Pull down to retry.' : 'No approved coffee shops match these filters yet.'}</Text> : null}
           </View>
         </View>
       </ScrollView>

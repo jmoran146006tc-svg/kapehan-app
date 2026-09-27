@@ -1,8 +1,9 @@
-import { Image, Platform, Pressable, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
+import { Image } from 'expo-image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 import { MAX_COMPARED_SHOPS, useCompareStore } from '@/store/compareStore';
-import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { FadeIn, ReduceMotion, useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
 import { Heart, MapPin, Star } from 'lucide-react-native';
 import type { Shop } from '@/types/shop';
 import { isOpenNow } from '@/utils/hours';
@@ -11,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import { cloudinaryImageUrl } from '@/lib/cloudinary';
 
 type ShopCardShop = Shop & { distanceKm?: number | null; openNow?: boolean };
 
@@ -28,16 +30,20 @@ export function ShopCard({ shop, onPress, saved = false, saving = false, onToggl
   const { showToast } = useToast();
   const compareCount = useCompareStore((state) => state.ids.length);
   const scale = useSharedValue(1);
+  const heartScale = useSharedValue(1);
+  const compareScale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const heartStyle = useAnimatedStyle(() => ({ transform: [{ scale: heartScale.value }] }));
+  const compareStyle = useAnimatedStyle(() => ({ transform: [{ scale: compareScale.value }] }));
   const openNow = shop.openNow ?? isOpenNow(shop.hours);
 
   return (
-    <Animated.View style={animatedStyle}>
+    <Animated.View entering={FadeIn.duration(180)} style={animatedStyle}>
     <Card className={cn('overflow-hidden py-0', Platform.select({ web: 'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md' }))}>
       <Pressable onPress={onPress} onPressIn={() => { scale.set(withSpring(0.97, { reduceMotion: ReduceMotion.System })); }} onPressOut={() => { scale.set(withSpring(1, { reduceMotion: ReduceMotion.System })); }} className="gap-3">
         <View className="relative h-40 bg-secondary">
           {shop.photos[0] ? (
-            <Image source={{ uri: shop.photos[0] }} className="h-full w-full" resizeMode="cover" />
+            <Image source={{ uri: cloudinaryImageUrl(shop.photos[0], 900) }} className="h-full w-full" contentFit="cover" transition={220} />
           ) : (
             <View className="h-full w-full items-center justify-center bg-secondary">
               <Text className="text-muted-foreground">No photo yet</Text>
@@ -67,14 +73,14 @@ export function ShopCard({ shop, onPress, saved = false, saving = false, onToggl
       </Pressable>
 
       {onToggleSaved ? (
-        <Button size="icon" variant="secondary" className="absolute right-3 top-3 rounded-full bg-card/95" loading={saving} loadingLabel="…" onPress={onToggleSaved}>
-          <Icon as={Heart} size={18} fill={saved ? 'currentColor' : 'none'} className={saved ? 'text-accent' : 'text-foreground'} />
+        <Button size="icon" variant="secondary" className="absolute right-3 top-3 rounded-full bg-card/95" loading={saving} loadingLabel="…" onPress={() => { heartScale.set(withSequence(withSpring(1.28, { reduceMotion: ReduceMotion.System }), withSpring(1, { reduceMotion: ReduceMotion.System }))); onToggleSaved(); }}>
+          <Animated.View style={heartStyle}><Icon as={Heart} size={18} fill={saved ? 'currentColor' : 'none'} className={saved ? 'text-accent' : 'text-foreground'} /></Animated.View>
         </Button>
       ) : null}
 
       {onToggleCompare ? (
-        <Button size="sm" variant={compared ? 'default' : 'outline'} className="mx-6 mb-5 self-start rounded-full" onPress={() => { if (!compared && compareCount >= MAX_COMPARED_SHOPS) { showToast({ type: 'error', message: `Compare up to ${MAX_COMPARED_SHOPS} shops at a time.` }); return; } onToggleCompare(); showToast({ type: 'success', message: compared ? 'Removed from comparison' : 'Added to comparison' }); }}>
-          <Text>{compared ? 'Added to compare' : '+ Compare'}</Text>
+        <Button size="sm" variant={compared ? 'default' : 'outline'} className="mx-6 mb-5 self-start rounded-full" onPress={() => { if (!compared && compareCount >= MAX_COMPARED_SHOPS) { showToast({ type: 'error', message: `Compare up to ${MAX_COMPARED_SHOPS} shops at a time.` }); return; } compareScale.set(withSequence(withSpring(1.12, { reduceMotion: ReduceMotion.System }), withSpring(1, { reduceMotion: ReduceMotion.System }))); onToggleCompare(); showToast({ type: 'success', message: compared ? 'Removed from comparison' : 'Added to comparison' }); }}>
+          <Animated.View style={compareStyle}><Text>{compared ? 'Added to compare' : '+ Compare'}</Text></Animated.View>
         </Button>
       ) : null}
     </Card>

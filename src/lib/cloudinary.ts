@@ -1,5 +1,11 @@
 import { Platform } from 'react-native';
 
+export function cloudinaryImageUrl(url: string, width: number) {
+  if (!/^https:\/\/res\.cloudinary\.com\//.test(url) || !url.includes('/image/upload/')) return url;
+  const safeWidth = Math.max(64, Math.min(2400, Math.round(width)));
+  return url.replace('/image/upload/', `/image/upload/f_auto,q_auto,w_${safeWidth}/`);
+}
+
 export async function uploadToCloudinary(uri: string): Promise<string> {
   const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim();
   const uploadPreset = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim();

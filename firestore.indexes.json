@@ -1,4 +1,12 @@
 {
-  "indexes": [],
+  "indexes": [
+    { "collectionGroup": "shops", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "hasWifi", "order": "ASCENDING" } ] },
+    { "collectionGroup": "shops", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "tags", "arrayConfig": "CONTAINS" } ] },
+    { "collectionGroup": "shops", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "hasWifi", "order": "ASCENDING" }, { "fieldPath": "tags", "arrayConfig": "CONTAINS" } ] },
+    { "collectionGroup": "shops", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "avgRating", "order": "DESCENDING" } ] },
+    { "collectionGroup": "shops", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "hasWifi", "order": "ASCENDING" }, { "fieldPath": "avgRating", "order": "DESCENDING" } ] },
+    { "collectionGroup": "shops", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "tags", "arrayConfig": "CONTAINS" }, { "fieldPath": "avgRating", "order": "DESCENDING" } ] },
+    { "collectionGroup": "shops", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "hasWifi", "order": "ASCENDING" }, { "fieldPath": "tags", "arrayConfig": "CONTAINS" }, { "fieldPath": "avgRating", "order": "DESCENDING" } ] }
+  ],
   "fieldOverrides": []
 }

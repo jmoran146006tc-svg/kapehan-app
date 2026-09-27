@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView } from 'react-native';
+import { RefreshControl, ScrollView } from 'react-native';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,10 +9,11 @@ import { Text } from '@/components/ui/text';
 import { formatPriceRange } from '@/utils/price';
 import { ShopCardSkeleton } from '@/components/shop-card-skeleton';
 import { useToast } from '@/hooks/useToast';
+import { EmptyState } from '@/components/empty-state';
 
 export default function SavedScreen() {
   const { user } = useAuth();
-  const { shops, loading: shopsLoading } = useShops();
+  const { shops, loading: shopsLoading, refreshing, refresh } = useShops();
   const [savedSnapshot, setSavedSnapshot] = useState<{ userId: string; ids: string[] } | null>(null);
   const [loadError, setLoadError] = useState(false);
   const { showToast } = useToast();
@@ -30,7 +31,7 @@ export default function SavedScreen() {
   const saved = shops.filter((s) => savedIds.includes(s.id));
 
   return (
-    <ScrollView className="flex-1 bg-background p-4" contentContainerClassName="gap-3">
+    <ScrollView className="flex-1 bg-background p-4" contentContainerClassName="gap-3" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}>
       <Text className="text-2xl font-bold">Saved</Text>
       {loadError ? <Text className="text-muted-foreground">Saved shops are unavailable right now.</Text> : null}
       {loading ? [0, 1, 2].map((index) => <ShopCardSkeleton key={index} />) : saved.map((shop) => (
@@ -41,7 +42,7 @@ export default function SavedScreen() {
           </CardHeader>
         </Card>
       ))}
-      {!loading && !loadError && saved.length === 0 && <Text className="text-muted-foreground">Nothing saved yet.</Text>}
+      {!loading && !loadError && saved.length === 0 && <EmptyState title="Your coffee trail starts here" description="Save a shop to keep it close for your next visit." />}
     </ScrollView>
   );
 }

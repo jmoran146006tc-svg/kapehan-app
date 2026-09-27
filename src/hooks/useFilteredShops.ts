@@ -6,9 +6,10 @@ import { haversineKm } from '@/utils/distance';
 import { isOpenNow } from '@/utils/hours';
 import { getPriceBucket } from '@/utils/price';
 
-export function useFilteredShops() {
-  const { shops, loading } = useShops();
+export function useFilteredShops({ featuredOnly = false }: { featuredOnly?: boolean } = {}) {
   const filters = useFilterStore();
+  const featuredLimit = featuredOnly && !filters.search && !filters.priceBuckets.length && !filters.openNowOnly && filters.maxDistanceKm == null && filters.tags.length <= 1 ? 50 : undefined;
+  const { shops, loading, refreshing, refresh, error } = useShops({ wifiOnly: filters.wifiOnly, tag: filters.tags[0], featuredLimit });
   const location = useUserLocation();
 
   const filteredShops = useMemo(() => {
@@ -33,5 +34,5 @@ export function useFilteredShops() {
       })
       .sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
   }, [shops, filters, location]);
-  return { shops: filteredShops, loading };
+  return { shops: filteredShops, loading, refreshing, refresh, error };
 }

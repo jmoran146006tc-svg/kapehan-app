@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, ScrollView, Switch, View } from 'react-native';
+import { FlatList, Image, Pressable, ScrollView, Switch, View } from 'react-native';
 import { router } from 'expo-router';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { Controller, useForm } from 'react-hook-form';
@@ -11,19 +11,28 @@ import { useShops } from '@/hooks/useShops';
 import { useSavedShops } from '@/hooks/useSavedShops';
 import { dayjs } from '@/lib/dayjs';
 import type { AppUserDocument, RecentlyViewedEntry } from '@/types/user';
+import type { Shop } from '@/types/shop';
 import { preferencesSchema, type PreferencesValues } from '@/lib/schemas/preferences';
 import { getUserFriendlyError } from '@/lib/errors';
 import { useAsyncToastAction } from '@/hooks/useAsyncToastAction';
 import { withTimeout } from '@/lib/timeout';
+import { cloudinaryImageUrl } from '@/lib/cloudinary';
 import { PRICE_BUCKET_LABELS, type PriceBucket } from '@/utils/price';
 import { TAG_OPTIONS } from '@/constants/tags';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/empty-state';
 import { FilterChip } from '@/components/filter-chip';
 import { Icon } from '@/components/ui/icon';
 import { LogoutButton } from '@/components/logout-button';
-import { StatTile } from '@/components/stat-tile';
 import { Text } from '@/components/ui/text';
 import { useToast } from '@/hooks/useToast';
+
+type ProfileRow =
+  | { kind: 'saved'; shop: Shop }
+  | { kind: 'visit'; shop: Shop; entry: RecentlyViewedEntry }
+  | { kind: 'heading' }
+  | { kind: 'emptySaved' }
+  | { kind: 'emptyVisit' };
 
 export default function ProfileScreen() {
   const { user } = useAuth();
@@ -47,9 +56,22 @@ export default function ProfileScreen() {
     }, (error) => showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not load your profile. Please try again.') }));
   }, [reset, showToast, user]);
 
-  const savedShops = useMemo(() => shops.filter((shop) => savedShopIds.includes(shop.id)), [savedShopIds, shops]);
-  const viewedEntries = [...(profile?.recentlyViewed ?? [])].sort((left, right) => timestampMs(right) - timestampMs(left));
-  const viewedShops = viewedEntries.map((entry) => ({ entry, shop: shops.find((shop) => shop.id === entry.shopId) })).filter((item): item is { entry: RecentlyViewedEntry; shop: NonNullable<typeof item.shop> } => Boolean(item.shop));
+  const rows = useMemo<ProfileRow[]>(() => {
+    const shopById = new Map(shops.map((shop) => [shop.id, shop]));
+    const saved = savedShopIds.map((id) => shopById.get(id)).filter((shop): shop is Shop => Boolean(shop));
+    const visits = [...(profile?.recentlyViewed ?? [])]
+      .sort((left, right) => timestampMs(right) - timestampMs(left))
+      .map((entry) => ({ entry, shop: shopById.get(entry.shopId) }))
+      .filter((item): item is { entry: RecentlyViewedEntry; shop: Shop } => Boolean(item.shop))
+      .slice(0, 5);
+    return [
+      ...saved.map((shop): ProfileRow => ({ kind: 'saved', shop })),
+      ...(!saved.length ? [{ kind: 'emptySaved' } as const] : []),
+      { kind: 'heading' },
+      ...visits.map(({ entry, shop }): ProfileRow => ({ kind: 'visit', entry, shop })),
+      ...(!visits.length ? [{ kind: 'emptyVisit' } as const] : []),
+    ];
+  }, [profile?.recentlyViewed, savedShopIds, shops]);
   const initials = (profile?.name || user?.email || 'K').split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 
   async function savePreferences(values: PreferencesValues) {
@@ -64,14 +86,16 @@ export default function ProfileScreen() {
     );
   }
 
-  return <ScrollView className="flex-1 bg-background" contentContainerClassName="mx-auto w-full max-w-2xl gap-5 pb-8">
-    <View className="gap-4 bg-primary px-4 pb-6 pt-12"><View className="flex-row items-center justify-between"><Text className="text-2xl font-bold text-primary-foreground">My Profile</Text><LogoutButton size="sm" variant="ghost" /></View><View className="flex-row items-center gap-3"><View className="h-14 w-14 items-center justify-center rounded-full bg-accent"><Text className="text-xl font-bold text-white">{initials}</Text></View><View className="flex-1"><Text className="text-lg font-bold text-primary-foreground">{profile?.name || 'Kapehan guest'}</Text><Text className="text-sm text-primary-foreground/75">{profile?.email || user?.email}</Text><View className="mt-1 flex-row items-center gap-1"><Icon as={MapPin} size={13} className="text-primary-foreground/70" /><Text className="text-xs text-primary-foreground/70">Tagum City</Text></View></View></View><View className="flex-row gap-2"><StatTile value={profile?.visitCount ?? 0} label="Visits" tone="onDark" className="border-primary-foreground/10 bg-primary-foreground/10" /><StatTile value={profile?.reviewCount ?? 0} label="Reviews" tone="onDark" className="border-primary-foreground/10 bg-primary-foreground/10" /><StatTile value={savedShopIds.length} label="Favorites" tone="onDark" className="border-primary-foreground/10 bg-primary-foreground/10" /></View></View>
-    <View className="gap-5 px-4">
-      <View className="gap-3"><Text className="text-xl font-bold">Favorite Shops</Text>{savedShops.map((shop) => <Pressable key={shop.id} className="flex-row items-center gap-3 rounded-xl border border-border bg-card p-3" onPress={() => router.push({ pathname: '/(user)/shop/[id]', params: { id: shop.id } })}><View className="h-12 w-12 overflow-hidden rounded-lg bg-secondary">{shop.photos[0] ? <Image source={{ uri: shop.photos[0] }} className="h-full w-full" /> : null}</View><View className="flex-1"><Text className="font-semibold">{shop.name}</Text><View className="flex-row items-center gap-1"><Icon as={Star} size={14} fill="currentColor" className="text-accent" /><Text className="text-sm text-muted-foreground">{shop.avgRating.toFixed(1)} · {shop.reviewCount} reviews</Text></View></View><Button size="icon" variant="ghost" loading={savingShopId === shop.id} loadingLabel="…" onPress={() => void toggleSavedShop(shop.id)}><Icon as={Heart} fill="currentColor" className="text-accent" /></Button></Pressable>)}{savedShops.length === 0 ? <View className="items-center gap-2 py-6"><Icon as={Heart} size={28} className="text-accent" /><Text className="text-center text-muted-foreground">Save shops you want to revisit.</Text></View> : null}</View>
-      <View className="gap-3"><Text className="text-xl font-bold">Visit History</Text>{viewedShops.map(({ entry, shop }) => <Pressable key={`${entry.shopId}-${timestampMs(entry)}`} className="rounded-xl border border-border bg-card p-3" onPress={() => router.push({ pathname: '/(user)/shop/[id]', params: { id: shop.id } })}><Text className="font-semibold">{shop.name}</Text><Text className="text-sm text-muted-foreground">{entry.viewedAt ? dayjs(entry.viewedAt.toDate()).format('MMM D, YYYY') : 'Recently viewed'}</Text></Pressable>)}{viewedShops.length === 0 ? <Text className="text-muted-foreground">Shops you visit will appear here.</Text> : null}</View>
-      <View className="gap-3"><Text className="text-xl font-bold">Search Preferences</Text><Controller control={control} name="wifiOnly" render={({ field }) => <View className="flex-row items-center justify-between rounded-xl border border-border bg-card p-4"><View className="flex-1 pr-4"><Text className="font-semibold">Only show shops with WiFi</Text><Text className="mt-1 text-sm text-muted-foreground">Filter your search to places with a WiFi connection.</Text></View><Switch value={field.value} onValueChange={field.onChange} trackColor={{ false: '#CBBEAE', true: '#D9722F' }} thumbColor="#FFF9F0" accessibilityLabel="Only show shops with WiFi" /></View>} /><Controller control={control} name="priceBuckets" render={({ field }) => <View className="gap-2"><Text className="font-semibold">Price tier</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 pr-4">{(['budget', 'moderate', 'premium'] as PriceBucket[]).map((bucket) => <FilterChip key={bucket} label={PRICE_BUCKET_LABELS[bucket]} selected={field.value.includes(bucket)} onPress={() => field.onChange(field.value.includes(bucket) ? field.value.filter((value) => value !== bucket) : [...field.value, bucket])} />)}</ScrollView></View>} /><Controller control={control} name="tags" render={({ field }) => <View className="gap-2"><Text className="font-semibold">Favorite features</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 pr-4">{TAG_OPTIONS.map((tag) => <FilterChip key={tag} label={tag} selected={field.value.includes(tag)} onPress={() => field.onChange(field.value.includes(tag) ? field.value.filter((value) => value !== tag) : [...field.value, tag])} />)}</ScrollView></View>} /><Controller control={control} name="openNowOnly" render={({ field }) => <Button variant={field.value ? 'default' : 'outline'} onPress={() => field.onChange(!field.value)}><Text>{field.value ? 'Open now only' : 'Include closed shops'}</Text></Button>} /><Button loading={isSaving} loadingLabel="Saving…" onPress={handleSubmit(savePreferences)}><Text>Save preferences</Text></Button></View>
-    </View>
-  </ScrollView>;
+  return <FlatList className="flex-1 bg-background" data={rows} keyExtractor={(row, index) => row.kind === 'saved' ? `saved-${row.shop.id}` : row.kind === 'visit' ? `visit-${row.entry.shopId}` : `${row.kind}-${index}`} initialNumToRender={8} windowSize={7} contentContainerClassName="mx-auto w-full max-w-2xl gap-3 pb-8" ListHeaderComponent={<View className="gap-5">
+    <View className="gap-4 bg-primary px-4 pb-6 pt-12"><View className="flex-row items-center justify-between"><Text className="text-2xl font-bold text-primary-foreground">My Profile</Text><LogoutButton size="sm" variant="ghost" /></View><View className="flex-row items-center gap-3"><View className="h-14 w-14 items-center justify-center rounded-full bg-accent"><Text className="text-xl font-bold text-white">{initials}</Text></View><View className="flex-1"><Text className="text-lg font-bold text-primary-foreground">{profile?.name || 'Kapehan guest'}</Text><Text className="text-sm text-primary-foreground/75">{profile?.email || user?.email}</Text><View className="mt-1 flex-row items-center gap-1"><Icon as={MapPin} size={13} className="text-primary-foreground/70" /><Text className="text-xs text-primary-foreground/70">Tagum City</Text></View></View></View><View className="flex-row justify-between border-t border-primary-foreground/20 pt-3">{[{ label: 'Visits', value: profile?.visitCount ?? 0 }, { label: 'Reviews', value: profile?.reviewCount ?? 0 }, { label: 'Favorites', value: savedShopIds.length }].map((metric) => <View key={metric.label} className="items-center"><Text className="font-serif text-xl font-bold text-primary-foreground">{metric.value}</Text><Text className="text-xs text-primary-foreground/70">{metric.label}</Text></View>)}</View></View>
+    <Text className="px-4 text-xl font-bold">Favorite Shops</Text>
+  </View>} renderItem={({ item }) => <View className="px-4">{item.kind === 'saved' ? <Pressable className="flex-row items-center gap-3 rounded-xl border border-border bg-card p-3" onPress={() => router.push({ pathname: '/(user)/shop/[id]', params: { id: item.shop.id } })}><View className="h-12 w-12 overflow-hidden rounded-lg bg-secondary">{item.shop.photos[0] ? <Image source={{ uri: cloudinaryImageUrl(item.shop.photos[0], 160) }} className="h-full w-full" /> : null}</View><View className="flex-1"><Text className="font-semibold">{item.shop.name}</Text><View className="flex-row items-center gap-1"><Icon as={Star} size={14} fill="currentColor" className="text-accent" /><Text className="text-sm text-muted-foreground">{item.shop.avgRating.toFixed(1)} · {item.shop.reviewCount} reviews</Text></View></View><Button size="icon" variant="ghost" loading={savingShopId === item.shop.id} loadingLabel="…" onPress={() => void toggleSavedShop(item.shop.id)}><Icon as={Heart} fill="currentColor" className="text-accent" /></Button></Pressable> : item.kind === 'visit' ? <Pressable className="rounded-xl border border-border bg-card p-3" onPress={() => router.push({ pathname: '/(user)/shop/[id]', params: { id: item.shop.id } })}><Text className="font-semibold">{item.shop.name}</Text><Text className="text-sm text-muted-foreground">{item.entry.viewedAt ? dayjs(item.entry.viewedAt.toDate()).format('MMM D, YYYY') : 'Recently viewed'}</Text></Pressable> : item.kind === 'heading' ? <Text className="pt-3 text-xl font-bold">Visit History</Text> : item.kind === 'emptySaved' ? <EmptyState title="Your coffee trail starts here" description="Save a shop to keep it close for your next visit." /> : <Text className="text-muted-foreground">Shops you visit will appear here.</Text>}</View>} ListFooterComponent={<View className="gap-3 px-4 pt-4"><Text className="text-xl font-bold">Search Preferences</Text>
+    <Controller control={control} name="wifiOnly" render={({ field }) => <View className="flex-row items-center justify-between rounded-xl border border-border bg-card p-4"><View className="flex-1 pr-4"><Text className="font-semibold">Only show shops with WiFi</Text><Text className="mt-1 text-sm text-muted-foreground">Filter your search to places with a WiFi connection.</Text></View><Switch value={field.value} onValueChange={field.onChange} trackColor={{ false: '#CBBEAE', true: '#D9722F' }} thumbColor="#FFF9F0" accessibilityLabel="Only show shops with WiFi" /></View>} />
+    <Controller control={control} name="priceBuckets" render={({ field }) => <View className="gap-2"><Text className="font-semibold">Price tier</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 pr-4">{(['budget', 'moderate', 'premium'] as PriceBucket[]).map((bucket) => <FilterChip key={bucket} label={PRICE_BUCKET_LABELS[bucket]} selected={field.value.includes(bucket)} onPress={() => field.onChange(field.value.includes(bucket) ? field.value.filter((value) => value !== bucket) : [...field.value, bucket])} />)}</ScrollView></View>} />
+    <Controller control={control} name="tags" render={({ field }) => <View className="gap-2"><Text className="font-semibold">Favorite features</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 pr-4">{TAG_OPTIONS.map((tag) => <FilterChip key={tag} label={tag} selected={field.value.includes(tag)} onPress={() => field.onChange(field.value.includes(tag) ? field.value.filter((value) => value !== tag) : [...field.value, tag])} />)}</ScrollView></View>} />
+    <Controller control={control} name="openNowOnly" render={({ field }) => <Button variant={field.value ? 'default' : 'outline'} onPress={() => field.onChange(!field.value)}><Text>{field.value ? 'Open now only' : 'Include closed shops'}</Text></Button>} />
+    <Button loading={isSaving} loadingLabel="Saving…" onPress={handleSubmit(savePreferences)}><Text>Save preferences</Text></Button>
+  </View>} />;
 }
 
 function timestampMs(entry: RecentlyViewedEntry) {
