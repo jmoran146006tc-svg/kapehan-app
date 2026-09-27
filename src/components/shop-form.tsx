@@ -3,6 +3,7 @@ import { View, Image, Pressable, ScrollView } from 'react-native';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { shopFormSchema, type ShopFormValues, type ShopFormInput, DAYS, DEFAULT_HOURS } from '@/lib/schemas/shop';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,8 @@ import { getUserFriendlyError } from '@/lib/errors';
 import { toastFormErrors } from '@/lib/form-errors';
 import { MAX_TAGS_PER_SHOP, TAG_OPTIONS, type ShopTag } from '@/constants/tags';
 import { useToast } from '@/hooks/useToast';
+import { LocationPicker } from '@/components/location-picker';
+import { ShopLocationMap } from '@/components/shop-location-map';
 
 interface ShopFormProps {
   defaultValues?: Partial<ShopFormValues>;
@@ -24,6 +27,7 @@ interface ShopFormProps {
 export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps) {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [locating, setLocating] = useState(false);
   const { showToast } = useToast();
 
   const { control, handleSubmit, setValue } = useForm
@@ -42,6 +46,29 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
 
   const photos = useWatch({ control, name: 'photos' }) ?? [];
   const tags = useWatch({ control, name: 'tags' }) ?? [];
+  const name = useWatch({ control, name: 'name' }) ?? '';
+  const lat = useWatch({ control, name: 'lat' });
+  const lng = useWatch({ control, name: 'lng' });
+  const latitude = parseCoordinate(lat, -90, 90);
+  const longitude = parseCoordinate(lng, -180, 180);
+  const coordinates = latitude !== null && longitude !== null ? { lat: latitude, lng: longitude } : null;
+
+  function setCoordinates(point: { lat: number; lng: number }) {
+    setValue('lat', Number(point.lat.toFixed(6)), { shouldValidate: true, shouldDirty: true });
+    setValue('lng', Number(point.lng.toFixed(6)), { shouldValidate: true, shouldDirty: true });
+  }
+
+  async function fillCurrentLocation() {
+    setLocating(true);
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== 'granted') throw new Error('Allow location access to use your current position.');
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      setCoordinates({ lat: position.coords.latitude, lng: position.coords.longitude });
+    } catch (error) {
+      showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not get your current location.') });
+    } finally { setLocating(false); }
+  }
 
 
   async function pickPhoto() {
@@ -93,9 +120,10 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
             value={String(field.value ?? '')} onBlur={field.onBlur} onChangeText={field.onChange} />
         )} />
       </View>
-      <Text className="text-muted-foreground text-xs -mt-2">
-        Drop a pin in Google Maps, long-press it, and copy the coordinates it shows.
-      </Text>
+      <Button variant="outline" loading={locating} loadingLabel="Finding location…" onPress={() => void fillCurrentLocation()}><Text>Use my current location</Text></Button>
+      <Text className="text-xs text-muted-foreground">Tap the map or drag its pin to set your shop location. Edit the numbers above for precision.</Text>
+      <LocationPicker value={coordinates} onChange={setCoordinates} />
+      <View className="gap-2"><Text className="text-xl font-bold">Location reference</Text>{coordinates ? <ShopLocationMap shop={{ ...coordinates, name: name || 'Your coffee shop' }} userLocation={null} /> : <Text className="rounded-xl bg-secondary p-4 text-sm text-muted-foreground">Set a location to preview what guests will see.</Text>}</View>
 
       <Text className="font-semibold">Typical price range</Text>
       <View className="flex-row gap-2">
@@ -183,4 +211,10 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
       </Button>
     </View>
   );
+}
+
+function parseCoordinate(value: unknown, min: number, max: number) {
+  if (value === '' || value == null) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= min && parsed <= max ? parsed : null;
 }

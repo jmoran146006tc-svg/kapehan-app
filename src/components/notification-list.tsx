@@ -5,6 +5,7 @@ import { dayjs } from '@/lib/dayjs';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import { EmptyState } from '@/components/empty-state';
 
 function notificationMeta(type: AppNotification['type']) {
   if (type === 'listing_archived') return { title: 'Listing archived', icon: Archive };
@@ -47,7 +48,7 @@ export function NotificationList({ notifications, onPress }: NotificationListPro
           </Pressable>
         );
       })}
-      {notifications.length === 0 ? <View className="items-center gap-2 py-10"><Icon as={Coffee} size={28} className="text-accent" /><Text className="text-center font-semibold">All caught up</Text><Text className="text-center text-sm text-muted-foreground">Shop and review updates will appear here.</Text></View> : null}
+      {notifications.length === 0 ? <EmptyState title="All caught up" description="Shop and review updates will appear here." /> : null}
     </ScrollView>
   );
 }

@@ -1,21 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Image, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
+import { Image, Platform, ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, Camera } from 'lucide-react-native';
 import { db } from '@/lib/firebase';
 import { blurActiveElement, goBack } from '@/lib/navigation';
 import { toShop, type Shop } from '@/types/shop';
 import { LogoutButton } from '@/components/logout-button';
-import { StatTile } from '@/components/stat-tile';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getUserFriendlyError } from '@/lib/errors';
 import { useToast } from '@/hooks/useToast';
+import { cloudinaryImageUrl } from '@/lib/cloudinary';
 
 type OwnerTab = 'info' | 'menu' | 'reviews';
 
@@ -47,36 +47,31 @@ export function OwnerShopShell({ active, children }: { active: OwnerTab; childre
     blurActiveElement();
     router.replace({ pathname: tab === 'info' ? '/(owner)/owner/shop/[id]' : `/(owner)/owner/shop/[id]/${tab}`, params: { id: shop.id } } as never);
   };
-  const headerHeight = Math.max(240, insets.top + 188);
-
   return (
     <ScrollView className="flex-1 bg-background" showsVerticalScrollIndicator={false} contentContainerClassName="mx-auto w-full max-w-2xl pb-8">
-      <View className="relative">
-        <View className="relative overflow-hidden bg-primary" style={{ height: headerHeight }}>
-          {shop.photos[0] ? <Image source={{ uri: shop.photos[0] }} className="h-full w-full" /> : null}
-          <LinearGradient pointerEvents="none" colors={['transparent', 'rgba(0, 0, 0, 0.78)']} locations={[0.3, 1]} style={StyleSheet.absoluteFill} />
-          <View className="absolute left-4 right-4 flex-row items-center justify-between" style={{ top: insets.top + 8 }}>
-            <Button size="icon" variant="ghost" className="rounded-full bg-black/30" onPress={() => goBack('/(owner)')} accessibilityLabel="Back to owner dashboard"><Icon as={ArrowLeft} className="text-primary-foreground" /></Button>
+      <View className="gap-4">
+        <View className="relative h-48 overflow-hidden bg-secondary" style={{ marginTop: insets.top }}>
+          {shop.photos[0] ? <Image source={{ uri: cloudinaryImageUrl(shop.photos[0], 1200) }} className="h-full w-full" resizeMode="cover" /> : <View className="h-full items-center justify-center"><Text className="font-serif text-4xl text-primary/30">Kapehan</Text></View>}
+          <View className="absolute left-4 right-4 top-2 flex-row items-center justify-between">
+            <Button size="icon" variant="secondary" className="rounded-full bg-card/95" onPress={() => goBack('/(owner)')} accessibilityLabel="Back to owner dashboard"><Icon as={ArrowLeft} /></Button>
             <View className="flex-row items-center gap-1">
-              <Button size="icon" variant="ghost" className="rounded-full bg-black/30" onPress={() => { blurActiveElement(); router.push({ pathname: '/(owner)/listing/[id]', params: { id: shop.id } }); }} accessibilityLabel="Change cover photo"><Icon as={Camera} size={16} className="text-primary-foreground" /></Button>
-              <LogoutButton size="sm" variant="ghost" className="rounded-full bg-black/30" />
+              {shop.status !== 'archived' ? <Button size="icon" variant="secondary" className="rounded-full bg-card/95" onPress={() => { blurActiveElement(); router.push({ pathname: '/(owner)/listing/[id]', params: { id: shop.id } }); }} accessibilityLabel="Change cover photo"><Icon as={Camera} size={16} /></Button> : null}
+              <LogoutButton size="sm" variant="secondary" className="rounded-full bg-card/95" />
             </View>
           </View>
-          <View className="absolute bottom-5 left-4 right-4">
-            <Text numberOfLines={2} className="text-2xl font-bold text-primary-foreground">{shop.name}</Text>
-            <Text className="text-sm text-primary-foreground/70">Owner dashboard</Text>
-          </View>
         </View>
-        <View className="absolute bottom-0 left-4 right-4 flex-row gap-2 rounded-t-3xl bg-card p-4 shadow-lg shadow-black/15" style={{ transform: [{ translateY: 32 }] }}>
-          <StatTile value={shop.avgRating.toFixed(1)} label="Rating" className="border-transparent bg-secondary/70" />
-          <StatTile value={shop.reviewCount} label="Reviews" className="border-transparent bg-secondary/70" />
-          <StatTile value={shop.viewCount ?? 0} label="Views" className="border-transparent bg-secondary/70" />
+        <View className="gap-3 px-4">
+          <View><Text className="text-xs font-bold uppercase tracking-widest text-accent">Your coffee shop</Text><Text className="mt-1 font-serif text-3xl font-bold text-foreground">{shop.name}</Text><Text className="mt-1 text-sm capitalize text-muted-foreground">{shop.status} listing</Text></View>
+          <View className="flex-row rounded-2xl border border-border bg-card py-3">
+            {([{ label: 'Rating', value: shop.avgRating.toFixed(1) }, { label: 'Reviews', value: shop.reviewCount }, { label: 'Views', value: shop.viewCount ?? 0 }] as const).map((metric, index) => <View key={metric.label} className={index ? 'flex-1 items-center border-l border-border' : 'flex-1 items-center'}><Text className="font-serif text-xl font-bold text-primary">{metric.value}</Text><Text className="text-xs text-muted-foreground">{metric.label}</Text></View>)}
+          </View>
+          {shop.status === 'archived' ? <View className="rounded-xl border border-border bg-secondary px-4 py-3"><Text className="font-semibold text-foreground">This listing has been archived.</Text><Text className="text-sm text-muted-foreground">Its details, menu, and replies are read only.</Text></View> : null}
         </View>
       </View>
-      <View className="gap-4 pt-16">
+      <View className="gap-4 pt-5">
         <View className="flex-row border-b border-border px-4">{(['info', 'menu', 'reviews'] as OwnerTab[]).map((tab) => <Button key={tab} variant="ghost" className={active === tab ? `flex-1 rounded-none border-b-2 border-accent ${Platform.select({ web: 'hover:bg-transparent dark:hover:bg-transparent' }) ?? ''}` : 'flex-1 rounded-none'} onPress={() => go(tab)}><Text className={active === tab ? 'font-bold text-accent' : undefined}>{tab === 'info' ? 'Shop Info' : tab[0].toUpperCase() + tab.slice(1)}</Text></Button>)}</View>
       </View>
-      <View>{children(shop)}</View>
+      <Animated.View entering={FadeIn.duration(180)}>{children(shop)}</Animated.View>
     </ScrollView>
   );
 }

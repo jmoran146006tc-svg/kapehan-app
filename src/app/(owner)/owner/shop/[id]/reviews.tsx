@@ -15,6 +15,7 @@ import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { useToast } from '@/hooks/useToast';
+import { EmptyState } from '@/components/empty-state';
 
 export default function OwnerShopReviewsScreen() {
   return <OwnerShopShell active="reviews">{(shop) => <OwnerReviewsContent key={shop.id} shop={shop} />}</OwnerShopShell>;
@@ -59,6 +60,7 @@ function OwnerReviewsContent({ shop }: { shop: Shop }) {
   }
 
   async function reply(review: Review) {
+    if (shop.status === 'archived') return;
     const text = drafts[review.id] ?? '';
     setSubmitting(review.id);
     try {
@@ -79,8 +81,8 @@ function OwnerReviewsContent({ shop }: { shop: Shop }) {
       const replyExists = hasReply(review);
       const isEditing = editing[review.id] === true;
       const draft = drafts[review.id] ?? '';
-      return <Card key={review.id}><CardHeader className="gap-3"><View className="flex-row items-start justify-between gap-3"><View className="flex-1"><CardTitle>{review.userName}</CardTitle><ReviewTime review={review} /></View><View className="flex-row items-center gap-1"><Icon as={Star} size={14} fill="currentColor" className="text-accent" /><Text>{review.rating}/5</Text></View></View><CardDescription>{review.text || 'No written comment.'}</CardDescription>{replyExists && !isEditing ? <View className="gap-2 rounded-lg bg-secondary p-3"><OwnerReplyLabel edited={Boolean(review.ownerReply?.editedAt)} /><Text>{review.ownerReply?.text}</Text><Button size="sm" variant="outline" className="self-start" onPress={() => beginEdit(review)}><Icon as={Pencil} size={14} /><Text>Edit</Text></Button></View> : <View className="gap-2"><Input multiline className="min-h-16 py-2" placeholder="Reply to this review…" value={draft} onChangeText={(text) => setDrafts((current) => ({ ...current, [review.id]: text }))} /><View className="flex-row gap-2"><Button size="sm" loading={submitting === review.id} loadingLabel="Sending…" disabled={!draft.trim()} onPress={() => void reply(review)}><Text>{replyExists ? 'Update reply' : 'Post reply'}</Text></Button>{replyExists ? <Button size="sm" variant="outline" onPress={() => cancelEdit(review.id)}><Text>Cancel</Text></Button> : null}</View></View>}</CardHeader></Card>;
+      return <Card key={review.id}><CardHeader className="gap-3"><View className="flex-row items-start justify-between gap-3"><View className="flex-1"><CardTitle>{review.userName}</CardTitle><ReviewTime review={review} /></View><View className="flex-row items-center gap-1"><Icon as={Star} size={14} fill="currentColor" className="text-accent" /><Text>{review.rating}/5</Text></View></View><CardDescription>{review.text || 'No written comment.'}</CardDescription>{replyExists && (!isEditing || shop.status === 'archived') ? <View className="gap-2 rounded-lg bg-secondary p-3"><OwnerReplyLabel edited={Boolean(review.ownerReply?.editedAt)} /><Text>{review.ownerReply?.text}</Text>{shop.status !== 'archived' ? <Button size="sm" variant="outline" className="self-start" onPress={() => beginEdit(review)}><Icon as={Pencil} size={14} /><Text>Edit</Text></Button> : null}</View> : shop.status !== 'archived' ? <View className="gap-2"><Input multiline className="min-h-16 py-2" placeholder="Reply to this review…" value={draft} onChangeText={(text) => setDrafts((current) => ({ ...current, [review.id]: text }))} /><View className="flex-row gap-2"><Button size="sm" loading={submitting === review.id} loadingLabel="Sending…" disabled={!draft.trim()} onPress={() => void reply(review)}><Text>{replyExists ? 'Update reply' : 'Post reply'}</Text></Button>{replyExists ? <Button size="sm" variant="outline" onPress={() => cancelEdit(review.id)}><Text>Cancel</Text></Button> : null}</View></View> : null}</CardHeader></Card>;
     })}
-    {reviews.length === 0 && !loadFailed ? <View className="items-center gap-2 py-8"><Icon as={Star} size={28} className="text-accent" /><Text className="text-center text-muted-foreground">Customer reviews will appear here.</Text></View> : null}
+    {reviews.length === 0 && !loadFailed ? <EmptyState title="Waiting for first impressions" description="Guest reviews will appear here after a visit." /> : null}
   </View>;
 }

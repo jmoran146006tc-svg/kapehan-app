@@ -12,11 +12,15 @@ export function ShopLocationMap({ shop, userLocation }: {
   const mapRef = useRef<MapView>(null);
 
   useEffect(() => {
-    if (!userLocation || !mapRef.current) return;
-    mapRef.current.fitToCoordinates(
-      [{ latitude: shop.lat, longitude: shop.lng }, { latitude: userLocation.lat, longitude: userLocation.lng }],
-      { edgePadding: { top: 60, right: 60, bottom: 60, left: 60 }, animated: true }
-    );
+    if (!mapRef.current) return;
+    if (userLocation) {
+      mapRef.current.fitToCoordinates(
+        [{ latitude: shop.lat, longitude: shop.lng }, { latitude: userLocation.lat, longitude: userLocation.lng }],
+        { edgePadding: { top: 60, right: 60, bottom: 60, left: 60 }, animated: true }
+      );
+    } else {
+      mapRef.current.animateToRegion({ latitude: shop.lat, longitude: shop.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 }, 250);
+    }
   }, [userLocation, shop.lat, shop.lng]);
 
   return (

@@ -14,10 +14,10 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
-import { Coffee } from 'lucide-react-native';
-import { Icon } from '@/components/ui/icon';
 import { useToast } from '@/hooks/useToast';
 import { notifyFavoriteShopUpdate } from '@/lib/favorite-shop-updates';
+import { EmptyState } from '@/components/empty-state';
+import { cloudinaryImageUrl } from '@/lib/cloudinary';
 
 export default function OwnerMenuScreen() {
   return <OwnerShopShell active="menu">{(shop) => <OwnerMenuContent key={shop.id} shop={shop} />}</OwnerShopShell>;
@@ -30,6 +30,7 @@ function OwnerMenuContent({ shop }: { shop: Shop }) {
   const [loadFailed, setLoadFailed] = useState(false);
   const { showToast } = useToast();
   const editorOpen = adding || editing !== null;
+  const archived = shop.status === 'archived';
 
   useEffect(() => onSnapshot(
     collection(db, 'shops', shop.id, 'products'),
@@ -44,6 +45,7 @@ function OwnerMenuContent({ shop }: { shop: Shop }) {
   }
 
   async function removeProduct(product: Product) {
+    if (archived) return;
     try {
       await deleteDoc(doc(db, 'shops', shop.id, 'products', product.id));
       showToast({ type: 'success', message: 'Menu item removed' });
@@ -56,14 +58,15 @@ function OwnerMenuContent({ shop }: { shop: Shop }) {
 
   return <>
     <View className="mx-auto w-full max-w-2xl gap-4 px-4 py-5 pb-8">
-      <View className="flex-row items-center justify-between"><View><Text className="text-xl font-bold">Menu</Text><Text className="text-sm text-muted-foreground">{products.length} popular item{products.length === 1 ? '' : 's'} on menu</Text></View><Button size="sm" className="rounded-full bg-accent" onPress={() => { setEditing(null); setAdding(true); }}><Text>Add Item</Text></Button></View>
+      <View className="flex-row items-center justify-between"><View><Text className="text-xl font-bold">Menu</Text><Text className="text-sm text-muted-foreground">{products.length} popular item{products.length === 1 ? '' : 's'} on menu</Text></View>{!archived ? <Button size="sm" className="rounded-full bg-accent" onPress={() => { setEditing(null); setAdding(true); }}><Text>Add Item</Text></Button> : null}</View>
       {loadFailed ? <Text className="text-sm text-muted-foreground">The menu is unavailable right now.</Text> : null}
-      {PRODUCT_CATEGORIES.map((category) => { const categoryProducts = products.filter((product) => product.category === category); if (!categoryProducts.length) return null; return <View key={category} className="gap-2"><Text className="text-sm font-bold tracking-wider text-muted-foreground">{category.toUpperCase()}</Text>{categoryProducts.map((product) => <Card key={product.id} className="py-3"><CardHeader className="min-w-0"><View className="w-full min-w-0 flex-row items-center gap-3"><View className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-secondary">{product.photoUrl ? <Image source={{ uri: product.photoUrl }} className="h-full w-full" /> : null}</View><Button
+      {PRODUCT_CATEGORIES.map((category) => { const categoryProducts = products.filter((product) => product.category === category); if (!categoryProducts.length) return null; return <View key={category} className="gap-2"><Text className="text-sm font-bold tracking-wider text-muted-foreground">{category.toUpperCase()}</Text>{categoryProducts.map((product) => <Card key={product.id} className="py-3"><CardHeader className="min-w-0"><View className="w-full min-w-0 flex-row items-center gap-3"><View className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-secondary">{product.photoUrl ? <Image source={{ uri: cloudinaryImageUrl(product.photoUrl, 160) }} className="h-full w-full" /> : null}</View><Button
   variant="ghost"
   className={cn(
     'h-auto sm:h-auto flex-1 min-w-0 shrink flex-row items-center justify-between gap-3 px-0 py-1',
     Platform.select({ web: 'hover:bg-secondary/60 active:bg-secondary/70' })
   )}
+  disabled={archived}
   onPress={() => { setAdding(false); setEditing(product); }}
 >
   <View className="min-w-0 flex-1 shrink items-start">
@@ -73,10 +76,10 @@ function OwnerMenuContent({ shop }: { shop: Shop }) {
     ) : null}
   </View>
   <Text numberOfLines={1} className="shrink-0 font-bold">₱{product.price.toLocaleString()}</Text>
-</Button><Button size="sm" variant="outline" className="shrink-0" onPress={() => void removeProduct(product)}><Text>Remove</Text></Button></View></CardHeader></Card>)}</View>; })}
-      {products.length === 0 && !loadFailed ? <View className="items-center gap-2 py-8"><Icon as={Coffee} size={28} className="text-accent" /><Text className="text-center text-muted-foreground">Add the first menu item for this shop.</Text></View> : null}
+</Button>{!archived ? <Button size="sm" variant="outline" className="shrink-0" onPress={() => void removeProduct(product)}><Text>Remove</Text></Button> : null}</View></CardHeader></Card>)}</View>; })}
+      {products.length === 0 && !loadFailed ? <EmptyState title="A menu in the making" description={archived ? 'This archived listing has no menu items.' : 'Add the first drink or bite for this shop.'} /> : null}
     </View>
-    <Dialog open={editorOpen} onOpenChange={(open) => { if (!open) closeEditor(); }}>
+    <Dialog open={editorOpen && !archived} onOpenChange={(open) => { if (!open) closeEditor(); }}>
       <DialogContent className="max-h-[90%] max-w-xl p-0">
         <ScrollView className="w-full" contentContainerClassName="gap-4 p-6">
           <DialogHeader><DialogTitle>{editing ? 'Edit Menu Item' : 'New Menu Item'}</DialogTitle></DialogHeader>

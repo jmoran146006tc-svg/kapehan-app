@@ -303,9 +303,11 @@ service cloud.firestore {
           isOwner(get(/databases/$(database)/documents/shops/$(shopId)).data.ownerId) || isAdmin();
         allow create, update: if isSignedIn() &&
           get(/databases/$(database)/documents/shops/$(shopId)).data.ownerId == request.auth.uid &&
+          get(/databases/$(database)/documents/shops/$(shopId)).data.status != 'archived' &&
           validProduct(request.resource.data);
         allow delete: if isSignedIn() &&
-          get(/databases/$(database)/documents/shops/$(shopId)).data.ownerId == request.auth.uid;
+          get(/databases/$(database)/documents/shops/$(shopId)).data.ownerId == request.auth.uid &&
+          get(/databases/$(database)/documents/shops/$(shopId)).data.status != 'archived';
       }
 
       match /reviews/{reviewId} {
@@ -322,6 +324,7 @@ service cloud.firestore {
           aggregateMatchesReview(shopId);
         allow update: if isSignedIn() &&
           get(/databases/$(database)/documents/shops/$(shopId)).data.ownerId == request.auth.uid &&
+          get(/databases/$(database)/documents/shops/$(shopId)).data.status != 'archived' &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ownerReply']) &&
           request.resource.data.ownerReply is map &&
           request.resource.data.ownerReply.keys().hasOnly(['text', 'repliedAt', 'editedAt']) &&

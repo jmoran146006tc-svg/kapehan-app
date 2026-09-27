@@ -28,9 +28,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     {children}
     <View pointerEvents="box-none" className="absolute left-4 right-4 z-50 items-center gap-2" style={{ bottom: Math.max(80, insets.bottom + 64) }}>
       {items.map((item) => <Animated.View key={item.id} entering={FadeInDown.duration(220)} exiting={FadeOutDown.duration(220)} style={{ width: '100%', maxWidth: 448 }}>
-        <View className={item.type === 'success' ? 'w-full flex-row items-center gap-3 rounded-2xl bg-success px-5 py-4 shadow-lg' : 'w-full flex-row items-center gap-3 rounded-2xl bg-destructive px-5 py-4 shadow-lg'}>
-          <Icon as={item.type === 'success' ? Check : CircleAlert} size={20} className={item.type === 'success' ? 'text-success-foreground' : 'text-destructive-foreground'} />
-          <Text accessibilityRole="alert" className={item.type === 'success' ? 'flex-1 text-success-foreground' : 'flex-1 text-destructive-foreground'}>{item.message}</Text>
+        <View className={item.type === 'success' ? 'w-full flex-row items-center gap-3 rounded-xl border border-border border-l-4 border-l-accent bg-card px-4 py-4 shadow-lg' : 'w-full flex-row items-center gap-3 rounded-xl border border-border border-l-4 border-l-destructive bg-card px-4 py-4 shadow-lg'}>
+          <View className={item.type === 'success' ? 'rounded-full bg-success p-2' : 'rounded-full bg-destructive/10 p-2'}><Icon as={item.type === 'success' ? Check : CircleAlert} size={17} className={item.type === 'success' ? 'text-success-foreground' : 'text-destructive'} /></View>
+          <Text accessibilityRole="alert" className="flex-1 text-foreground">{item.message}</Text>
         </View>
       </Animated.View>)}
     </View>

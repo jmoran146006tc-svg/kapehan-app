@@ -12,6 +12,8 @@ import type { Shop } from '@/types/shop';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import { EmptyState } from '@/components/empty-state';
+import { cloudinaryImageUrl } from '@/lib/cloudinary';
 
 type Row = {
   label: string;
@@ -74,7 +76,7 @@ export default function CompareScreen() {
   }
 
   if (selected.length === 0) {
-    return <View className="flex-1 items-center justify-center gap-3 bg-background p-6"><Text className="text-center text-muted-foreground">Tap “+ Compare” on two or three coffee shops first.</Text><Button onPress={() => router.replace('/(user)/search')}><Text>Browse shops</Text></Button></View>;
+    return <View className="flex-1 justify-center gap-3 bg-background p-6"><EmptyState title="Find your favorite cup" description="Add two or three shops to see them side by side." /><Button onPress={() => router.replace('/(user)/search')}><Text>Browse shops</Text></Button></View>;
   }
 
   return (
@@ -93,7 +95,7 @@ export default function CompareScreen() {
             {selected.map((shop) => (
               <View key={shop.id} style={needsHorizontalScroll ? { width: MIN_SHOP_COL_WIDTH } : { flex: 1, minWidth: 0 }} className="border-l border-border">
                 <View className="h-28 gap-1 px-2">
-                  {shop.photos[0] ? <Image source={{ uri: shop.photos[0] }} className="h-12 w-12 rounded-lg" /> : <View className="h-12 w-12 rounded-lg bg-secondary" />}
+                  {shop.photos[0] ? <Image source={{ uri: cloudinaryImageUrl(shop.photos[0], 160) }} className="h-12 w-12 rounded-lg" /> : <View className="h-12 w-12 rounded-lg bg-secondary" />}
                   <View className="flex-row items-start gap-1"><Text numberOfLines={1} className="flex-1 font-bold">{shop.name}</Text><Button size="sm" variant="ghost" className="h-6 w-6 px-0" onPress={() => toggle(shop.id)}><Icon as={X} size={14} /></Button></View>
                   <Text numberOfLines={1} className="text-xs text-muted-foreground">{shop.description || 'Coffee shop in Tagum'}</Text>
                 </View>
