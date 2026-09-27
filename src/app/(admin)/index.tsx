@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, ScrollView, View } from 'react-native';
+import { FlatList, Platform, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowRight, Calendar, Check, Mail, Star, X } from 'lucide-react-native';
+import { Calendar, Check, Coffee, Mail, Star, X } from 'lucide-react-native';
 import { collection, doc, getDocs, onSnapshot, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,27 +13,25 @@ import { toShop, type Shop } from '@/types/shop';
 import type { AppUserDocument } from '@/types/user';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Icon } from '@/components/ui/icon';
 import { LogoutButton } from '@/components/logout-button';
-import { Logo } from '@/components/logo';
 import { Text } from '@/components/ui/text';
 import { Input } from '@/components/ui/input';
 import { FilterChip } from '@/components/filter-chip';
-import { Skeleton } from '@/components/ui/skeleton';
+import { ShopCardSkeleton } from '@/components/shop-card-skeleton';
+import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 
 type AdminTab = 'users' | 'owners';
-type ListingFilter = 'all' | 'pending' | 'approved' | 'rejected' | 'archived';
 type AdminUser = AppUserDocument & { id: string };
 type AdminShop = Shop;
 
 export default function AdminDashboardScreen() {
-  const insets = useSafeAreaInsets();
   const { user: admin, role } = useAuth();
   const { showToast } = useToast();
   const [tab, setTab] = useState<AdminTab>('users');
-  const [listingFilter, setListingFilter] = useState<ListingFilter>('all');
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [shops, setShops] = useState<AdminShop[]>([]);
   const [shopsLoading, setShopsLoading] = useState(true);
@@ -113,33 +110,23 @@ export default function AdminDashboardScreen() {
   }
 
   return <View className="flex-1 bg-background" style={{ minHeight: 0 }}>
-    <View className="border-b border-border bg-card px-4 pb-5" style={{ paddingTop: Math.max(insets.top, 16) }}>
-      <View className="mx-auto w-full max-w-2xl">
-        <View className="flex-row items-center justify-between gap-3">
-          <View className="flex-row items-center gap-2">
-            <Logo width={40} height={40} />
-            <View><Text className="font-serif text-lg font-bold text-foreground">Kapehan</Text><Text className="text-xs text-muted-foreground">Administration</Text></View>
-          </View>
-          <LogoutButton size="sm" variant="outline" />
+    <View className="border-b border-border bg-background px-4 pb-4 pt-12">
+      <View className="mx-auto w-full max-w-2xl flex-row items-center justify-between gap-4">
+        <View className="flex-1">
+          <Text className="text-2xl font-bold text-foreground">Admin</Text>
+          {pending ? <Text className="mt-1 text-sm text-muted-foreground">{pending} {pending === 1 ? 'listing' : 'listings'} awaiting review</Text> : null}
         </View>
-        <View className="mt-5 flex-row flex-wrap items-end justify-between gap-4 border-t border-border pt-5">
-          <View className="flex-1"><Text className="font-serif text-3xl font-bold text-foreground">The counter</Text><Text className="mt-1 text-sm text-muted-foreground">Review shops. Manage people.</Text></View>
-          <Pressable accessibilityRole="button" accessibilityLabel={pending ? 'Open pending listings' : 'Open listings'} onPress={() => { setListingFilter(pending ? 'pending' : 'all'); setTab('owners'); }} className="flex-row items-center gap-3 border-b border-accent pb-1">
-            <Text className="font-serif text-3xl font-bold text-accent">{pending}</Text>
-            <View><Text className="text-xs font-semibold text-foreground">Awaiting review</Text><Text className="text-xs text-muted-foreground">{pending ? 'Open queue' : 'See listings'}</Text></View>
-            <Icon as={ArrowRight} size={16} className="text-accent" />
-          </Pressable>
-        </View>
+        <LogoutButton size="sm" variant="outline" />
       </View>
     </View>
     <View className="mx-auto w-full max-w-2xl flex-1 gap-3 px-4" style={{ minHeight: 0 }}>
-      <View className="flex-row gap-8 border-b border-border">
-        <Button variant="ghost" className={tab === 'users' ? 'rounded-none border-b border-foreground px-1' : 'rounded-none px-1'} onPress={() => setTab('users')}><Text className={tab === 'users' ? 'font-semibold text-foreground' : 'text-muted-foreground'}>People <Text className="text-xs text-muted-foreground">{customerUsers.length}</Text></Text></Button>
-        <Button variant="ghost" className={tab === 'owners' ? 'rounded-none border-b border-foreground px-1' : 'rounded-none px-1'} onPress={() => { setListingFilter('all'); setTab('owners'); }}><Text className={tab === 'owners' ? 'font-semibold text-foreground' : 'text-muted-foreground'}>Listings <Text className="text-xs text-muted-foreground">{shops.length}</Text></Text></Button>
+      <View className="flex-row gap-6 border-b border-border">
+        <Button variant="ghost" className={tab === 'users' ? 'rounded-none border-b border-foreground px-1' : 'rounded-none px-1'} onPress={() => setTab('users')}><Text className={tab === 'users' ? 'font-semibold text-foreground' : 'text-muted-foreground'}>Users</Text></Button>
+        <Button variant="ghost" className={tab === 'owners' ? 'rounded-none border-b border-foreground px-1' : 'rounded-none px-1'} onPress={() => setTab('owners')}><Text className={tab === 'owners' ? 'font-semibold text-foreground' : 'text-muted-foreground'}>Listings</Text></Button>
       </View>
       {tab === 'users' && usersLoadFailed ? <Text className="text-muted-foreground">User accounts are unavailable right now.</Text> : null}
       {tab === 'owners' && shopsLoadFailed ? <Text className="text-muted-foreground">Listings are unavailable right now.</Text> : null}
-      {tab === 'users' ? <UsersList users={customerUsers} reviewCounts={reviewCounts} adminId={admin?.uid} updatingId={updatingId} onStatus={setUserStatus} loadFailed={usersLoadFailed} refreshing={refreshing} onRefresh={refresh} /> : <OwnersList shops={shops} loading={shopsLoading} updatingId={updatingId} onStatus={setShopStatus} onRemovalDecision={decideRemoval} loadFailed={shopsLoadFailed} refreshing={refreshing} onRefresh={refresh} statusFilter={listingFilter} onStatusFilterChange={setListingFilter} />}
+      {tab === 'users' ? <UsersList users={customerUsers} reviewCounts={reviewCounts} adminId={admin?.uid} updatingId={updatingId} onStatus={setUserStatus} loadFailed={usersLoadFailed} refreshing={refreshing} onRefresh={refresh} /> : <OwnersList shops={shops} loading={shopsLoading} updatingId={updatingId} onStatus={setShopStatus} onRemovalDecision={decideRemoval} loadFailed={shopsLoadFailed} refreshing={refreshing} onRefresh={refresh} />}
     </View>
   </View>;
 }
@@ -156,17 +143,11 @@ function UsersList({ users, reviewCounts, adminId, updatingId, onStatus, loadFai
   const viewingStatus = viewingAccount?.status ?? 'active';
 
   return <>
-    <FlatList className="flex-1" style={{ minHeight: 0 }} data={visibleUsers} keyExtractor={(account) => account.id} initialNumToRender={10} windowSize={7} refreshing={refreshing} onRefresh={() => void onRefresh()} contentContainerClassName="pb-8" ListHeaderComponent={<View className="gap-3 pb-2 pt-1"><Text className="font-serif text-xl font-bold">People</Text><Input placeholder="Search name or email" value={search} onChangeText={setSearch} /><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">{(['all', 'active', 'suspended'] as const).map((status) => <FilterChip key={status} label={status[0].toUpperCase() + status.slice(1)} selected={statusFilter === status} onPress={() => setStatusFilter(status)} />)}</ScrollView></View>} ListEmptyComponent={!loadFailed ? <Text className="py-4 text-muted-foreground">No matching accounts.</Text> : null} renderItem={({ item: account }) => {
-      const status = account.status ?? 'active';
-      return <View className="border-b border-border py-4">
-        <View className="flex-row items-start justify-between gap-3">
-          <View className="flex-1"><Text className="text-base font-semibold text-foreground">{account.name || 'Unnamed user'}</Text><Text className="mt-0.5 text-sm text-muted-foreground">{account.email}</Text></View>
-          <View className="flex-row items-center gap-1.5 pt-1"><View className={status === 'active' ? 'h-2 w-2 rounded-full bg-success-foreground' : 'h-2 w-2 rounded-full bg-destructive'} /><Text className="text-xs capitalize text-muted-foreground">{status}</Text></View>
-        </View>
-        <Text className="mt-2 text-xs text-muted-foreground">{account.role === 'owner' ? 'Shop owner' : 'Member'} · Joined {account.createdAt ? dayjs(account.createdAt.toDate()).format('MMM D, YYYY') : 'recently'}</Text>
-        <View className="mt-3 flex-row flex-wrap items-center gap-3"><Button size="sm" variant="outline" disabled={account.id === adminId} loading={updatingId === account.id} loadingLabel="Updating…" onPress={() => onStatus(account, status === 'active' ? 'suspended' : 'active')}><Text>{status === 'active' ? 'Suspend' : 'Reactivate'}</Text></Button><Button size="sm" variant="link" onPress={() => setViewingAccount(account)}><Text>View account</Text></Button></View>
-      </View>;
-    }} />
+    <FlatList className="flex-1" style={{ minHeight: 0 }} data={visibleUsers} keyExtractor={(account) => account.id} initialNumToRender={10} windowSize={7} refreshing={refreshing} onRefresh={() => void onRefresh()} contentContainerClassName="gap-3 pb-8" ListHeaderComponent={<View className="gap-3 pb-2"><Text className="text-xl font-bold">Registered Users</Text><Input placeholder="Search name or email" value={search} onChangeText={setSearch} /><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">{(['all', 'active', 'suspended'] as const).map((status) => <FilterChip key={status} label={status[0].toUpperCase() + status.slice(1)} selected={statusFilter === status} onPress={() => setStatusFilter(status)} />)}</ScrollView></View>} ListEmptyComponent={!loadFailed ? <Text className="text-muted-foreground">No matching accounts.</Text> : null} renderItem={({ item: account }) => {
+        const status = account.status ?? 'active';
+        const initials = (account.name || account.email || 'U').split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+        return <Card className={Platform.select({ web: 'transition-all duration-200 hover:shadow-md' })}><CardHeader className="gap-3"><View className="flex-row items-start gap-3"><View className="h-10 w-10 items-center justify-center rounded-full bg-secondary"><Text className="font-bold">{initials}</Text></View><View className="flex-1"><CardTitle>{account.name || 'Unnamed user'}</CardTitle><Text className="text-sm text-muted-foreground">{account.email}</Text></View><Badge variant="secondary"><Text className="capitalize">{account.role}</Text></Badge><Badge className={status === 'active' ? 'border-transparent bg-green-100' : 'border-transparent bg-red-100'} variant="secondary"><Text className={status === 'active' ? 'text-green-800' : 'text-red-700'}>{status}</Text></Badge></View><Text className="text-sm text-muted-foreground">Joined {account.createdAt ? dayjs(account.createdAt.toDate()).format('MMM D, YYYY') : 'recently'} · {reviewCounts[account.id] ?? 0} reviews</Text><View className="flex-row gap-2"><Button className="flex-1" size="sm" variant="outline" disabled={account.id === adminId} loading={updatingId === account.id} loadingLabel="Updating…" onPress={() => onStatus(account, status === 'active' ? 'suspended' : 'active')}><Text>{status === 'active' ? 'Suspend Account' : 'Reactivate Account'}</Text></Button><Button className="flex-1" size="sm" variant="outline" onPress={() => setViewingAccount(account)}><Text>View Account</Text></Button></View></CardHeader></Card>;
+      }} />
     <Dialog open={!!viewingAccount} onOpenChange={(open) => { if (!open) { blurActiveElement(); setViewingAccount(null); } }}>
       <DialogContent>
         <DialogHeader className="items-center gap-3">
@@ -184,35 +165,42 @@ function UsersList({ users, reviewCounts, adminId, updatingId, onStatus, loadFai
   </>;
 }
 
-function OwnersList({ shops, loading, updatingId, onStatus, onRemovalDecision, loadFailed, refreshing, onRefresh, statusFilter, onStatusFilterChange }: { shops: Shop[]; loading: boolean; updatingId: string | null; onStatus: (shop: Shop, status: 'approved' | 'rejected') => void; onRemovalDecision: (shop: Shop, decision: 'revoke' | 'deny') => void; loadFailed: boolean; refreshing: boolean; onRefresh: () => Promise<void>; statusFilter: ListingFilter; onStatusFilterChange: (filter: ListingFilter) => void }) {
+function OwnersList({ shops, loading, updatingId, onStatus, onRemovalDecision, loadFailed, refreshing, onRefresh }: { shops: Shop[]; loading: boolean; updatingId: string | null; onStatus: (shop: Shop, status: 'approved' | 'rejected') => void; onRemovalDecision: (shop: Shop, decision: 'revoke' | 'deny') => void; loadFailed: boolean; refreshing: boolean; onRefresh: () => Promise<void> }) {
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'archived'>('all');
   const visibleShops = shops.filter((shop) =>
     (statusFilter === 'all' || shop.status === statusFilter) &&
     shop.name.toLowerCase().includes(search.trim().toLowerCase()),
   );
-  return <FlatList className="flex-1" style={{ minHeight: 0 }} data={loading ? [] : visibleShops} keyExtractor={(shop) => shop.id} initialNumToRender={8} windowSize={7} refreshing={refreshing} onRefresh={() => void onRefresh()} contentContainerClassName="pb-8" ListHeaderComponent={<View className="gap-3 pb-2 pt-1"><Text className="font-serif text-xl font-bold">Listings</Text><Input placeholder="Search shop name" value={search} onChangeText={setSearch} /><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">{(['all', 'pending', 'approved', 'rejected', 'archived'] as const).map((status) => <FilterChip key={status} label={status[0].toUpperCase() + status.slice(1)} selected={statusFilter === status} onPress={() => onStatusFilterChange(status)} />)}</ScrollView></View>} ListEmptyComponent={loading ? <View className="gap-3 py-4"><Skeleton className="h-4 w-1/2 rounded-sm" /><Skeleton className="h-3 w-1/3 rounded-sm" /><View className="border-b border-border pb-4" /><Skeleton className="h-4 w-2/3 rounded-sm" /><Skeleton className="h-3 w-1/4 rounded-sm" /></View> : !loadFailed ? <Text className="py-4 text-muted-foreground">No matching listings.</Text> : null} renderItem={({ item }) => <ListingRow shop={item} updating={updatingId === item.id} onStatus={onStatus} onRemovalDecision={onRemovalDecision} />} />;
+  return <FlatList className="flex-1" style={{ minHeight: 0 }} data={loading ? [] : visibleShops} keyExtractor={(shop) => shop.id} initialNumToRender={8} windowSize={7} refreshing={refreshing} onRefresh={() => void onRefresh()} contentContainerClassName="gap-3 pb-8" ListHeaderComponent={<View className="gap-3 pb-2"><Text className="text-xl font-bold">Listings</Text><Input placeholder="Search shop name" value={search} onChangeText={setSearch} /><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">{(['all', 'pending', 'approved', 'rejected', 'archived'] as const).map((status) => <FilterChip key={status} label={status === 'rejected' ? 'Rejected' : status[0].toUpperCase() + status.slice(1)} selected={statusFilter === status} onPress={() => setStatusFilter(status)} />)}</ScrollView></View>} ListEmptyComponent={loading ? <><ShopCardSkeleton /><ShopCardSkeleton /></> : !loadFailed ? <Text className="text-muted-foreground">No matching listings.</Text> : null} renderItem={({ item }) => <OwnerShopCard shop={item} updating={updatingId === item.id} onStatus={onStatus} onRemovalDecision={onRemovalDecision} />} />;
 }
 
-function ListingRow({ shop, updating, onStatus, onRemovalDecision }: {
+function OwnerShopCard({ shop, updating, onStatus, onRemovalDecision }: {
   shop: Shop;
   updating: boolean;
   onStatus: (shop: Shop, status: 'approved' | 'rejected') => void;
   onRemovalDecision: (shop: Shop, decision: 'revoke' | 'deny') => void;
 }) {
   const removalPending = Boolean(shop.removalRequest);
-  return <View className="border-b border-border py-4">
-    <View className="flex-row items-start justify-between gap-3">
-      <View className="flex-1"><Text className="text-base font-semibold text-foreground">{shop.name}</Text><Text className="mt-0.5 text-xs text-muted-foreground">Shop listing</Text></View>
-      <View className="flex-row items-center gap-1.5 pt-1"><View className={shop.status === 'approved' ? 'h-2 w-2 rounded-full bg-success-foreground' : shop.status === 'pending' ? 'h-2 w-2 rounded-full bg-accent' : 'h-2 w-2 rounded-full bg-muted-foreground'} /><Text className="text-xs capitalize text-muted-foreground">{shop.status}</Text></View>
-    </View>
-    {shop.removalRequest ? <View className="mt-3 gap-1 rounded-md border border-border bg-secondary/50 p-3"><Text className="text-sm font-semibold text-foreground">Removal requested</Text><Text className="text-sm text-muted-foreground">{shop.removalRequest.reason}</Text></View> : null}
-    <View className="mt-3 flex-row flex-wrap items-center gap-2">
-      {removalPending ? <><Button size="sm" variant="destructive" loading={updating} loadingLabel="Updating…" onPress={() => onRemovalDecision(shop, 'revoke')}><Text>Revoke listing</Text></Button><Button size="sm" variant="outline" disabled={updating} onPress={() => onRemovalDecision(shop, 'deny')}><Text>Deny request</Text></Button></> : null}
-      {!removalPending && shop.status === 'approved' ? <Button size="sm" variant="outline" className="border-destructive" loading={updating} loadingLabel="Updating…" onPress={() => onStatus(shop, 'rejected')}><Text className="text-destructive">Revoke listing</Text></Button> : null}
-      {!removalPending && shop.status === 'pending' ? <><Button size="sm" className="bg-success-foreground" loading={updating} loadingLabel="Updating…" onPress={() => onStatus(shop, 'approved')}><Icon as={Check} size={16} className="text-white" /><Text>Approve</Text></Button><Button size="sm" variant="outline" disabled={updating} onPress={() => onStatus(shop, 'rejected')}><Icon as={X} size={16} className="text-destructive" /><Text className="text-destructive">Reject</Text></Button></> : null}
-      <Button variant="link" size="sm" onPress={() => router.push({ pathname: '/(admin)/listing/[id]', params: { id: shop.id } })}><Text>View listing</Text></Button>
-    </View>
-  </View>;
+  return <Card className={cn(
+    removalPending ? 'border-l-4 border-l-amber-600' : shop.status === 'pending' && 'border-l-4 border-l-amber-500',
+    Platform.select({ web: 'transition-all duration-200 hover:shadow-md' }),
+  )}>
+    <CardHeader className="gap-3">
+      <View className="flex-row items-start justify-between gap-3">
+        <View className="flex-1"><View className="flex-row items-center gap-2"><Icon as={Coffee} size={17} className="text-accent" /><CardTitle>{shop.name}</CardTitle></View><Text className="text-sm text-muted-foreground">Registered listing</Text></View>
+        <Badge className={shop.status === 'approved' ? 'border-transparent bg-green-100' : shop.status === 'pending' ? 'border-transparent bg-amber-100' : 'border-transparent bg-slate-200'} variant="secondary"><Text className={shop.status === 'approved' ? 'text-green-800' : shop.status === 'pending' ? 'text-amber-800' : 'text-slate-800'}>{shop.status}</Text></Badge>
+      </View>
+      {shop.removalRequest ? <View className="gap-1 rounded-lg bg-amber-50 p-3"><Text className="font-semibold text-amber-900">Removal requested</Text><Text className="text-amber-900">{shop.removalRequest.reason}</Text></View> : null}
+      {removalPending ? <View className="flex-row gap-2">
+        <Button className="flex-1" variant="destructive" loading={updating} loadingLabel="Updating…" onPress={() => onRemovalDecision(shop, 'revoke')}><Text>Revoke Listing</Text></Button>
+        <Button className="flex-1" variant="outline" disabled={updating} onPress={() => onRemovalDecision(shop, 'deny')}><Text>Deny Request</Text></Button>
+      </View> : null}
+      {!removalPending && shop.status === 'approved' ? <Button variant="outline" className="border-destructive" loading={updating} loadingLabel="Updating…" onPress={() => onStatus(shop, 'rejected')}><Text className="text-destructive">Revoke Listing</Text></Button> : null}
+      {!removalPending && shop.status === 'pending' ? <View className="flex-row gap-2"><Button className="flex-1 bg-green-700" loading={updating} loadingLabel="Updating…" onPress={() => onStatus(shop, 'approved')}><Icon as={Check} size={16} className="text-white" /><Text>Approve Listing</Text></Button><Button className="flex-1" variant="destructive" loading={updating} loadingLabel="Updating…" onPress={() => onStatus(shop, 'rejected')}><Icon as={X} size={16} className="text-destructive-foreground" /><Text>Reject</Text></Button></View> : null}
+      <Button variant="ghost" size="sm" className="self-start" onPress={() => router.push({ pathname: '/(admin)/listing/[id]', params: { id: shop.id } })}><Text>View listing</Text></Button>
+    </CardHeader>
+  </Card>;
 }
 
 async function writeUserStatus(uid: string, status: 'active' | 'suspended') { const batch = writeBatch(db); batch.update(doc(db, 'users', uid), { status }); await batch.commit(); }
