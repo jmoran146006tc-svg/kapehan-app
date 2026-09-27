@@ -11,6 +11,7 @@ import { Text } from '@/components/ui/text';
 import { Icon } from '@/components/ui/icon';
 import { X } from 'lucide-react-native';
 import { getUserFriendlyError } from '@/lib/errors';
+import { toastFormErrors } from '@/lib/form-errors';
 import { MAX_TAGS_PER_SHOP, TAG_OPTIONS, type ShopTag } from '@/constants/tags';
 import { useToast } from '@/hooks/useToast';
 
@@ -25,7 +26,7 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
   const [submitting, setSubmitting] = useState(false);
   const { showToast } = useToast();
 
-  const { control, handleSubmit, setValue, formState: { errors } } = useForm
+  const { control, handleSubmit, setValue } = useForm
   <ShopFormInput,
   any,
   ShopFormValues>({
@@ -77,12 +78,10 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
       <Controller control={control} name="name" render={({ field }) => (
         <Input placeholder="Shop name" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />
       )} />
-      {errors.name && <Text className="text-destructive">{errors.name.message}</Text>}
 
       <Controller control={control} name="address" render={({ field }) => (
         <Input placeholder="Address" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />
       )} />
-      {errors.address && <Text className="text-destructive">{errors.address.message}</Text>}
 
       <View className="flex-row gap-2">
         <Controller control={control} name="lat" render={({ field }) => (
@@ -97,7 +96,6 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
       <Text className="text-muted-foreground text-xs -mt-2">
         Drop a pin in Google Maps, long-press it, and copy the coordinates it shows.
       </Text>
-      {(errors.lat || errors.lng) && <Text className="text-destructive">{errors.lat?.message ?? errors.lng?.message}</Text>}
 
       <Text className="font-semibold">Typical price range</Text>
       <View className="flex-row gap-2">
@@ -110,14 +108,11 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
             value={String(field.value ?? '')} onBlur={field.onBlur} onChangeText={field.onChange} />
         )} />
       </View>
-      {errors.priceMin && <Text className="text-destructive">{errors.priceMin.message}</Text>}
-      {errors.priceMax && <Text className="text-destructive">{errors.priceMax.message}</Text>}
 
       <Text className="font-semibold">Description</Text>
       <Controller control={control} name="description" render={({ field }) => (
         <Input className="min-h-24 py-3" multiline placeholder="Tell guests what makes your shop special (optional)" maxLength={500} value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />
       )} />
-      {errors.description && <Text className="text-destructive">{errors.description.message}</Text>}
 
       <Text className="font-semibold">WiFi</Text>
       <Controller control={control} name="hasWifi" render={({ field }) => (
@@ -149,7 +144,6 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
         })}
       </ScrollView>
       <Text className="text-muted-foreground text-xs -mt-2">Choose up to {MAX_TAGS_PER_SHOP} tags.</Text>
-      {errors.tags && <Text className="text-destructive">{errors.tags.message}</Text>}
 
       <Text className="font-semibold">Hours</Text>
       {DAYS.map((day) => (
@@ -168,7 +162,6 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
         )} />
       ))}
       <Text className="text-muted-foreground text-xs -mt-2">24-hour HH:mm — e.g. 07:00 and 21:00.</Text>
-      {errors.hours && <Text className="text-destructive">Check that every open day uses 24-hour time (for example, 07:00).</Text>}
 
       <Text className="font-semibold">Photos</Text>
       <View className="flex-row flex-wrap gap-2">
@@ -185,7 +178,7 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
         </Button>
       </View>
 
-      <Button loading={submitting} loadingLabel="Saving…" onPress={handleSubmit(handleFormSubmit)} disabled={uploading}>
+      <Button loading={submitting} loadingLabel="Saving…" onPress={handleSubmit(handleFormSubmit, (errors) => toastFormErrors(errors, showToast))} disabled={uploading}>
         <Text>{submitLabel}</Text>
       </Button>
     </View>

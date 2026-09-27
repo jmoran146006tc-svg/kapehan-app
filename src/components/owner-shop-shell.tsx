@@ -15,6 +15,7 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getUserFriendlyError } from '@/lib/errors';
+import { useToast } from '@/hooks/useToast';
 
 type OwnerTab = 'info' | 'menu' | 'reviews';
 
@@ -23,6 +24,7 @@ export function OwnerShopShell({ active, children }: { active: OwnerTab; childre
   const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const { showToast } = useToast();
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -31,13 +33,15 @@ export function OwnerShopShell({ active, children }: { active: OwnerTab; childre
       setShop(snapshot.exists() ? toShop(snapshot.id, snapshot.data()) : null);
       setLoading(false);
     }, (error) => {
-      setLoadError(getUserFriendlyError(error, 'We could not load this shop. Please try again.'));
+      const message = getUserFriendlyError(error, 'We could not load this shop. Please try again.');
+      setLoadError(message);
+      showToast({ type: 'error', message });
       setLoading(false);
     });
-  }, [id]);
+  }, [id, showToast]);
 
   if (loading) return <View className="flex-1 gap-4 bg-background p-4"><Skeleton className="h-56 w-full" /><View className="flex-row gap-2"><Skeleton className="h-20 flex-1" /><Skeleton className="h-20 flex-1" /><Skeleton className="h-20 flex-1" /></View><Skeleton className="h-10 w-full" /><Skeleton className="h-48 w-full" /></View>;
-  if (!shop) return <View className="flex-1 items-center justify-center bg-background p-4"><Text className="text-destructive">{loadError ?? 'This shop is no longer available.'}</Text></View>;
+  if (!shop) return <View className="flex-1 items-center justify-center bg-background p-4"><Text className="text-muted-foreground">{loadError ? 'This shop is unavailable right now.' : 'This shop is no longer available.'}</Text></View>;
 
   const go = (tab: OwnerTab) => {
     blurActiveElement();

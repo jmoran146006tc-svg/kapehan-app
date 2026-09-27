@@ -14,7 +14,6 @@ export function useSavedShops() {
   const { showToast } = useToast();
   const [savedSnapshot, setSavedSnapshot] = useState<{ userId: string | null; ids: string[] }>({ userId: null, ids: [] });
   const [savingShopId, setSavingShopId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -22,9 +21,9 @@ export function useSavedShops() {
     return onSnapshot(
       doc(db, 'users', user.uid),
       (snapshot) => setSavedSnapshot({ userId: user.uid, ids: snapshot.data()?.savedShopIds ?? [] }),
-      (snapshotError) => setError(getUserFriendlyError(snapshotError, 'We could not load your saved shops. Please try again.')),
+      (snapshotError) => showToast({ type: 'error', message: getUserFriendlyError(snapshotError, 'We could not load your saved shops. Please try again.') }),
     );
-  }, [user]);
+  }, [showToast, user]);
 
   const savedShopIds = savedSnapshot.userId === user?.uid ? savedSnapshot.ids : [];
   const savedKey = savedShopIds.join('|');
@@ -48,7 +47,6 @@ export function useSavedShops() {
       return;
     }
 
-    setError(null);
     setSavingShopId(shopId);
     try {
       const removing = savedShopIds.includes(shopId);
@@ -66,5 +64,5 @@ export function useSavedShops() {
     }
   }
 
-  return { savedShopIds, savingShopId, error, toggleSavedShop };
+  return { savedShopIds, savingShopId, toggleSavedShop };
 }

@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { auth } from '@/lib/firebase';
 import { getUserFriendlyError } from '@/lib/errors';
 import { withTimeout } from '@/lib/timeout';
+import { toastFormErrors } from '@/lib/form-errors';
 import { loginSchema, type LoginValues } from '@/lib/schemas/auth';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,7 @@ import { useToast } from '@/hooks/useToast';
 export default function LoginScreen() {
   const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { control, handleSubmit, formState: { errors } } = useForm<LoginValues>({
+  const { control, handleSubmit } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
@@ -38,17 +39,15 @@ export default function LoginScreen() {
   return (
     <SafeAreaView edges={['bottom']} className="flex-1 bg-primary">
       <AuthShell active="login">
-        <WebForm className="gap-4" onSubmit={handleSubmit(handleLogin)}>
+        <WebForm className="gap-4" onSubmit={handleSubmit(handleLogin, (errors) => toastFormErrors(errors, showToast))}>
         <Text className="text-2xl font-bold">Welcome back</Text>
         <Controller control={control} name="email" render={({ field }) => (
           <Input placeholder="you@email.com" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} autoCapitalize="none" autoComplete="email" keyboardType="email-address" />
         )} />
-        {errors.email && <Text className="text-destructive">{errors.email.message}</Text>}
         <Controller control={control} name="password" render={({ field }) => (
           <Input placeholder="••••••••" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} autoComplete="current-password" secureTextEntry />
         )} />
-        {errors.password && <Text className="text-destructive">{errors.password.message}</Text>}
-        <Button loading={isSubmitting} loadingLabel="Logging in…" onPress={handleSubmit(handleLogin)}>
+        <Button loading={isSubmitting} loadingLabel="Logging in…" onPress={handleSubmit(handleLogin, (errors) => toastFormErrors(errors, showToast))}>
           <Text>Log In</Text>
         </Button>
         <Button variant="link" onPress={() => router.push('/(auth)/forgot-password' as never)}><Text>Forgot password?</Text></Button>

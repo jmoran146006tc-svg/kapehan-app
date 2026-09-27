@@ -31,10 +31,10 @@ export default function EditListingScreen() {
       }
       setInitialValues(snap.data() as ShopFormValues);
     }).catch((error) => {
-      if (active) setLoadError(getUserFriendlyError(error, 'We could not load this listing. Please try again.'));
+      if (active) { const message = getUserFriendlyError(error, 'We could not load this listing. Please try again.'); setLoadError(message); showToast({ type: 'error', message }); }
     });
     return () => { active = false; };
-  }, [id]);
+  }, [id, showToast]);
 
   async function handleUpdate(values: ShopFormValues) {
     if (!id) throw new Error('This listing could not be found.');
@@ -50,7 +50,7 @@ export default function EditListingScreen() {
   if (!initialValues || !id) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
-        {loadError || !id ? <Text className="text-destructive">{loadError ?? 'This listing could not be found.'}</Text> : <View className="w-full max-w-2xl gap-4 p-4"><Skeleton className="h-12 w-2/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-32 w-full" /></View>}
+        {loadError || !id ? <Text className="text-muted-foreground">{loadError ? 'This listing is unavailable right now.' : 'This listing could not be found.'}</Text> : <View className="w-full max-w-2xl gap-4 p-4"><Skeleton className="h-12 w-2/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-32 w-full" /></View>}
       </View>
     );
   }

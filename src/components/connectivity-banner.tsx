@@ -4,11 +4,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { verifyFirestoreConnectivity } from '@/lib/connectivity';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
+import { useToast } from '@/hooks/useToast';
 
 export function ConnectivityBanner() {
   const { user } = useAuth();
   const checkedUserId = useRef<string | null>(null);
   const [error, setError] = useState<{ userId: string; message: string } | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (!user) {
@@ -27,19 +29,20 @@ export function ConnectivityBanner() {
       .catch(() => {
         if (active) {
           setError({ userId: user.uid, message: 'We could not reach Kapehan’s data service. Check your connection and try again.' });
+          showToast({ type: 'error', message: 'We could not reach Kapehan’s data service. Check your connection and try again.' });
         }
       });
 
     return () => {
       active = false;
     };
-  }, [user]);
+  }, [showToast, user]);
 
   if (!user || !error || error.userId !== user.uid) return null;
 
   return (
     <View className="flex-row items-center gap-3 border-b border-destructive/30 bg-destructive/10 px-4 py-3">
-      <Text accessibilityRole="alert" className="flex-1 text-sm text-destructive">{error.message}</Text>
+      <Text className="flex-1 text-sm text-foreground">{error.message}</Text>
       <Button size="sm" variant="outline" onPress={() => setError(null)}>
         <Text>Dismiss</Text>
       </Button>

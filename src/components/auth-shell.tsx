@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Animated, Easing, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Animated, Easing, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { Link, usePathname } from 'expo-router';
 import { Logo } from '@/components/logo';
 import { Text } from '@/components/ui/text';
@@ -28,11 +28,15 @@ export function AuthShell({ active, children }: AuthShellProps) {
       <ScrollView className="min-h-[62%] flex-1 rounded-t-3xl bg-background" contentContainerClassName="items-center" keyboardShouldPersistTaps="handled">
         <View className="gap-5 py-6" style={{ width: Math.min(Math.max(width - 48, 0), 624) }}>
         <View className="flex-row rounded-full bg-secondary p-1">
-          <Link href="/(auth)/login" className={active === 'login' ? 'flex-1 rounded-full bg-primary px-3 py-2 text-center' : 'flex-1 rounded-full px-3 py-2 text-center'}>
-            <Text className={active === 'login' ? 'text-center font-semibold text-primary-foreground' : 'text-center font-semibold'}>Log In</Text>
+          <Link href="/(auth)/login" asChild>
+            <Pressable className={active === 'login' ? 'flex-1 rounded-full bg-primary px-3 py-2' : 'flex-1 rounded-full px-3 py-2'}>
+              <Text className={active === 'login' ? 'text-center font-semibold text-primary-foreground' : 'text-center font-semibold'}>Log In</Text>
+            </Pressable>
           </Link>
-          <Link href="/(auth)/register" className={active === 'register' ? 'flex-1 rounded-full bg-primary px-3 py-2 text-center' : 'flex-1 rounded-full px-3 py-2 text-center'}>
-            <Text className={active === 'register' ? 'text-center font-semibold text-primary-foreground' : 'text-center font-semibold'}>Register</Text>
+          <Link href="/(auth)/register" asChild>
+            <Pressable className={active === 'register' ? 'flex-1 rounded-full bg-primary px-3 py-2' : 'flex-1 rounded-full px-3 py-2'}>
+              <Text className={active === 'register' ? 'text-center font-semibold text-primary-foreground' : 'text-center font-semibold'}>Register</Text>
+            </Pressable>
           </Link>
         </View>
         <Animated.View style={{ opacity: progress, transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [offset, 0] }) }] }}>

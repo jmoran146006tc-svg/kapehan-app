@@ -19,6 +19,7 @@ import { logShopView } from '@/lib/recentlyViewed';
 import { submitReview } from '@/lib/reviews';
 import { reviewFormSchema, type ReviewFormInput, type ReviewFormValues } from '@/lib/schemas/review';
 import { getUserFriendlyError } from '@/lib/errors';
+import { toastFormErrors } from '@/lib/form-errors';
 import { goBack } from '@/lib/navigation';
 import { sortProducts, toProduct, type Product } from '@/types/product';
 import { toReview, type Review } from '@/types/review';
@@ -41,36 +42,36 @@ export default function ShopDetailScreen() {
   const location = useUserLocation();
   const ids = useCompareStore((state) => state.ids);
   const toggle = useCompareStore((state) => state.toggle);
-  const { savedShopIds, savingShopId, toggleSavedShop, error: savedError } = useSavedShops();
+  const { savedShopIds, savingShopId, toggleSavedShop } = useSavedShops();
   const [shop, setShop] = useState<Shop | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [tab, setTab] = useState<ShopTab>('info');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const { control, handleSubmit, reset, formState: { errors } } = useForm<ReviewFormInput, any, ReviewFormValues>({ resolver: zodResolver(reviewFormSchema), defaultValues: { rating: 0, text: '' } });
+  const { control, handleSubmit, reset } = useForm<ReviewFormInput, any, ReviewFormValues>({ resolver: zodResolver(reviewFormSchema), defaultValues: { rating: 0, text: '' } });
 
   useEffect(() => {
     if (!id) return;
     return onSnapshot(doc(db, 'shops', id), (snapshot) => {
       setShop(snapshot.exists() ? toShop(snapshot.id, snapshot.data()) : null);
       setLoadError(snapshot.exists() ? null : 'This shop is no longer available.');
-    }, (error) => setLoadError(getUserFriendlyError(error, 'We could not load this shop. Please try again.')));
-  }, [id]);
+    }, (error) => { const message = getUserFriendlyError(error, 'We could not load this shop. Please try again.'); setLoadError(message); showToast({ type: 'error', message }); });
+  }, [id, showToast]);
 
   useEffect(() => {
     if (!id) return;
-    return onSnapshot(query(collection(db, 'shops', id, 'reviews'), orderBy('createdAt', 'desc')), (snapshot) => setReviews(snapshot.docs.map((item) => toReview(item.id, item.data()))), (error) => setLoadError(getUserFriendlyError(error, 'We could not load reviews. Please try again.')));
-  }, [id]);
+    return onSnapshot(query(collection(db, 'shops', id, 'reviews'), orderBy('createdAt', 'desc')), (snapshot) => setReviews(snapshot.docs.map((item) => toReview(item.id, item.data()))), (error) => showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not load reviews. Please try again.') }));
+  }, [id, showToast]);
 
   useEffect(() => {
     if (!id) return;
     return onSnapshot(
       collection(db, 'shops', id, 'products'),
       (snapshot) => setProducts(sortProducts(snapshot.docs.map((item) => toProduct(item.id, item.data())))),
-      () => setProducts([]),
+      (error) => { setProducts([]); showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not load this menu. Please try again.') }); },
     );
-  }, [id]);
+  }, [id, showToast]);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -98,7 +99,7 @@ export default function ShopDetailScreen() {
     }
   }
 
-  if (!shop) return <View className="flex-1 items-center justify-center bg-background p-4"><Text className="text-destructive">{loadError ?? 'Loading…'}</Text></View>;
+  if (!shop) return <View className="flex-1 items-center justify-center bg-background p-4"><Text className="text-muted-foreground">{loadError ? 'This shop is unavailable right now.' : 'Loading…'}</Text></View>;
 
   const saved = savedShopIds.includes(shop.id);
   const openNow = isOpenNow(shop.hours);
@@ -113,8 +114,7 @@ export default function ShopDetailScreen() {
     </View>
     <View className="gap-4 px-4"><View><Text className="text-3xl font-bold">{shop.name}</Text><Text className="mt-1 text-muted-foreground">{shop.description || shop.address}</Text></View><View className="flex-row gap-2"><Metric icon={Star} value={shop.avgRating.toFixed(1)} label={`${shop.reviewCount} reviews`} /><Metric icon={MapPin} value={distanceKm == null ? '—' : `${distanceKm.toFixed(1)} km`} label="from you" /><Metric icon={Tag} value={formatPriceRange(shop.priceMin, shop.priceMax)} label="price range" /></View></View>
     <View className="flex-row border-b border-border px-4">{(['info', 'menu', 'reviews'] as ShopTab[]).map((item) => <Button key={item} variant="ghost" className={tab === item ? `flex-1 border-b-2 border-accent rounded-none ${Platform.select({ web: 'hover:bg-transparent dark:hover:bg-transparent' }) ?? ''}` : 'flex-1 rounded-none'} onPress={() => setTab(item)}><Text className={tab === item ? 'font-bold text-accent' : undefined}>{item === 'reviews' ? `Reviews (${shop.reviewCount})` : item[0].toUpperCase() + item.slice(1)}</Text></Button>)}</View>
-    <View className="px-4">{tab === 'info' ? <InfoTab shop={shop} location={location} saved={saved} saving={savingShopId === shop.id} compared={ids.includes(shop.id)} onSave={() => void toggleSavedShop(shop.id)} onCompare={() => { toggle(shop.id); showToast({ type: 'success', message: ids.includes(shop.id) ? 'Removed from comparison' : 'Added to comparison' }); }} /> : null}{tab === 'menu' ? <MenuTab products={products} /> : null}{tab === 'reviews' ? <ReviewsTab reviews={reviews} ratingCounts={ratingCounts} user={user ? { uid: user.uid } : null} control={control} errors={errors} isSubmitting={isSubmittingReview} onSubmit={handleSubmit(handleReviewSubmit)} hasOwnReview={ownReview} /> : null}</View>
-    {savedError || loadError ? <Text accessibilityRole="alert" className="px-4 text-destructive">{savedError || loadError}</Text> : null}
+    <View className="px-4">{tab === 'info' ? <InfoTab shop={shop} location={location} saved={saved} saving={savingShopId === shop.id} compared={ids.includes(shop.id)} onSave={() => void toggleSavedShop(shop.id)} onCompare={() => { toggle(shop.id); showToast({ type: 'success', message: ids.includes(shop.id) ? 'Removed from comparison' : 'Added to comparison' }); }} /> : null}{tab === 'menu' ? <MenuTab products={products} /> : null}{tab === 'reviews' ? <ReviewsTab reviews={reviews} ratingCounts={ratingCounts} user={user ? { uid: user.uid } : null} control={control} isSubmitting={isSubmittingReview} onSubmit={handleSubmit(handleReviewSubmit, (errors) => toastFormErrors(errors, showToast))} hasOwnReview={ownReview} /> : null}</View>
   </ScrollView>;
 }
 
@@ -141,7 +141,7 @@ function MenuTab({ products }: { products: Product[] }) {
   return <View className="gap-5">{products.length === 0 ? <View className="items-center gap-2 py-8"><Icon as={Coffee} size={28} className="text-accent" /><Text className="text-center text-muted-foreground">No menu items yet. Check back soon.</Text></View> : null}{PRODUCT_CATEGORIES.map((category) => { const items = products.filter((product) => product.category === category); if (!items.length) return null; return <View key={category} className="gap-2"><Text className="text-sm font-bold tracking-wider text-muted-foreground">{category.toUpperCase()}</Text>{items.map((product) => <Card key={product.id} className="py-3"><CardHeader className="min-w-0"><View className="w-full min-w-0 flex-row items-center gap-3"><View className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-secondary">{product.photoUrl ? <Image source={{ uri: product.photoUrl }} className="h-full w-full" resizeMode="cover" /> : null}</View><View className="flex-1 min-w-0 shrink flex-row justify-between gap-3"><View className="flex-1 min-w-0 shrink"><CardTitle numberOfLines={1} ellipsizeMode="tail" className="min-w-0 shrink">{product.name}{!product.available ? ' · Unavailable' : ''}</CardTitle>{product.description ? <CardDescription numberOfLines={2} ellipsizeMode="tail" className="min-w-0 shrink">{product.description}</CardDescription> : null}</View><Text numberOfLines={1} ellipsizeMode="tail" className="min-w-0 shrink font-bold">PHP {product.price}</Text></View></View></CardHeader></Card>)}</View>; })}{products.length === 0 ? <Text className="py-8 text-center text-muted-foreground">This shop has not added menu items yet.</Text> : null}</View>;
 }
 
-function ReviewsTab({ reviews, ratingCounts, user, control, errors, isSubmitting, onSubmit, hasOwnReview }: { reviews: Review[]; ratingCounts: Record<'1' | '2' | '3' | '4' | '5', number>; user: { uid: string } | null; control: ReturnType<typeof useForm<ReviewFormInput, any, ReviewFormValues>>['control']; errors: ReturnType<typeof useForm<ReviewFormInput, any, ReviewFormValues>>['formState']['errors']; isSubmitting: boolean; onSubmit: () => void; hasOwnReview: boolean }) {
+function ReviewsTab({ reviews, ratingCounts, user, control, isSubmitting, onSubmit, hasOwnReview }: { reviews: Review[]; ratingCounts: Record<'1' | '2' | '3' | '4' | '5', number>; user: { uid: string } | null; control: ReturnType<typeof useForm<ReviewFormInput, any, ReviewFormValues>>['control']; isSubmitting: boolean; onSubmit: () => void; hasOwnReview: boolean }) {
   const total = Object.values(ratingCounts).reduce((sum, count) => sum + count, 0);
-  return <View className="gap-4"><Card className="py-4"><CardHeader className="gap-2"><CardTitle>Ratings overview</CardTitle>{[5, 4, 3, 2, 1].map((rating) => <View key={rating} className="flex-row items-center gap-2"><View className="w-8 flex-row items-center gap-1"><Text className="text-sm">{rating}</Text><Icon as={Star} size={12} fill="currentColor" className="text-accent" /></View><View className="h-2 flex-1 overflow-hidden rounded-full bg-secondary"><View className="h-full bg-accent" style={{ width: `${total ? ((ratingCounts[String(rating) as keyof typeof ratingCounts] / total) * 100) : 0}%` }} /></View><Text className="w-10 text-right text-xs text-muted-foreground">{total ? Math.round((ratingCounts[String(rating) as keyof typeof ratingCounts] / total) * 100) : 0}%</Text></View>)}</CardHeader></Card>{user ? <Card><CardHeader className="gap-3"><CardTitle>Your review</CardTitle><Controller control={control} name="rating" render={({ field }) => <View className="flex-row gap-1">{[1, 2, 3, 4, 5].map((star) => <Button key={star} size="icon" variant={star <= field.value ? 'default' : 'outline'} onPress={() => field.onChange(star)}><Icon as={Star} fill={star <= field.value ? 'currentColor' : 'none'} className={star <= field.value ? 'text-accent-foreground' : 'text-accent'} /></Button>)}</View>} />{errors.rating ? <Text className="text-destructive">{errors.rating.message}</Text> : null}<Controller control={control} name="text" render={({ field }) => <Input className="min-h-24 py-3" multiline maxLength={1000} placeholder="Share your experience (optional)" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />} />{errors.text ? <Text className="text-destructive">{errors.text.message}</Text> : null}<Button loading={isSubmitting} loadingLabel="Posting review…" onPress={onSubmit}><Text>{hasOwnReview ? 'Update review' : 'Post review'}</Text></Button></CardHeader></Card> : <Text className="text-muted-foreground">Log in to leave a review.</Text>}{reviews.map((review) => <Card key={review.id}><CardHeader><View className="flex-row justify-between gap-2"><CardTitle className="flex-1">{review.userName}</CardTitle><View className="flex-row items-center gap-1"><Icon as={Star} size={14} fill="currentColor" className="text-accent" /><Text>{review.rating}/5</Text></View></View><CardDescription>{review.text || 'No written comment.'}</CardDescription><ReviewTime review={review} />{review.ownerReply?.text ? <View className="mt-2 rounded-lg bg-secondary p-3"><OwnerReplyLabel edited={Boolean(review.ownerReply?.editedAt)} /><Text className="mt-1 text-sm">{review.ownerReply.text}</Text></View> : null}</CardHeader></Card>)}{reviews.length === 0 ? <View className="items-center gap-2 py-6"><Icon as={Star} size={28} className="text-accent" /><Text className="text-center text-muted-foreground">No reviews yet. Be the first to share one.</Text></View> : null}</View>;
+  return <View className="gap-4"><Card className="py-4"><CardHeader className="gap-2"><CardTitle>Ratings overview</CardTitle>{[5, 4, 3, 2, 1].map((rating) => <View key={rating} className="flex-row items-center gap-2"><View className="w-8 flex-row items-center gap-1"><Text className="text-sm">{rating}</Text><Icon as={Star} size={12} fill="currentColor" className="text-accent" /></View><View className="h-2 flex-1 overflow-hidden rounded-full bg-secondary"><View className="h-full bg-accent" style={{ width: `${total ? ((ratingCounts[String(rating) as keyof typeof ratingCounts] / total) * 100) : 0}%` }} /></View><Text className="w-10 text-right text-xs text-muted-foreground">{total ? Math.round((ratingCounts[String(rating) as keyof typeof ratingCounts] / total) * 100) : 0}%</Text></View>)}</CardHeader></Card>{user ? <Card><CardHeader className="gap-3"><CardTitle>Your review</CardTitle><Controller control={control} name="rating" render={({ field }) => <View className="flex-row gap-1">{[1, 2, 3, 4, 5].map((star) => <Button key={star} size="icon" variant={star <= field.value ? 'default' : 'outline'} onPress={() => field.onChange(star)}><Icon as={Star} fill={star <= field.value ? 'currentColor' : 'none'} className={star <= field.value ? 'text-accent-foreground' : 'text-accent'} /></Button>)}</View>} /><Controller control={control} name="text" render={({ field }) => <Input className="min-h-24 py-3" multiline maxLength={1000} placeholder="Share your experience (optional)" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />} /><Button loading={isSubmitting} loadingLabel="Posting review…" onPress={onSubmit}><Text>{hasOwnReview ? 'Update review' : 'Post review'}</Text></Button></CardHeader></Card> : <Text className="text-muted-foreground">Log in to leave a review.</Text>}{reviews.map((review) => <Card key={review.id}><CardHeader><View className="flex-row justify-between gap-2"><CardTitle className="flex-1">{review.userName}</CardTitle><View className="flex-row items-center gap-1"><Icon as={Star} size={14} fill="currentColor" className="text-accent" /><Text>{review.rating}/5</Text></View></View><CardDescription>{review.text || 'No written comment.'}</CardDescription><ReviewTime review={review} />{review.ownerReply?.text ? <View className="mt-2 rounded-lg bg-secondary p-3"><OwnerReplyLabel edited={Boolean(review.ownerReply?.editedAt)} /><Text className="mt-1 text-sm">{review.ownerReply.text}</Text></View> : null}</CardHeader></Card>)}{reviews.length === 0 ? <View className="items-center gap-2 py-6"><Icon as={Star} size={28} className="text-accent" /><Text className="text-center text-muted-foreground">No reviews yet. Be the first to share one.</Text></View> : null}</View>;
 }

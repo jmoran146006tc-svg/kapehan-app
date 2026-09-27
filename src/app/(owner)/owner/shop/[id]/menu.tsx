@@ -27,15 +27,15 @@ function OwnerMenuContent({ shop }: { shop: Shop }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const { showToast } = useToast();
   const editorOpen = adding || editing !== null;
 
   useEffect(() => onSnapshot(
     collection(db, 'shops', shop.id, 'products'),
-    (snapshot) => setProducts(sortProducts(snapshot.docs.map((item) => toProduct(item.id, item.data())))),
-    (error) => setActionError(getUserFriendlyError(error, 'We could not load this menu. Please try again.')),
-  ), [shop.id]);
+    (snapshot) => { setLoadFailed(false); setProducts(sortProducts(snapshot.docs.map((item) => toProduct(item.id, item.data())))); },
+    (error) => { setLoadFailed(true); showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not load this menu. Please try again.') }); },
+  ), [shop.id, showToast]);
 
   function closeEditor() {
     blurActiveElement();
@@ -44,7 +44,6 @@ function OwnerMenuContent({ shop }: { shop: Shop }) {
   }
 
   async function removeProduct(product: Product) {
-    setActionError(null);
     try {
       await deleteDoc(doc(db, 'shops', shop.id, 'products', product.id));
       showToast({ type: 'success', message: 'Menu item removed' });
@@ -58,7 +57,7 @@ function OwnerMenuContent({ shop }: { shop: Shop }) {
   return <>
     <View className="mx-auto w-full max-w-2xl gap-4 px-4 py-5 pb-8">
       <View className="flex-row items-center justify-between"><View><Text className="text-xl font-bold">Menu</Text><Text className="text-sm text-muted-foreground">{products.length} popular item{products.length === 1 ? '' : 's'} on menu</Text></View><Button size="sm" className="rounded-full bg-accent" onPress={() => { setEditing(null); setAdding(true); }}><Text>Add Item</Text></Button></View>
-      {actionError ? <Text accessibilityRole="alert" className="text-destructive">{actionError}</Text> : null}
+      {loadFailed ? <Text className="text-sm text-muted-foreground">The menu is unavailable right now.</Text> : null}
       {PRODUCT_CATEGORIES.map((category) => { const categoryProducts = products.filter((product) => product.category === category); if (!categoryProducts.length) return null; return <View key={category} className="gap-2"><Text className="text-sm font-bold tracking-wider text-muted-foreground">{category.toUpperCase()}</Text>{categoryProducts.map((product) => <Card key={product.id} className="py-3"><CardHeader className="min-w-0"><View className="w-full min-w-0 flex-row items-center gap-3"><View className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-secondary">{product.photoUrl ? <Image source={{ uri: product.photoUrl }} className="h-full w-full" /> : null}</View><Button
   variant="ghost"
   className={cn(
@@ -75,7 +74,7 @@ function OwnerMenuContent({ shop }: { shop: Shop }) {
   </View>
   <Text numberOfLines={1} className="shrink-0 font-bold">₱{product.price.toLocaleString()}</Text>
 </Button><Button size="sm" variant="outline" className="shrink-0" onPress={() => void removeProduct(product)}><Text>Remove</Text></Button></View></CardHeader></Card>)}</View>; })}
-      {products.length === 0 ? <View className="items-center gap-2 py-8"><Icon as={Coffee} size={28} className="text-accent" /><Text className="text-center text-muted-foreground">Add the first menu item for this shop.</Text></View> : null}
+      {products.length === 0 && !loadFailed ? <View className="items-center gap-2 py-8"><Icon as={Coffee} size={28} className="text-accent" /><Text className="text-center text-muted-foreground">Add the first menu item for this shop.</Text></View> : null}
     </View>
     <Dialog open={editorOpen} onOpenChange={(open) => { if (!open) closeEditor(); }}>
       <DialogContent className="max-h-[90%] max-w-xl p-0">

@@ -20,7 +20,7 @@ export default function HomeScreen() {
   const openCount = shops.filter((shop) => shop.openNow).length;
   const ids = useCompareStore((state) => state.ids);
   const toggle = useCompareStore((state) => state.toggle);
-  const { savedShopIds, savingShopId, toggleSavedShop, error: savedError } = useSavedShops();
+  const { savedShopIds, savingShopId, toggleSavedShop } = useSavedShops();
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background">
@@ -65,7 +65,6 @@ export default function HomeScreen() {
             <Text className="text-xl font-bold">Featured Today</Text>
             <Button size="sm" variant="link" onPress={() => router.push('/(user)/search')}><Text>See all</Text></Button>
           </View>
-          {savedError ? <Text accessibilityRole="alert" className="text-destructive">{savedError}</Text> : null}
           <View className="gap-3">
             {loading ? [0, 1, 2].map((index) => <ShopCardSkeleton key={index} />) : featured.map((shop) => (
               <ShopCard key={shop.id} shop={shop} onPress={() => router.push({ pathname: '/(user)/shop/[id]', params: { id: shop.id } })} saved={savedShopIds.includes(shop.id)} saving={savingShopId === shop.id} onToggleSaved={() => void toggleSavedShop(shop.id)} compared={ids.includes(shop.id)} onToggleCompare={() => toggle(shop.id)} />
