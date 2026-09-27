@@ -27,7 +27,7 @@ service cloud.firestore {
       return data.keys().hasOnly([
           'name', 'ownerId', 'address', 'lat', 'lng', 'priceMin', 'priceMax',
           'hasWifi', 'tags', 'description', 'photos', 'hours', 'status', 'avgRating', 'reviewCount',
-          'ratingCounts', 'viewCount'
+          'ratingCounts', 'viewCount', 'removalRequest'
         ]) &&
         data.keys().hasAll([
           'name', 'ownerId', 'address', 'lat', 'lng', 'priceMin', 'priceMax',
@@ -42,11 +42,20 @@ service cloud.firestore {
         data.tags.hasOnly(['Quiet', 'Study-Friendly', 'Airconditioned', 'Open 24/7', 'Nature', 'Cozy', 'Pet-Friendly', 'Outdoor Seating', 'Free Parking', 'Vegan Options', 'Live Music', 'Power Outlets', 'Group-Friendly']) &&
         (!('description' in data) || (data.description is string && data.description.size() <= 500)) &&
         data.photos is list && data.hours is map &&
-        data.status in ['pending', 'approved', 'rejected'] &&
+        data.status in ['pending', 'approved', 'rejected', 'archived'] &&
         data.avgRating is number && data.avgRating >= 0 && data.avgRating <= 5 &&
         data.reviewCount is int && data.reviewCount >= 0 &&
         (!('ratingCounts' in data) || validRatingCounts(data.ratingCounts)) &&
+        (!('removalRequest' in data) || data.removalRequest == null || validRemovalRequest(data.removalRequest)) &&
         (!('viewCount' in data) || (data.viewCount is int && data.viewCount >= 0));
+    }
+
+    function validRemovalRequest(removal) {
+      return removal is map &&
+        removal.keys().hasOnly(['reason', 'requestedAt']) &&
+        removal.keys().hasAll(['reason', 'requestedAt']) &&
+        removal.reason is string && removal.reason.size() > 0 && removal.reason.size() <= 500 &&
+        removal.requestedAt is timestamp;
     }
 
     function validRatingCounts(counts) {
@@ -118,7 +127,7 @@ service cloud.firestore {
     function validNotification() {
       return request.resource.data.keys().hasOnly(['type', 'message', 'shopId', 'read', 'createdAt']) &&
         request.resource.data.keys().hasAll(['type', 'message', 'shopId', 'read', 'createdAt']) &&
-        request.resource.data.type in ['listing_approved', 'listing_rejected', 'review_received', 'review_reply', 'shop_hours_updated', 'shop_menu_updated'] &&
+        request.resource.data.type in ['listing_approved', 'listing_rejected', 'listing_archived', 'review_received', 'review_reply', 'shop_hours_updated', 'shop_menu_updated'] &&
         request.resource.data.message is string && request.resource.data.message.size() <= 1000 &&
         request.resource.data.shopId is string && request.resource.data.read == false &&
         request.resource.data.createdAt == request.time;
@@ -133,6 +142,8 @@ service cloud.firestore {
             (request.resource.data.type == 'listing_rejected' && shopAfter.data.status == 'rejected'))) ||
           (shopBefore.data.status == 'approved' && request.resource.data.type == 'listing_rejected' &&
             shopAfter.data.status == 'rejected') ||
+          (shopBefore.data.status == 'approved' && request.resource.data.type == 'listing_archived' &&
+            shopAfter.data.status == 'archived') ||
           (shopBefore.data.status == 'rejected' && request.resource.data.type == 'listing_approved' &&
             shopAfter.data.status == 'approved'));
     }
@@ -172,11 +183,12 @@ service cloud.firestore {
       allow read: if isOwner(uid) || isAdmin();
       // Admin accounts are intentionally provisioned outside this client app.
       allow create: if isOwner(uid) &&
-        request.resource.data.keys().hasOnly(['name', 'email', 'role', 'status', 'createdAt', 'preferences', 'savedShopIds', 'recentlyViewed', 'visitCount']) &&
-        request.resource.data.keys().hasAll(['name', 'email', 'role', 'status', 'createdAt', 'preferences', 'savedShopIds', 'recentlyViewed']) &&
+        request.resource.data.keys().hasOnly(['name', 'email', 'role', 'status', 'createdAt', 'agreedToTermsAt', 'preferences', 'savedShopIds', 'recentlyViewed', 'visitCount']) &&
+        request.resource.data.keys().hasAll(['name', 'email', 'role', 'status', 'createdAt', 'agreedToTermsAt', 'preferences', 'savedShopIds', 'recentlyViewed']) &&
         request.resource.data.name is string && request.resource.data.email == request.auth.token.email &&
         request.resource.data.role in ['user', 'owner'] &&
         request.resource.data.status == 'active' && request.resource.data.createdAt == request.time &&
+        request.resource.data.agreedToTermsAt == request.time &&
         request.resource.data.preferences is map && request.resource.data.savedShopIds is list &&
         request.resource.data.recentlyViewed is list &&
         (!('visitCount' in request.resource.data) || (request.resource.data.visitCount is int && request.resource.data.visitCount >= 0));
@@ -222,6 +234,7 @@ service cloud.firestore {
       allow read: if resource.data.status == 'approved' || isOwner(resource.data.ownerId) || isAdmin();
       allow create: if myRole() == 'owner' && validShop(request.resource.data) &&
         request.resource.data.ownerId == request.auth.uid &&
+        (!('removalRequest' in request.resource.data) || request.resource.data.removalRequest == null) &&
         request.resource.data.status == 'pending' && request.resource.data.avgRating == 0 &&
         request.resource.data.reviewCount == 0 &&
         (!('ratingCounts' in request.resource.data) ||
@@ -230,18 +243,43 @@ service cloud.firestore {
            request.resource.data.ratingCounts['5'] == 0)) &&
         (!('viewCount' in request.resource.data) || request.resource.data.viewCount == 0);
       allow update: if (isAdmin() && validShop(request.resource.data) &&
-          ((resource.data.status == 'pending' && request.resource.data.status in ['approved', 'rejected']) ||
-            (resource.data.status == 'approved' && request.resource.data.status == 'rejected') ||
-            (resource.data.status == 'rejected' && request.resource.data.status == 'approved')) &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])) ||
+          ((
+            ((resource.data.status == 'pending' && request.resource.data.status in ['approved', 'rejected']) ||
+              (resource.data.status == 'approved' && request.resource.data.status == 'rejected') ||
+              (resource.data.status == 'rejected' && request.resource.data.status == 'approved')) &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          ) || (
+            resource.data.status == 'approved' && request.resource.data.status == 'archived' &&
+            ('removalRequest' in resource.data) && resource.data.removalRequest is map &&
+            request.resource.data.removalRequest == null &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'removalRequest'])
+          ) || (
+            ('removalRequest' in resource.data) && resource.data.removalRequest is map &&
+            request.resource.data.status == resource.data.status &&
+            request.resource.data.removalRequest == null &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['removalRequest'])
+          ))) ||
+        (isOwner(resource.data.ownerId) && validShop(request.resource.data) &&
+          resource.data.status == 'approved' && request.resource.data.status == 'approved' &&
+          request.resource.data.ownerId == resource.data.ownerId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['removalRequest']) &&
+          ((
+            (!('removalRequest' in resource.data) || resource.data.removalRequest == null) &&
+            validRemovalRequest(request.resource.data.removalRequest) &&
+            request.resource.data.removalRequest.requestedAt == request.time
+          ) || (
+            ('removalRequest' in resource.data) && resource.data.removalRequest is map &&
+            request.resource.data.removalRequest == null
+          ))) ||
         (isOwner(resource.data.ownerId) && validShop(request.resource.data) &&
           request.resource.data.ownerId == resource.data.ownerId &&
           request.resource.data.avgRating == resource.data.avgRating &&
           request.resource.data.reviewCount == resource.data.reviewCount &&
           request.resource.data.status == 'pending' &&
+          (!('removalRequest' in request.resource.data) || request.resource.data.removalRequest == null) &&
           resource.data.status in ['pending', 'approved', 'rejected'] &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'name', 'address', 'lat', 'lng', 'priceMin', 'priceMax', 'hasWifi', 'tags', 'description', 'photos', 'hours', 'status'
+            'name', 'address', 'lat', 'lng', 'priceMin', 'priceMax', 'hasWifi', 'tags', 'description', 'photos', 'hours', 'status', 'removalRequest'
           ])) ||
         (isSignedIn() && resource.data.status == 'approved' &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']) &&

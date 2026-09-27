@@ -1,3 +1,5 @@
+import { Timestamp } from 'firebase/firestore';
+
 export interface ShopHours {
   open: string;
   close: string;
@@ -18,7 +20,8 @@ export interface Shop {
   description?: string;
   photos: string[];
   hours: Record<string, ShopHours>;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'archived';
+  removalRequest?: { reason: string; requestedAt: Timestamp | null } | null;
   avgRating: number;
   reviewCount: number;
   ratingCounts?: Record<'1' | '2' | '3' | '4' | '5', number>;
@@ -44,6 +47,7 @@ export function toShop(id: string, data: unknown): Shop {
   const source = asRecord(data);
   const status = source.status;
   const ratingCounts = asRecord(source.ratingCounts);
+  const removalRequest = asRecord(source.removalRequest);
   const hasRatingCounts = ['1', '2', '3', '4', '5'].every((rating) => typeof ratingCounts[rating] === 'number');
 
   return {
@@ -60,7 +64,12 @@ export function toShop(id: string, data: unknown): Shop {
     description: typeof source.description === 'string' ? source.description : undefined,
     photos: Array.isArray(source.photos) ? source.photos.filter((photo): photo is string => typeof photo === 'string') : [],
     hours: asRecord(source.hours) as Shop['hours'],
-    status: status === 'pending' || status === 'rejected' || status === 'approved' ? status : 'approved',
+    status: status === 'pending' || status === 'rejected' || status === 'approved' || status === 'archived' ? status : 'approved',
+    removalRequest: source.removalRequest === null ? null :
+      typeof removalRequest.reason === 'string' &&
+      (removalRequest.requestedAt === null || removalRequest.requestedAt instanceof Timestamp)
+        ? { reason: removalRequest.reason, requestedAt: removalRequest.requestedAt as Timestamp | null }
+        : undefined,
     avgRating: asNumber(source.avgRating),
     reviewCount: asNumber(source.reviewCount),
     ratingCounts: hasRatingCounts ? ratingCounts as Shop['ratingCounts'] : undefined,

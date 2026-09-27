@@ -20,6 +20,7 @@ export interface AppUserDocument {
   role: 'user' | 'owner' | 'admin';
   status: 'active' | 'suspended';
   createdAt?: Timestamp | null;
+  agreedToTermsAt?: Timestamp | null;
   preferences?: Partial<UserPreferences>;
   savedShopIds?: string[];
   recentlyViewed?: RecentlyViewedEntry[];

@@ -12,6 +12,9 @@ export const registerSchema = z.object({
   email: emailSchema,
   password: z.string().min(6, 'Use a password with at least 6 characters.').max(128, 'Password is too long.'),
   role: z.enum(['user', 'owner']),
+  agreedToTerms: z.boolean().refine((v) => v === true, {
+    message: 'You must agree to the Terms and Data Privacy notice to continue.',
+  }),
 });
 
 export type LoginValues = z.infer<typeof loginSchema>;

@@ -1,10 +1,19 @@
+import { useState } from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
+import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { withTimeout } from '@/lib/timeout';
+import { getUserFriendlyError } from '@/lib/errors';
+import { blurActiveElement } from '@/lib/navigation';
 import { saveOwnerShopUpdate } from '@/lib/owner-shop-update';
 import { OwnerShopShell } from '@/components/owner-shop-shell';
 import { ShopForm } from '@/components/shop-form';
 import type { ShopFormValues } from '@/lib/schemas/shop';
 import { Text } from '@/components/ui/text';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/useToast';
 import { notifyFavoriteShopUpdate } from '@/lib/favorite-shop-updates';
 import type { Shop } from '@/types/shop';
@@ -20,5 +29,46 @@ export default function OwnerShopInfoScreen() {
     }
     router.replace({ pathname: '/(owner)/owner/shop/[id]', params: { id: shop.id } } as never);
   }
-  return <OwnerShopShell active="info">{(shop) => <View className="gap-4 px-4 py-5 pb-8"><Text className="text-xl font-bold">Shop Info</Text><Text className="text-sm text-muted-foreground">Saving changes returns this listing to review.</Text><ShopForm defaultValues={{ name: shop.name, address: shop.address, lat: shop.lat, lng: shop.lng, priceMin: shop.priceMin, priceMax: shop.priceMax, hasWifi: shop.hasWifi, tags: shop.tags as ShopFormValues['tags'], description: shop.description ?? '', hours: shop.hours as ShopFormValues['hours'], photos: shop.photos }} submitLabel="Save shop changes" onSubmit={(values) => updateShop(shop, values)} /></View>}</OwnerShopShell>;
+  return <OwnerShopShell active="info">{(shop) => <View className="gap-4 px-4 py-5 pb-8"><Text className="text-xl font-bold">Shop Info</Text>{shop.status === 'archived' ? <Text className="text-sm text-muted-foreground">This listing has been archived.</Text> : <><Text className="text-sm text-muted-foreground">Saving changes returns this listing to review.{shop.removalRequest ? ' It also cancels the removal request.' : ''}</Text><ShopForm defaultValues={{ name: shop.name, address: shop.address, lat: shop.lat, lng: shop.lng, priceMin: shop.priceMin, priceMax: shop.priceMax, hasWifi: shop.hasWifi, tags: shop.tags as ShopFormValues['tags'], description: shop.description ?? '', hours: shop.hours as ShopFormValues['hours'], photos: shop.photos }} submitLabel="Save shop changes" onSubmit={(values) => updateShop(shop, values)} /><RemovalRequestControl shop={shop} /></>}</View>}</OwnerShopShell>;
+}
+
+function RemovalRequestControl({ shop }: { shop: Shop }) {
+  const { showToast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit() {
+    const trimmedReason = reason.trim();
+    if (!trimmedReason) return showToast({ type: 'error', message: 'Please enter a reason for removal.' });
+    setSubmitting(true);
+    try {
+      await withTimeout(updateDoc(doc(db, 'shops', shop.id), {
+        removalRequest: { reason: trimmedReason, requestedAt: serverTimestamp() },
+      }));
+      blurActiveElement();
+      setOpen(false);
+      setReason('');
+      showToast({ type: 'success', message: 'Removal request sent for admin review' });
+    } catch (error) {
+      showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not send your removal request. Please try again.') });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (shop.removalRequest) return <Text className="text-sm text-muted-foreground">Removal requested — awaiting admin review</Text>;
+  if (shop.status !== 'approved') return null;
+
+  return <>
+    <Button variant="outline" className="border-destructive" onPress={() => setOpen(true)}><Text>Delete Listing</Text></Button>
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) blurActiveElement(); setOpen(nextOpen); }}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Request listing removal</DialogTitle></DialogHeader>
+        <Text className="text-sm text-muted-foreground">Your listing will stay visible until an admin reviews this request.</Text>
+        <Input className="min-h-28 py-3" multiline maxLength={500} placeholder="Why do you want to remove this listing?" value={reason} onChangeText={setReason} />
+        <Button loading={submitting} loadingLabel="Sending…" onPress={() => void submit()}><Text>Send request</Text></Button>
+      </DialogContent>
+    </Dialog>
+  </>;
 }

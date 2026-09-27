@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, View } from 'react-native';
-import { Clock, Coffee, MessageCircle, Star } from 'lucide-react-native';
+import { Archive, Clock, Coffee, MessageCircle, Star } from 'lucide-react-native';
 import type { AppNotification } from '@/types/notification';
 import { dayjs } from '@/lib/dayjs';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 
 function notificationMeta(type: AppNotification['type']) {
+  if (type === 'listing_archived') return { title: 'Listing archived', icon: Archive };
   if (type === 'shop_hours_updated') return { title: 'Hours updated', icon: Clock };
   if (type === 'shop_menu_updated') return { title: 'Menu updated', icon: Coffee };
   if (type === 'review_received') return { title: 'New review', icon: Star };

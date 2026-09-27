@@ -16,7 +16,7 @@ const DEFAULT_SHOP_IDS = ['22-27-cafe', '5NGl7VaM5gvb1NzhGnkK'];
 const ALLOWED_FIELDS = [
   'name', 'ownerId', 'address', 'lat', 'lng', 'priceMin', 'priceMax',
   'hasWifi', 'tags', 'description', 'photos', 'hours', 'status', 'avgRating', 'reviewCount',
-  'ratingCounts', 'viewCount',
+  'ratingCounts', 'viewCount', 'removalRequest',
 ];
 const REQUIRED_FIELDS = [
   'name', 'ownerId', 'address', 'lat', 'lng', 'priceMin', 'priceMax',
@@ -60,7 +60,15 @@ function validationProblems(data) {
   if ('description' in data && (typeof data.description !== 'string' || data.description.length > 500)) problems.push('description: must be a string of at most 500 characters');
   if (!Array.isArray(data.photos)) problems.push('photos: must be a list');
   if (!isRecord(data.hours)) problems.push('hours: must be a map');
-  if (!['pending', 'approved', 'rejected'].includes(data.status)) problems.push('status: must be pending, approved, or rejected');
+  if (!['pending', 'approved', 'rejected', 'archived'].includes(data.status)) problems.push('status: must be pending, approved, rejected, or archived');
+  if (data.removalRequest != null) {
+    const removal = data.removalRequest;
+    if (!isRecord(removal) || Object.keys(removal).sort().join(',') !== 'reason,requestedAt' ||
+        typeof removal.reason !== 'string' || removal.reason.length < 1 || removal.reason.length > 500 ||
+        typeof removal.requestedAt?.toDate !== 'function') {
+      problems.push('removalRequest: must contain a reason (1-500 chars) and Firestore timestamp');
+    }
+  }
   number('avgRating', (value) => value >= 0 && value <= 5);
   integer('reviewCount');
   if ('viewCount' in data) integer('viewCount');

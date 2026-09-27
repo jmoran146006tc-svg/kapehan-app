@@ -48,6 +48,7 @@ export function useAuth(): AuthState {
               role: 'user',
               status: 'active',
               createdAt: serverTimestamp(),
+              agreedToTermsAt: serverTimestamp(),
               preferences: {},
               savedShopIds: [],
               recentlyViewed: [],

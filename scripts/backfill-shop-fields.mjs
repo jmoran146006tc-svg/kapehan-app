@@ -22,7 +22,7 @@ const ZERO_RATING_COUNTS = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
 const ALLOWED_SHOP_FIELDS = new Set([
   'name', 'ownerId', 'address', 'lat', 'lng', 'priceMin', 'priceMax',
   'hasWifi', 'tags', 'description', 'photos', 'hours', 'status', 'avgRating', 'reviewCount',
-  'ratingCounts', 'viewCount',
+  'ratingCounts', 'viewCount', 'removalRequest',
 ]);
 
 function option(name) {

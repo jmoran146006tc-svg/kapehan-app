@@ -29,7 +29,8 @@ interface ShopDoc {
   description?: string;
   photos?: string[];
   hours?: Partial<Record<(typeof DAYS)[number], { open: string; close: string; closed: boolean }>>;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'archived';
+  removalRequest?: { reason: string } | null;
   ownerId?: string;
 }
 
@@ -98,6 +99,7 @@ export default function AdminReviewListingScreen() {
           </View>
           {shop.address ? <Text className="text-muted-foreground">{shop.address}</Text> : null}
           {shop.description ? <Text className="text-muted-foreground">{shop.description}</Text> : null}
+          {shop.removalRequest ? <Text className="rounded-lg bg-amber-50 p-3 text-amber-900">Removal requested: {shop.removalRequest.reason}. Review this request from the Owners list.</Text> : null}
           {shop.photos?.length ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">{shop.photos.map((photo, index) => <Image key={`${photo}-${index}`} source={{ uri: photo }} className="h-48 w-60 rounded-xl" resizeMode="cover" />)}</ScrollView> : <View className="h-48 w-full items-center justify-center rounded-xl bg-secondary"><Text className="text-muted-foreground">No photo yet</Text></View>}
           <View className="gap-2">
             {(shop.priceMin != null || shop.priceMax != null) ? <Text>Price: {formatPriceRange(shop.priceMin, shop.priceMax)}</Text> : null}
@@ -127,7 +129,7 @@ export default function AdminReviewListingScreen() {
             </Button>
           </View>
         ) : null}
-        {shop.status === 'approved' ? <Button variant="outline" className="border-destructive" disabled={updating} onPress={() => setStatus('rejected')}><Icon as={X} size={16} className="text-destructive" /><Text className="text-destructive">Revoke Listing</Text></Button> : null}
+        {shop.status === 'approved' && !shop.removalRequest ? <Button variant="outline" className="border-destructive" disabled={updating} onPress={() => setStatus('rejected')}><Icon as={X} size={16} className="text-destructive" /><Text className="text-destructive">Revoke Listing</Text></Button> : null}
         {shop.status === 'rejected' ? <Button className="bg-green-700" disabled={updating} onPress={() => setStatus('approved')}><Icon as={Check} size={16} className="text-white" /><Text>Re-enlist Listing</Text></Button> : null}
       </SafeAreaView>
     </ScrollView>
