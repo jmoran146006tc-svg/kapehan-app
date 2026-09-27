@@ -16,7 +16,6 @@ import { toastFormErrors } from '@/lib/form-errors';
 import { MAX_TAGS_PER_SHOP, TAG_OPTIONS, type ShopTag } from '@/constants/tags';
 import { useToast } from '@/hooks/useToast';
 import { LocationPicker } from '@/components/location-picker';
-import { ShopLocationMap } from '@/components/shop-location-map';
 
 interface ShopFormProps {
   defaultValues?: Partial<ShopFormValues>;
@@ -46,7 +45,6 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
 
   const photos = useWatch({ control, name: 'photos' }) ?? [];
   const tags = useWatch({ control, name: 'tags' }) ?? [];
-  const name = useWatch({ control, name: 'name' }) ?? '';
   const lat = useWatch({ control, name: 'lat' });
   const lng = useWatch({ control, name: 'lng' });
   const latitude = parseCoordinate(lat, -90, 90);
@@ -121,9 +119,11 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
         )} />
       </View>
       <Button variant="outline" loading={locating} loadingLabel="Finding location…" onPress={() => void fillCurrentLocation()}><Text>Use my current location</Text></Button>
-      <Text className="text-xs text-muted-foreground">Tap the map or drag its pin to set your shop location. Edit the numbers above for precision.</Text>
-      <LocationPicker value={coordinates} onChange={setCoordinates} />
-      <View className="gap-2"><Text className="text-xl font-bold">Location reference</Text>{coordinates ? <ShopLocationMap shop={{ ...coordinates, name: name || 'Your coffee shop' }} userLocation={null} /> : <Text className="rounded-xl bg-secondary p-4 text-sm text-muted-foreground">Set a location to preview what guests will see.</Text>}</View>
+      <View className="gap-2">
+        <Text className="text-xl font-bold">Location reference</Text>
+        <Text className="text-xs text-muted-foreground">Tap the map or drag its pin to set your shop location. Edit the numbers above for precision.</Text>
+        <LocationPicker value={coordinates} onChange={setCoordinates} />
+      </View>
 
       <Text className="font-semibold">Typical price range</Text>
       <View className="flex-row gap-2">

@@ -2,9 +2,7 @@ import { createContext, useCallback, useEffect, useRef, useState, type ReactNode
 import { View } from 'react-native';
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Check, CircleAlert } from 'lucide-react-native';
 import { Text } from '@/components/ui/text';
-import { Icon } from '@/components/ui/icon';
 
 export type ToastInput = { type: 'success' | 'error'; message: string };
 type ToastItem = ToastInput & { id: number };
@@ -27,10 +25,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return <ToastContext.Provider value={{ showToast }}>
     {children}
     <View pointerEvents="box-none" className="absolute left-4 right-4 z-50 items-center gap-2" style={{ bottom: Math.max(80, insets.bottom + 64) }}>
-      {items.map((item) => <Animated.View key={item.id} entering={FadeInDown.duration(220)} exiting={FadeOutDown.duration(220)} style={{ width: '100%', maxWidth: 448 }}>
-        <View className={item.type === 'success' ? 'w-full flex-row items-center gap-3 rounded-xl border border-border border-l-4 border-l-accent bg-card px-4 py-4 shadow-lg' : 'w-full flex-row items-center gap-3 rounded-xl border border-border border-l-4 border-l-destructive bg-card px-4 py-4 shadow-lg'}>
-          <View className={item.type === 'success' ? 'rounded-full bg-success p-2' : 'rounded-full bg-destructive/10 p-2'}><Icon as={item.type === 'success' ? Check : CircleAlert} size={17} className={item.type === 'success' ? 'text-success-foreground' : 'text-destructive'} /></View>
-          <Text accessibilityRole="alert" className="flex-1 text-foreground">{item.message}</Text>
+      {items.map((item) => <Animated.View key={item.id} entering={FadeInDown.duration(180)} exiting={FadeOutDown.duration(180)} style={{ width: '100%', maxWidth: 448 }}>
+        <View className={item.type === 'success' ? 'rounded-md bg-primary px-4 py-3' : 'rounded-md bg-destructive px-4 py-3'}>
+          <Text accessibilityRole="alert" className="text-sm font-medium text-primary-foreground">{item.message}</Text>
         </View>
       </Animated.View>)}
     </View>
