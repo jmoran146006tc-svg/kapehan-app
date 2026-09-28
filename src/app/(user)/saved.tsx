@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
+import { router } from 'expo-router';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { useShops } from '@/hooks/useShops';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Text } from '@/components/ui/text';
-import { formatPriceRange } from '@/utils/price';
+import { ShopCard } from '@/components/shop-card';
 import { ShopCardSkeleton } from '@/components/shop-card-skeleton';
 import { useToast } from '@/hooks/useToast';
 import { EmptyState } from '@/components/empty-state';
 import { ScreenHeader } from '@/components/screen-header';
+import { PALETTE } from '@/constants/theme';
 
 export default function SavedScreen() {
   const { user } = useAuth();
@@ -32,15 +33,10 @@ export default function SavedScreen() {
   const saved = shops.filter((s) => savedIds.includes(s.id));
 
   return (
-    <View className="flex-1 bg-background"><ScreenHeader title="Saved" fallbackHref="/(user)" /><ScrollView className="flex-1 p-4" contentContainerClassName="mx-auto w-full max-w-2xl gap-3" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}>
+    <View className="flex-1 bg-background"><ScreenHeader title="Saved" fallbackHref="/(user)" /><ScrollView className="flex-1 p-4" contentContainerClassName="mx-auto w-full max-w-2xl gap-3" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={PALETTE.accent} />}>
       {loadError ? <Text className="text-muted-foreground">Saved shops are unavailable right now.</Text> : null}
-      {loading ? [0, 1, 2].map((index) => <ShopCardSkeleton key={index} />) : saved.map((shop) => (
-        <Card key={shop.id}>
-          <CardHeader>
-            <CardTitle>{shop.name}</CardTitle>
-            <CardDescription>{formatPriceRange(shop.priceMin, shop.priceMax)} · {shop.hasWifi ? 'WiFi' : 'No WiFi'}</CardDescription>
-          </CardHeader>
-        </Card>
+      {loading ? [0, 1, 2].map((index) => <ShopCardSkeleton key={index} />) : saved.map((shop, index) => (
+        <ShopCard key={shop.id} index={index} shop={shop} saved onPress={() => router.push({ pathname: '/(user)/shop/[id]', params: { id: shop.id } })} />
       ))}
       {!loading && !loadError && saved.length === 0 && <EmptyState title="Your coffee trail starts here" description="Save a shop to keep it close for your next visit." />}
     </ScrollView></View>
