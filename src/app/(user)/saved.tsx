@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RefreshControl, ScrollView } from 'react-native';
+import { RefreshControl, ScrollView, View } from 'react-native';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,6 +10,7 @@ import { formatPriceRange } from '@/utils/price';
 import { ShopCardSkeleton } from '@/components/shop-card-skeleton';
 import { useToast } from '@/hooks/useToast';
 import { EmptyState } from '@/components/empty-state';
+import { ScreenHeader } from '@/components/screen-header';
 
 export default function SavedScreen() {
   const { user } = useAuth();
@@ -31,8 +32,7 @@ export default function SavedScreen() {
   const saved = shops.filter((s) => savedIds.includes(s.id));
 
   return (
-    <ScrollView className="flex-1 bg-background p-4" contentContainerClassName="gap-3" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}>
-      <Text className="text-2xl font-bold">Saved</Text>
+    <View className="flex-1 bg-background"><ScreenHeader title="Saved" fallbackHref="/(user)" /><ScrollView className="flex-1 p-4" contentContainerClassName="mx-auto w-full max-w-2xl gap-3" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}>
       {loadError ? <Text className="text-muted-foreground">Saved shops are unavailable right now.</Text> : null}
       {loading ? [0, 1, 2].map((index) => <ShopCardSkeleton key={index} />) : saved.map((shop) => (
         <Card key={shop.id}>
@@ -43,6 +43,6 @@ export default function SavedScreen() {
         </Card>
       ))}
       {!loading && !loadError && saved.length === 0 && <EmptyState title="Your coffee trail starts here" description="Save a shop to keep it close for your next visit." />}
-    </ScrollView>
+    </ScrollView></View>
   );
 }

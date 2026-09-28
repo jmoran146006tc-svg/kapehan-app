@@ -5,10 +5,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { ShopForm } from '@/components/shop-form';
-import { Text } from '@/components/ui/text';
 import type { ShopFormValues } from '@/lib/schemas/shop';
 import { withTimeout } from '@/lib/timeout';
 import { useToast } from '@/hooks/useToast';
+import { ScreenHeader } from '@/components/screen-header';
 
 export default function CreateListingScreen() {
   const { user } = useAuth();
@@ -26,8 +26,8 @@ export default function CreateListingScreen() {
 
   return (
     <SafeAreaView edges={['bottom']} className="flex-1">
-      <ScrollView className="flex-1 bg-background p-4" contentContainerClassName="gap-4 pb-8">
-        <Text className="text-2xl font-bold">New Listing</Text>
+      <ScreenHeader title="New Listing" fallbackHref="/(owner)" />
+      <ScrollView className="flex-1 bg-background p-4" contentContainerClassName="mx-auto w-full max-w-2xl gap-4 pb-8">
         <ShopForm onSubmit={handleCreate} submitLabel="Submit for approval" />
       </ScrollView>
     </SafeAreaView>

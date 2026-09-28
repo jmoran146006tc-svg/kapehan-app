@@ -3,10 +3,9 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { Image, Platform, ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, Camera } from 'lucide-react-native';
+import { Camera } from 'lucide-react-native';
 import { db } from '@/lib/firebase';
-import { blurActiveElement, goBack } from '@/lib/navigation';
+import { blurActiveElement } from '@/lib/navigation';
 import { toShop, type Shop } from '@/types/shop';
 import { LogoutButton } from '@/components/logout-button';
 import { Button } from '@/components/ui/button';
@@ -16,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getUserFriendlyError } from '@/lib/errors';
 import { useToast } from '@/hooks/useToast';
 import { cloudinaryImageUrl } from '@/lib/cloudinary';
+import { ScreenHeader } from '@/components/screen-header';
 
 type OwnerTab = 'info' | 'menu' | 'reviews';
 
@@ -25,7 +25,6 @@ export function OwnerShopShell({ active, children }: { active: OwnerTab; childre
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { showToast } = useToast();
-  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!id) return;
@@ -40,25 +39,23 @@ export function OwnerShopShell({ active, children }: { active: OwnerTab; childre
     });
   }, [id, showToast]);
 
-  if (loading) return <View className="flex-1 gap-4 bg-background p-4"><Skeleton className="h-56 w-full" /><View className="flex-row gap-2"><Skeleton className="h-20 flex-1" /><Skeleton className="h-20 flex-1" /><Skeleton className="h-20 flex-1" /></View><Skeleton className="h-10 w-full" /><Skeleton className="h-48 w-full" /></View>;
-  if (!shop) return <View className="flex-1 items-center justify-center bg-background p-4"><Text className="text-muted-foreground">{loadError ? 'This shop is unavailable right now.' : 'This shop is no longer available.'}</Text></View>;
+  if (loading) return <View className="flex-1 bg-background"><ScreenHeader title="Your coffee shop" fallbackHref="/(owner)" /><View className="gap-4 p-4"><Skeleton className="h-56 w-full" /><View className="flex-row gap-2"><Skeleton className="h-20 flex-1" /><Skeleton className="h-20 flex-1" /><Skeleton className="h-20 flex-1" /></View><Skeleton className="h-10 w-full" /><Skeleton className="h-48 w-full" /></View></View>;
+  if (!shop) return <View className="flex-1 bg-background"><ScreenHeader title="Your coffee shop" fallbackHref="/(owner)" /><View className="flex-1 items-center justify-center p-4"><Text className="text-muted-foreground">{loadError ? 'This shop is unavailable right now.' : 'This shop is no longer available.'}</Text></View></View>;
 
   const go = (tab: OwnerTab) => {
     blurActiveElement();
     router.replace({ pathname: tab === 'info' ? '/(owner)/owner/shop/[id]' : `/(owner)/owner/shop/[id]/${tab}`, params: { id: shop.id } } as never);
   };
   return (
-    <ScrollView className="flex-1 bg-background" showsVerticalScrollIndicator={false} contentContainerClassName="mx-auto w-full max-w-2xl pb-8">
+    <View className="flex-1 bg-background">
+    <ScreenHeader title={shop.name} fallbackHref="/(owner)" right={<View className="flex-row items-center gap-1">
+      {shop.status !== 'archived' ? <Button size="icon" variant="ghost" onPress={() => { blurActiveElement(); router.push({ pathname: '/(owner)/listing/[id]', params: { id: shop.id } }); }} accessibilityLabel="Edit listing"><Icon as={Camera} size={18} className="text-primary-foreground" /></Button> : null}
+      <LogoutButton size="sm" variant="outline" />
+    </View>} />
+    <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerClassName="mx-auto w-full max-w-2xl pb-8">
       <View className="gap-4">
-        <View className="relative h-48 overflow-hidden bg-secondary" style={{ marginTop: insets.top }}>
+        <View className="relative h-48 overflow-hidden bg-secondary">
           {shop.photos[0] ? <Image source={{ uri: cloudinaryImageUrl(shop.photos[0], 1200) }} className="h-full w-full" resizeMode="cover" /> : <View className="h-full items-center justify-center"><Text className="font-serif text-4xl text-primary/30">Kapehan</Text></View>}
-          <View className="absolute left-4 right-4 top-2 flex-row items-center justify-between">
-            <Button size="icon" variant="secondary" className="rounded-full bg-card/95" onPress={() => goBack('/(owner)')} accessibilityLabel="Back to owner dashboard"><Icon as={ArrowLeft} /></Button>
-            <View className="flex-row items-center gap-1">
-              {shop.status !== 'archived' ? <Button size="icon" variant="secondary" className="rounded-full bg-card/95" onPress={() => { blurActiveElement(); router.push({ pathname: '/(owner)/listing/[id]', params: { id: shop.id } }); }} accessibilityLabel="Change cover photo"><Icon as={Camera} size={16} /></Button> : null}
-              <LogoutButton size="sm" variant="secondary" className="rounded-full bg-card/95" />
-            </View>
-          </View>
         </View>
         <View className="gap-3 px-4">
           <View><Text className="text-xs font-bold uppercase tracking-widest text-accent">Your coffee shop</Text><Text className="mt-1 font-serif text-3xl font-bold text-foreground">{shop.name}</Text><Text className="mt-1 text-sm capitalize text-muted-foreground">{shop.status} listing</Text></View>
@@ -73,5 +70,6 @@ export function OwnerShopShell({ active, children }: { active: OwnerTab; childre
       </View>
       <Animated.View entering={FadeIn.duration(180)}>{children(shop)}</Animated.View>
     </ScrollView>
+    </View>
   );
 }

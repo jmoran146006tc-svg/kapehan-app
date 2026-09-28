@@ -1,5 +1,5 @@
 import { Platform, Pressable, View } from 'react-native';
-import { Image } from 'expo-image';
+import { RemoteImage } from '@/components/ui/remote-image';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 import { MAX_COMPARED_SHOPS, useCompareStore } from '@/store/compareStore';
@@ -43,7 +43,7 @@ export function ShopCard({ shop, onPress, saved = false, saving = false, onToggl
       <Pressable onPress={onPress} onPressIn={() => { scale.set(withSpring(0.97, { reduceMotion: ReduceMotion.System })); }} onPressOut={() => { scale.set(withSpring(1, { reduceMotion: ReduceMotion.System })); }} className="gap-3">
         <View className="relative h-40 bg-secondary">
           {shop.photos[0] ? (
-            <Image source={{ uri: cloudinaryImageUrl(shop.photos[0], 900) }} className="h-full w-full" contentFit="cover" transition={220} />
+            <RemoteImage source={{ uri: cloudinaryImageUrl(shop.photos[0], 900) }} recyclingKey={shop.id} className="h-full w-full" contentFit="cover" transition={220} />
           ) : (
             <View className="h-full w-full items-center justify-center bg-secondary">
               <Text className="text-muted-foreground">No photo yet</Text>

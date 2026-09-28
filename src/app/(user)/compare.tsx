@@ -1,10 +1,10 @@
 import { Image, ScrollView, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowLeft, Star, X } from 'lucide-react-native';
+import { Star, X } from 'lucide-react-native';
 import { useCompareStore } from '@/store/compareStore';
 import { useShops } from '@/hooks/useShops';
 import { useUserLocation } from '@/hooks/useUserLocation';
-import { goBack } from '@/lib/navigation';
+import { ScreenHeader } from '@/components/screen-header';
 import { isOpenNow } from '@/utils/hours';
 import { haversineKm } from '@/utils/distance';
 import { formatPriceRange } from '@/utils/price';
@@ -72,20 +72,16 @@ export default function CompareScreen() {
   const needsHorizontalScroll = neededWidth > width - HORIZONTAL_PADDING;
 
   if (loading && ids.length > 0) {
-    return <View className="flex-1 items-center justify-center bg-background p-6"><Text className="text-muted-foreground">Loading your comparison…</Text></View>;
+    return <View className="flex-1 bg-background"><ScreenHeader title="Side-by-Side" fallbackHref="/(user)" /><View className="flex-1 items-center justify-center p-6"><Text className="text-muted-foreground">Loading your comparison…</Text></View></View>;
   }
 
   if (selected.length === 0) {
-    return <View className="flex-1 justify-center gap-3 bg-background p-6"><EmptyState title="Find your favorite cup" description="Add two or three shops to see them side by side." /><Button onPress={() => router.replace('/(user)/search')}><Text>Browse shops</Text></Button></View>;
+    return <View className="flex-1 bg-background"><ScreenHeader title="Side-by-Side" fallbackHref="/(user)" /><View className="flex-1 justify-center gap-3 p-6"><EmptyState title="Find your favorite cup" description="Add two or three shops to see them side by side." /><Button onPress={() => router.replace('/(user)/search')}><Text>Browse shops</Text></Button></View></View>;
   }
 
   return (
     <View className="flex-1 bg-background">
-      <View className="gap-1 bg-primary px-4 pb-5 pt-4">
-        <Button size="icon" variant="ghost" className="-ml-2 self-start" onPress={() => goBack('/(user)')}><Icon as={ArrowLeft} className="text-primary-foreground" /></Button>
-        <Text className="text-2xl font-bold text-primary-foreground">Side-by-Side</Text>
-        <Text className="text-sm text-primary-foreground/70">See which coffee shop fits you best</Text>
-      </View>
+      <ScreenHeader title="Side-by-Side" subtitle="See which coffee shop fits you best" fallbackHref="/(user)" />
       <ScrollView className="flex-1" contentContainerClassName="mx-auto w-full max-w-2xl p-4">
         <ScrollView horizontal={needsHorizontalScroll} scrollEnabled={needsHorizontalScroll}>
           <View style={{ flexDirection: 'row', width: needsHorizontalScroll ? neededWidth : '100%' }}>

@@ -18,6 +18,7 @@ import { DAYS } from '@/lib/schemas/shop';
 import { sortProducts, toProduct, type Product } from '@/types/product';
 import { useToast } from '@/hooks/useToast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ScreenHeader } from '@/components/screen-header';
 
 interface ShopDoc {
   name: string;
@@ -81,8 +82,9 @@ export default function AdminReviewListingScreen() {
 
   if (!shop) {
     return (
-      <View className="flex-1 items-center justify-center bg-background">
-        <View className="w-full max-w-2xl gap-4 p-4"><Skeleton className="h-12 w-2/3" /><Skeleton className="h-48 w-full" /><Skeleton className="h-32 w-full" /></View>
+      <View className="flex-1 bg-background">
+        <ScreenHeader title="Review Listing" fallbackHref="/(admin)" />
+        <View className="flex-1 items-center justify-center"><View className="w-full max-w-2xl gap-4 p-4"><Skeleton className="h-12 w-2/3" /><Skeleton className="h-48 w-full" /><Skeleton className="h-32 w-full" /></View></View>
       </View>
     );
   }
@@ -90,7 +92,9 @@ export default function AdminReviewListingScreen() {
   const badgeVariant = getListingStatusBadgeVariant(shop.status);
 
   return (
-    <ScrollView className="flex-1 bg-background px-4" contentContainerClassName="mx-auto w-full max-w-2xl gap-4 py-4 pb-8">
+    <View className="flex-1 bg-background">
+    <ScreenHeader title="Review Listing" fallbackHref="/(admin)" />
+    <ScrollView className="flex-1 px-4" contentContainerClassName="mx-auto w-full max-w-2xl gap-4 py-4 pb-8">
       <Card>
         <CardHeader className="gap-4">
           <View className="flex-row items-start justify-between gap-3">
@@ -133,5 +137,6 @@ export default function AdminReviewListingScreen() {
         {shop.status === 'rejected' ? <Button className="bg-green-700" disabled={updating} onPress={() => setStatus('approved')}><Icon as={Check} size={16} className="text-white" /><Text>Re-enlist Listing</Text></Button> : null}
       </SafeAreaView>
     </ScrollView>
+    </View>
   );
 }

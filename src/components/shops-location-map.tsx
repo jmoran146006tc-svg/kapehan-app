@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Text } from '@/components/ui/text';
 import type { Shop } from '@/types/shop';
@@ -42,8 +42,8 @@ export function ShopsLocationMap({ shops, selectedShopId, onSelect }: ShopsLocat
 
   return (
     <View className="flex-1 bg-secondary">
-      <MapView key={attempt} ref={mapRef} provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined} className="flex-1" initialRegion={region} onMapLoaded={() => { setLoaded(true); setTimedOut(false); }} onMapReady={() => { setReady(true); frameShops(); }} onLayout={() => { if (ready) frameShops(); }}>
-        {shops.map((shop) => <Marker key={shop.id} coordinate={{ latitude: shop.lat, longitude: shop.lng }} title={shop.name} anchor={{ x: 0.5, y: 1 }} onPress={() => onSelect(shop)}><MapPinMarker color={shop.id === selectedShopId ? MAP_MARKER_COLORS.selectedShop : MAP_MARKER_COLORS.shop} size={shop.id === selectedShopId ? 42 : 34} /></Marker>)}
+      <MapView key={attempt} ref={mapRef} provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined} style={StyleSheet.absoluteFill} initialRegion={region} onMapLoaded={() => { setLoaded(true); setTimedOut(false); }} onMapReady={() => { setReady(true); frameShops(); }} onLayout={() => { if (ready) frameShops(); }}>
+        {shops.map((shop) => <Marker key={`${shop.id}-${shop.id === selectedShopId ? 'selected' : 'default'}`} coordinate={{ latitude: shop.lat, longitude: shop.lng }} title={shop.name} anchor={{ x: 0.5, y: 1 }} tracksViewChanges={false} onPress={() => onSelect(shop)}><MapPinMarker color={shop.id === selectedShopId ? MAP_MARKER_COLORS.selectedShop : MAP_MARKER_COLORS.shop} size={shop.id === selectedShopId ? 42 : 34} /></Marker>)}
       </MapView>
       {timedOut ? <View className="absolute inset-0 items-center justify-center bg-background/95 px-6"><Text className="text-center font-semibold">Map could not load</Text><Text className="mt-2 text-center text-sm text-muted-foreground">Check your connection and try again.</Text><Pressable className="mt-4 rounded-full bg-primary px-5 py-2" onPress={() => { setLoaded(false); setTimedOut(false); setReady(false); setAttempt((value) => value + 1); }}><Text className="font-semibold text-primary-foreground">Retry map</Text></Pressable></View> : null}
     </View>

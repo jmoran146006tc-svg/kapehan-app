@@ -12,6 +12,7 @@ import { goBack } from '@/lib/navigation';
 import { useToast } from '@/hooks/useToast';
 import { notifyFavoriteShopUpdate } from '@/lib/favorite-shop-updates';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ScreenHeader } from '@/components/screen-header';
 import { saveOwnerShopUpdate } from '@/lib/owner-shop-update';
 
 export default function EditListingScreen() {
@@ -53,16 +54,19 @@ export default function EditListingScreen() {
 
   if (!initialValues || !id) {
     return (
-      <View className="flex-1 items-center justify-center bg-background">
-        {loadError || !id ? <Text className="text-center text-muted-foreground">{loadError ?? 'This listing could not be found.'}</Text> : <View className="w-full max-w-2xl gap-4 p-4"><Skeleton className="h-12 w-2/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-32 w-full" /></View>}
+      <View className="flex-1 bg-background">
+        <ScreenHeader title="Edit Listing" fallbackHref="/(owner)" />
+        <View className="flex-1 items-center justify-center">
+          {loadError || !id ? <Text className="text-center text-muted-foreground">{loadError ?? 'This listing could not be found.'}</Text> : <View className="w-full max-w-2xl gap-4 p-4"><Skeleton className="h-12 w-2/3" /><Skeleton className="h-32 w-full" /><Skeleton className="h-32 w-full" /></View>}
+        </View>
       </View>
     );
   }
 
   return (
     <SafeAreaView edges={['bottom']} className="flex-1">
-      <ScrollView className="flex-1 bg-background p-4" contentContainerClassName="gap-4 pb-8">
-        <Text className="text-2xl font-bold">Edit Listing</Text>
+      <ScreenHeader title="Edit Listing" fallbackHref="/(owner)" />
+      <ScrollView className="flex-1 bg-background p-4" contentContainerClassName="mx-auto w-full max-w-2xl gap-4 pb-8">
         <ShopForm defaultValues={initialValues} onSubmit={handleUpdate} submitLabel="Save changes" />
       </ScrollView>
     </SafeAreaView>

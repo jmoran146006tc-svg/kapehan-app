@@ -10,6 +10,7 @@ import { toReview, type Review } from '@/types/review';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import { ScreenHeader } from '@/components/screen-header';
 import { OwnerReplyLabel, ReviewTime } from '@/components/review-edit-markers';
 
 export default function OwnerReviewsScreen() {
@@ -40,7 +41,9 @@ export default function OwnerReviewsScreen() {
   }, [shopId]);
 
   return (
-    <ScrollView className="flex-1 bg-background p-4" contentContainerClassName="gap-3">
+    <View className="flex-1 bg-background">
+    <ScreenHeader title="Reviews" fallbackHref="/(owner)" />
+    <ScrollView className="flex-1 p-4" contentContainerClassName="mx-auto w-full max-w-2xl gap-3">
       <Text className="text-2xl font-bold">Customer Reviews</Text>
       {!shopId && <Text className="text-muted-foreground">Create a listing to start receiving reviews.</Text>}
       {(shopId ? reviews : []).map((review) => (
@@ -58,5 +61,6 @@ export default function OwnerReviewsScreen() {
       ))}
       {shopId && reviews.length === 0 && <Text className="text-muted-foreground">No reviews yet.</Text>}
     </ScrollView>
+    </View>
   );
 }

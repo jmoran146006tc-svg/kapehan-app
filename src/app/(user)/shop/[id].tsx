@@ -1,12 +1,12 @@
 import { OwnerReplyLabel, ReviewTime } from '@/components/review-edit-markers';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Platform, ScrollView, View } from 'react-native';
-import { Image as ExpoImage } from 'expo-image';
+import { RemoteImage } from '@/components/ui/remote-image';
 import { useLocalSearchParams } from 'expo-router';
 import { collection, doc, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Check, Coffee, MapPin, Star, Tag, Wifi, type LucideIcon } from 'lucide-react-native';
+import { Check, MapPin, Star, Tag, Wifi, type LucideIcon } from 'lucide-react-native';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserLocation } from '@/hooks/useUserLocation';
@@ -21,7 +21,7 @@ import { submitReview } from '@/lib/reviews';
 import { reviewFormSchema, type ReviewFormInput, type ReviewFormValues } from '@/lib/schemas/review';
 import { getUserFriendlyError } from '@/lib/errors';
 import { toastFormErrors } from '@/lib/form-errors';
-import { goBack } from '@/lib/navigation';
+import { ScreenHeader } from '@/components/screen-header';
 import { sortProducts, toProduct, type Product } from '@/types/product';
 import { toReview, type Review } from '@/types/review';
 import { toShop, type Shop } from '@/types/shop';
@@ -103,22 +103,21 @@ export default function ShopDetailScreen() {
     }
   }
 
-  if (!shop) return <View className="flex-1 items-center justify-center bg-background p-4"><Text className="text-muted-foreground">{loadError ? 'This shop is unavailable right now.' : 'Loading…'}</Text></View>;
+  if (!shop) return <View className="flex-1 bg-background"><ScreenHeader title="Shop details" fallbackHref="/(user)" /><View className="flex-1 items-center justify-center p-4"><Text className="text-muted-foreground">{loadError ? 'This shop is unavailable right now.' : 'Loading…'}</Text></View></View>;
 
   const saved = savedShopIds.includes(shop.id);
   const openNow = isOpenNow(shop.hours);
   const priceChip = getPriceBucket(shop.priceMin) === 'budget' ? 'Affordable' : getPriceBucket(shop.priceMin) === 'moderate' ? 'Moderate' : 'Premium';
   const ownReview = reviews.some((review) => review.userId === user?.uid);
 
-  return <ScrollView className="flex-1 bg-background" contentContainerClassName="mx-auto w-full max-w-2xl gap-4 pb-8">
+  return <View className="flex-1 bg-background"><ScreenHeader title={shop.name} fallbackHref="/(user)" /><ScrollView className="flex-1" contentContainerClassName="mx-auto w-full max-w-2xl gap-4 pb-8">
     <View className="relative h-64 bg-secondary">
-      {shop.photos[0] ? <ExpoImage source={{ uri: cloudinaryImageUrl(shop.photos[0], 1200) }} className="h-full w-full" contentFit="cover" transition={250} /> : <View className="h-full w-full items-center justify-center"><Text className="font-serif text-4xl text-primary/30">Kapehan</Text></View>}
-      <Button size="icon" variant="secondary" className="absolute left-4 top-12 rounded-full bg-card/95" onPress={() => goBack('/(user)')}><Icon as={ArrowLeft} /></Button>
+      {shop.photos[0] ? <RemoteImage source={{ uri: cloudinaryImageUrl(shop.photos[0], 1200) }} className="h-full w-full" contentFit="cover" transition={250} /> : <View className="h-full w-full items-center justify-center"><Text className="font-serif text-4xl text-primary/30">Kapehan</Text></View>}
     </View>
     <View className="gap-4 px-4"><View><Text className="font-serif text-3xl font-bold">{shop.name}</Text><Text className="mt-1 text-muted-foreground">{shop.description || shop.address}</Text></View><View className="flex-row flex-wrap items-center gap-2"><Badge variant="secondary"><Text>{priceChip}</Text></Badge><Badge className={openNow ? 'border-transparent bg-success' : undefined} variant="secondary"><Text className={openNow ? 'text-success-foreground' : undefined}>{openNow ? 'Open now' : 'Closed'}</Text></Badge>{(shop.tags ?? []).map((tag) => <Text key={tag} className="text-xs text-muted-foreground">· {tag}</Text>)}</View><View className="flex-row gap-2"><Metric icon={Star} value={shop.avgRating.toFixed(1)} label={`${shop.reviewCount} reviews`} /><Metric icon={MapPin} value={distanceKm == null ? '—' : `${distanceKm.toFixed(1)} km`} label="from you" /><Metric icon={Tag} value={formatPriceRange(shop.priceMin, shop.priceMax)} label="price range" /></View></View>
     <View className="flex-row border-b border-border px-4">{(['info', 'menu', 'reviews'] as ShopTab[]).map((item) => <Button key={item} variant="ghost" className={tab === item ? `flex-1 border-b-2 border-accent rounded-none ${Platform.select({ web: 'hover:bg-transparent dark:hover:bg-transparent' }) ?? ''}` : 'flex-1 rounded-none'} onPress={() => setTab(item)}><Text className={tab === item ? 'font-bold text-accent' : undefined}>{item === 'reviews' ? `Reviews (${shop.reviewCount})` : item[0].toUpperCase() + item.slice(1)}</Text></Button>)}</View>
     <View className="px-4">{tab === 'info' ? <InfoTab shop={shop} location={location} saved={saved} saving={savingShopId === shop.id} compared={ids.includes(shop.id)} onSave={() => void toggleSavedShop(shop.id)} onCompare={() => { toggle(shop.id); showToast({ type: 'success', message: ids.includes(shop.id) ? 'Removed from comparison' : 'Added to comparison' }); }} /> : null}{tab === 'menu' ? <MenuTab products={products} /> : null}{tab === 'reviews' ? <ReviewsTab reviews={reviews} ratingCounts={ratingCounts} user={user ? { uid: user.uid } : null} control={control} isSubmitting={isSubmittingReview} onSubmit={handleSubmit(handleReviewSubmit, (errors) => toastFormErrors(errors, showToast))} hasOwnReview={ownReview} /> : null}</View>
-  </ScrollView>;
+  </ScrollView></View>;
 }
 
 function Metric({ icon, value, label }: { icon?: LucideIcon; value: string; label: string }) {
