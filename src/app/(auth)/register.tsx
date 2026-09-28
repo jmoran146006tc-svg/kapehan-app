@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { AuthShell } from '@/components/auth-shell';
+import { AuthField } from '@/components/auth-field';
 import { WebForm } from '@/components/web-form';
 import { useToast } from '@/hooks/useToast';
 
@@ -58,15 +59,15 @@ export default function RegisterScreen() {
       <AuthShell active="register">
         <WebForm className="gap-4" onSubmit={handleSubmit((values) => handleRegister(values, 'user'), (errors) => toastFormErrors(errors, showToast))}>
         <Text className="text-2xl font-bold">Join Kapehan</Text>
-        <Controller control={control} name="name" render={({ field }) => (
+        <AuthField index={0}><Controller control={control} name="name" render={({ field }) => (
           <Input placeholder="Maria Santos" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} autoComplete="name" />
-        )} />
-        <Controller control={control} name="email" render={({ field }) => (
+        )} /></AuthField>
+        <AuthField index={1}><Controller control={control} name="email" render={({ field }) => (
           <Input placeholder="you@email.com" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} autoCapitalize="none" autoComplete="email" keyboardType="email-address" />
-        )} />
-        <Controller control={control} name="password" render={({ field }) => (
+        )} /></AuthField>
+        <AuthField index={2}><Controller control={control} name="password" render={({ field }) => (
           <Input placeholder="••••••••" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} autoComplete="new-password" secureTextEntry />
-        )} />
+        )} /></AuthField>
 
         <View className="flex-row items-start gap-3">
           <Controller control={control} name="agreedToTerms" render={({ field }) => (
@@ -82,7 +83,7 @@ export default function RegisterScreen() {
         <Button loading={isSubmitting} loadingLabel="Creating account…" onPress={handleSubmit((values) => handleRegister(values, 'user'), (errors) => toastFormErrors(errors, showToast))}>
           <Text>Create Customer Account</Text>
         </Button>
-        <Button className="bg-[#B85A20]" loading={isSubmitting} loadingLabel="Creating account…" onPress={handleSubmit((values) => handleRegister(values, 'owner'), (errors) => toastFormErrors(errors, showToast))}>
+        <Button className="bg-accent" loading={isSubmitting} loadingLabel="Creating account…" onPress={handleSubmit((values) => handleRegister(values, 'owner'), (errors) => toastFormErrors(errors, showToast))}>
           <Text>Create Owner Account</Text>
         </Button>
         </WebForm>

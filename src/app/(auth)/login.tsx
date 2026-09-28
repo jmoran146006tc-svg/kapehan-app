@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { AuthShell } from '@/components/auth-shell';
+import { AuthField } from '@/components/auth-field';
 import { WebForm } from '@/components/web-form';
 import { useToast } from '@/hooks/useToast';
 
@@ -40,17 +41,23 @@ export default function LoginScreen() {
     <SafeAreaView edges={['bottom']} className="flex-1 bg-primary">
       <AuthShell active="login">
         <WebForm className="gap-4" onSubmit={handleSubmit(handleLogin, (errors) => toastFormErrors(errors, showToast))}>
-        <Text className="text-2xl font-bold">Welcome back</Text>
-        <Controller control={control} name="email" render={({ field }) => (
-          <Input placeholder="you@email.com" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} autoCapitalize="none" autoComplete="email" keyboardType="email-address" />
-        )} />
-        <Controller control={control} name="password" render={({ field }) => (
-          <Input placeholder="••••••••" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} autoComplete="current-password" secureTextEntry />
-        )} />
-        <Button loading={isSubmitting} loadingLabel="Logging in…" onPress={handleSubmit(handleLogin, (errors) => toastFormErrors(errors, showToast))}>
-          <Text>Log In</Text>
-        </Button>
-        <Button variant="link" onPress={() => router.push('/(auth)/forgot-password' as never)}><Text>Forgot password?</Text></Button>
+          <Text className="text-2xl font-bold">Welcome back</Text>
+          <AuthField index={0}>
+            <Controller control={control} name="email" render={({ field }) => (
+              <Input placeholder="you@email.com" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} autoCapitalize="none" autoComplete="email" keyboardType="email-address" />
+            )} />
+          </AuthField>
+          <AuthField index={1}>
+            <Controller control={control} name="password" render={({ field }) => (
+              <Input placeholder="••••••••" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} autoComplete="current-password" secureTextEntry />
+            )} />
+          </AuthField>
+          <Button loading={isSubmitting} loadingLabel="Logging in…" onPress={handleSubmit(handleLogin, (errors) => toastFormErrors(errors, showToast))}>
+            <Text>Log In</Text>
+          </Button>
+          <Button variant="link" onPress={() => router.push('/(auth)/forgot-password' as never)}>
+            <Text>Forgot password?</Text>
+          </Button>
         </WebForm>
       </AuthShell>
     </SafeAreaView>

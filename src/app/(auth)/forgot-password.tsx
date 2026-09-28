@@ -12,6 +12,7 @@ import { goBack } from '@/lib/navigation';
 import { toastFormErrors } from '@/lib/form-errors';
 import { emailSchema } from '@/lib/schemas/auth';
 import { AuthShell } from '@/components/auth-shell';
+import { AuthField } from '@/components/auth-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
@@ -39,5 +40,32 @@ export default function ForgotPasswordScreen() {
     }
   }
 
-  return <View className="flex-1 bg-primary"><AuthShell active="login"><View className="gap-4"><Text className="text-2xl font-bold">Reset your password</Text><Text className="text-muted-foreground">Enter your account email and we’ll send a secure reset link.</Text>{sent ? <View className="gap-4"><Text className="rounded-xl bg-success p-3 text-success-foreground">Check your inbox for a password-reset link.</Text><Button onPress={() => router.replace('/(auth)/login')}><Text>Back to Log In</Text></Button></View> : <><Controller control={control} name="email" render={({ field }) => <Input autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder="you@email.com" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />} /><Button loading={isSubmitting} loadingLabel="Sending reset email…" onPress={handleSubmit(submit, (errors) => toastFormErrors(errors, showToast))}><Text>Send reset email</Text></Button><Button variant="link" onPress={() => goBack('/(auth)/login')}><Text>Back to Log In</Text></Button></>}</View></AuthShell></View>;
+  return (
+    <View className="flex-1 bg-primary">
+      <AuthShell active="login">
+        <View className="gap-4">
+          <Text className="text-2xl font-bold">Reset your password</Text>
+          <Text className="text-muted-foreground">Enter your account email and we’ll send a secure reset link.</Text>
+          {sent ? (
+            <View className="gap-4">
+              <Text className="rounded-xl bg-success p-3 text-success-foreground">Check your inbox for a password-reset link.</Text>
+              <Button onPress={() => router.replace('/(auth)/login')}><Text>Back to Log In</Text></Button>
+            </View>
+          ) : (
+            <>
+              <AuthField index={0}>
+                <Controller control={control} name="email" render={({ field }) => (
+                  <Input autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder="you@email.com" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />
+                )} />
+              </AuthField>
+              <Button loading={isSubmitting} loadingLabel="Sending reset email…" onPress={handleSubmit(submit, (errors) => toastFormErrors(errors, showToast))}>
+                <Text>Send reset email</Text>
+              </Button>
+              <Button variant="link" onPress={() => goBack('/(auth)/login')}><Text>Back to Log In</Text></Button>
+            </>
+          )}
+        </View>
+      </AuthShell>
+    </View>
+  );
 }

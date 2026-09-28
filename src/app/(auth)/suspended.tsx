@@ -13,5 +13,15 @@ export default function SuspendedAccountScreen() {
     setIsSigningOut(true);
     try { await withTimeout(signOut(auth)); } finally { setIsSigningOut(false); }
   }
-  return <View className="flex-1 bg-primary"><AuthShell active="login"><View className="gap-4"><Text className="text-2xl font-bold">Account suspended</Text><Text className="text-muted-foreground">Your Kapehan account is currently suspended. Please contact an administrator if you believe this is a mistake.</Text><Button loading={isSigningOut} loadingLabel="Signing out…" onPress={() => void leave()}><Text>Log Out</Text></Button></View></AuthShell></View>;
+  return (
+    <View className="flex-1 bg-primary">
+      <AuthShell active="login">
+        <View className="gap-4">
+          <Text className="font-display text-2xl">Account suspended</Text>
+          <Text className="text-muted-foreground">Your Kapehan account is currently suspended. Please contact an administrator if you believe this is a mistake.</Text>
+          <Button loading={isSigningOut} loadingLabel="Signing out…" onPress={() => void leave()}><Text>Log Out</Text></Button>
+        </View>
+      </AuthShell>
+    </View>
+  );
 }
