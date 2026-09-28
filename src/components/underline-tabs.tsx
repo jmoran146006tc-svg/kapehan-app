@@ -1,6 +1,7 @@
+import { AnimatedView } from '@/components/ui/animated';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { ReduceMotion, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Text } from '@/components/ui/text';
 import { SPRING } from '@/constants/theme';
 import { select } from '@/lib/haptics';
@@ -34,7 +35,7 @@ export function UnderlineTabs({ tabs, value, onChange, animated = true }: { tabs
           <Text className={value === tab.key ? 'font-semibold text-accent' : 'text-muted-foreground'}>{tab.label}</Text>
         </Pressable>
       ))}
-      {width > 0 ? <Animated.View pointerEvents="none" className="absolute bottom-0 h-0.5 bg-accent" style={[{ width: tabWidth }, indicatorStyle]} /> : null}
+      {width > 0 ? <AnimatedView pointerEvents="none" className="absolute bottom-0 h-0.5 bg-accent" style={[{ width: tabWidth }, indicatorStyle]} /> : null}
     </View>
   );
 }

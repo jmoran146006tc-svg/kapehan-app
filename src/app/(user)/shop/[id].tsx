@@ -1,10 +1,11 @@
+import { AnimatedScrollView, AnimatedView } from '@/components/ui/animated';
 import { OwnerReplyLabel, ReviewTime } from '@/components/review-edit-markers';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Platform, StyleSheet, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@/components/ui/linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { Extrapolation, FadeIn, ReduceMotion, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import { Extrapolation, FadeIn, ReduceMotion, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { RemoteImage } from '@/components/ui/remote-image';
 import { useLocalSearchParams } from 'expo-router';
 import { collection, doc, onSnapshot, orderBy, query } from 'firebase/firestore';
@@ -152,11 +153,11 @@ function ShopDetailContent({ id }: { id: string }) {
   const ownReview = reviews.some((review) => review.userId === user?.uid);
 
   return (
-    <Animated.View key={id} entering={FadeIn.duration(220).reduceMotion(ReduceMotion.System)} className="flex-1 bg-background">
+    <AnimatedView key={id} entering={FadeIn.duration(220).reduceMotion(ReduceMotion.System)} className="flex-1 bg-background">
       <StatusBar style="light" />
-      <Animated.ScrollView onScroll={scrollHandler} scrollEventThrottle={16} className="flex-1" contentContainerClassName="mx-auto w-full max-w-2xl pb-8">
+      <AnimatedScrollView onScroll={scrollHandler} scrollEventThrottle={16} className="flex-1" contentContainerClassName="mx-auto w-full max-w-2xl pb-8">
         <View className="relative h-80 overflow-hidden bg-accent-soft">
-          <Animated.View style={heroImageStyle} className="h-full w-full">
+          <AnimatedView style={heroImageStyle} className="h-full w-full">
             {shop.photos[0] ? (
               <RemoteImage source={{ uri: cloudinaryImageUrl(shop.photos[0], 1200) }} className="h-full w-full" contentFit="cover" transition={250} />
             ) : (
@@ -164,7 +165,7 @@ function ShopDetailContent({ id }: { id: string }) {
                 <Text className="font-display text-6xl text-primary/40">{shop.name.slice(0, 1).toUpperCase()}</Text>
               </LinearGradient>
             )}
-          </Animated.View>
+          </AnimatedView>
           <LinearGradient colors={[`${PALETTE.primary}AA`, 'transparent', `${PALETTE.primary}77`]} style={StyleSheet.absoluteFill} />
         </View>
         <View className="-mt-8 gap-4 rounded-t-[32px] bg-background pt-6">
@@ -195,13 +196,13 @@ function ShopDetailContent({ id }: { id: string }) {
             value={tab}
             onChange={(value) => setTab(value as ShopTab)}
           />
-          <Animated.View key={tab} entering={FadeIn.duration(180).reduceMotion(ReduceMotion.System)} className="px-4">
+          <AnimatedView key={tab} entering={FadeIn.duration(180).reduceMotion(ReduceMotion.System)} className="px-4">
             {tab === 'info' ? <InfoTab shop={shop} location={location} saved={saved} saving={savingShopId === shop.id} compared={ids.includes(shop.id)} onSave={() => void toggleSavedShop(shop.id)} onCompare={() => { toggle(shop.id); showToast({ type: 'success', message: ids.includes(shop.id) ? 'Removed from comparison' : 'Added to comparison' }); }} /> : null}
             {tab === 'menu' ? <MenuTab products={products} /> : null}
             {tab === 'reviews' ? <ReviewsTab reviews={reviews} ratingCounts={ratingCounts} user={user ? { uid: user.uid } : null} control={control} isSubmitting={isSubmittingReview} onSubmit={handleSubmit(handleReviewSubmit, (errors) => toastFormErrors(errors, showToast))} hasOwnReview={ownReview} /> : null}
-          </Animated.View>
+          </AnimatedView>
         </View>
-      </Animated.ScrollView>
+      </AnimatedScrollView>
       <View className="absolute left-4 right-4 flex-row justify-between" style={{ top: insets.top + 12 }} pointerEvents="box-none">
         <PressableScale className="h-11 w-11 items-center justify-center rounded-full bg-card/90" onPress={() => goBack('/(user)')} accessibilityLabel="Go back">
           <Icon as={ArrowLeft} size={20} className="text-primary" />
@@ -210,7 +211,7 @@ function ShopDetailContent({ id }: { id: string }) {
           <Icon as={Heart} size={20} fill={saved ? 'currentColor' : 'none'} className={saved ? 'text-accent' : 'text-primary'} />
         </PressableScale>
       </View>
-    </Animated.View>
+    </AnimatedView>
   );
 }
 
@@ -295,7 +296,7 @@ function RatingBar({ rating, count, total, index }: { rating: number; count: num
         <Icon as={Star} size={12} fill="currentColor" className="text-gold" />
       </View>
       <View className="h-2 flex-1 overflow-hidden rounded-full bg-secondary">
-        <Animated.View style={barStyle} className="h-full rounded-full bg-accent" />
+        <AnimatedView style={barStyle} className="h-full rounded-full bg-accent" />
       </View>
       <Text className="w-10 text-right text-xs text-muted-foreground">{Math.round(percent)}%</Text>
     </View>
@@ -351,7 +352,7 @@ function ReviewsTab({ reviews, ratingCounts, user, control, isSubmitting, onSubm
         </Card>
       ) : <Text className="text-muted-foreground">Log in to leave a review.</Text>}
       {reviews.map((review, index) => (
-        <Animated.View key={review.id} entering={enter(index)}>
+        <AnimatedView key={review.id} entering={enter(index)}>
           <Card>
             <CardHeader>
               <View className="flex-row justify-between gap-2">
@@ -371,7 +372,7 @@ function ReviewsTab({ reviews, ratingCounts, user, control, isSubmitting, onSubm
               ) : null}
             </CardHeader>
           </Card>
-        </Animated.View>
+        </AnimatedView>
       ))}
       {reviews.length === 0 ? (
         <View className="items-center gap-2 py-6">

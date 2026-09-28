@@ -1,7 +1,7 @@
 import { ImageBackground, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { MapPin, Moon, Search, Sun } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@/components/ui/linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useFilteredShops } from '@/hooks/useFilteredShops';
 import { useCompareStore } from '@/store/compareStore';
@@ -40,7 +40,7 @@ export default function HomeScreen() {
             <Icon as={Search} size={18} className="text-muted-foreground" />
             <Text className="text-muted-foreground">Search coffee shops…</Text>
           </Button>
-          <DiscoveryFilterRow />
+          <DiscoveryFilterRow dark />
         </GradientHeader>
 
         <View className="mx-auto w-full max-w-2xl gap-4 px-4">

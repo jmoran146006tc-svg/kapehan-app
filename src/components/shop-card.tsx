@@ -1,5 +1,5 @@
 import { Platform, StyleSheet, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@/components/ui/linear-gradient';
 import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
 import { Heart, MapPin, Star } from 'lucide-react-native';
 import type { Shop } from '@/types/shop';

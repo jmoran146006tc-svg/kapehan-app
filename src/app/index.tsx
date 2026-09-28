@@ -1,7 +1,7 @@
 import { Redirect } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { Logo } from '@/components/logo';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@/components/ui/linear-gradient';
 import Animated, { ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useEffect } from 'react';
 import { PALETTE } from '@/constants/theme';

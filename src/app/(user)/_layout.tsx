@@ -1,3 +1,4 @@
+import { AnimatedView } from '@/components/ui/animated';
 import { Redirect, Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { useEffect, useState } from 'react';
@@ -5,7 +6,7 @@ import { BottomTabBar } from 'expo-router/build/react-navigation/bottom-tabs';
 import { Home, Search, User } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { CompareFloatingButton } from '@/components/compare-floating-button';
-import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { ReduceMotion, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { PALETTE, SPRING } from '@/constants/theme';
 import { select } from '@/lib/haptics';
 
@@ -16,9 +17,9 @@ function TabIcon({ icon: Glyph, focused, color, size }: { icon: typeof Home; foc
   }, [focused, scale]);
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
-    <Animated.View style={style} className={focused ? 'rounded-full bg-accent-soft px-3 py-1' : 'px-3 py-1'}>
+    <AnimatedView style={style} className={focused ? 'rounded-full bg-accent-soft px-3 py-1' : 'px-3 py-1'}>
       <Glyph color={color} size={size} strokeWidth={2.75} />
-    </Animated.View>
+    </AnimatedView>
   );
 }
 

@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@/components/ui/linear-gradient';
 import { PALETTE } from '@/constants/theme';
 
 export default function NotFoundScreen() {

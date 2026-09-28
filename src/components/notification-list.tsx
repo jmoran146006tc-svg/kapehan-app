@@ -1,5 +1,6 @@
+import { AnimatedView } from '@/components/ui/animated';
 import { ScrollView, View } from 'react-native';
-import Animated, { ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import { ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useEffect } from 'react';
 import { Archive, Clock, Coffee, MessageCircle, Star } from 'lucide-react-native';
 import type { AppNotification } from '@/types/notification';
@@ -32,7 +33,7 @@ function UnreadDot() {
     if (!reduced) opacity.set(withRepeat(withTiming(0.5, { duration: 1500, reduceMotion: ReduceMotion.System }), -1, true));
   }, [opacity, reduced]);
   const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  return <Animated.View style={style} className="h-2.5 w-2.5 rounded-full bg-accent" />;
+  return <AnimatedView style={style} className="h-2.5 w-2.5 rounded-full bg-accent" />;
 }
 
 export function NotificationList({ notifications, onPress }: NotificationListProps) {
@@ -41,7 +42,7 @@ export function NotificationList({ notifications, onPress }: NotificationListPro
       {notifications.map((notification, index) => {
         const meta = notificationMeta(notification.type);
         return (
-          <Animated.View key={notification.id} entering={enter(index)}>
+          <AnimatedView key={notification.id} entering={enter(index)}>
           <PressableScale onPress={() => onPress?.(notification)} scaleTo={0.98} haptic="tap" accessibilityLabel={meta.title}>
             <Card className={notification.read ? 'py-4 opacity-75' : 'py-4'}>
               <CardHeader className="flex-row items-start gap-3">
@@ -61,7 +62,7 @@ export function NotificationList({ notifications, onPress }: NotificationListPro
               </CardHeader>
             </Card>
           </PressableScale>
-          </Animated.View>
+          </AnimatedView>
         );
       })}
       {notifications.length === 0 ? <EmptyState title="All caught up" description="Shop and review updates will appear here." /> : null}

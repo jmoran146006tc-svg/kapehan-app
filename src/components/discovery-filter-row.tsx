@@ -1,12 +1,12 @@
 import { ScrollView, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@/components/ui/linear-gradient';
 import { PALETTE } from '@/constants/theme';
 import { FilterChip } from '@/components/filter-chip';
 import { useFilterStore } from '@/store/filterStore';
 import { PRICE_BUCKET_LABELS, type PriceBucket } from '@/utils/price';
 import { TAG_OPTIONS } from '@/constants/tags';
 
-export function DiscoveryFilterRow() {
+export function DiscoveryFilterRow({ dark = false }: { dark?: boolean }) {
   const { priceBuckets, wifiOnly, tags, openNowOnly, setFilter, toggleArrayFilter, reset } = useFilterStore();
   const hasActiveFilter = wifiOnly || openNowOnly || priceBuckets.length > 0 || tags.length > 0;
 
@@ -23,7 +23,7 @@ export function DiscoveryFilterRow() {
         <FilterChip key={tag} label={tag} selected={tags.includes(tag)} onPress={() => toggleArrayFilter('tags', tag)} />
       ))}
     </ScrollView>
-    <LinearGradient pointerEvents="none" colors={['transparent', `${PALETTE.primary}55`]} className="absolute bottom-0 right-0 top-0 w-6" />
+    <LinearGradient pointerEvents="none" colors={['transparent', dark ? PALETTE.primary : PALETTE.card]} className="absolute bottom-0 right-0 top-0 w-6" />
     </View>
   );
 }

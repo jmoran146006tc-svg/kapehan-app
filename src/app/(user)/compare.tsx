@@ -1,3 +1,4 @@
+import { AnimatedView } from '@/components/ui/animated';
 import { Image, ScrollView, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowLeft, Star, X } from 'lucide-react-native';
@@ -18,7 +19,6 @@ import { goBack } from '@/lib/navigation';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { enter } from '@/lib/motion';
-import Animated from 'react-native-reanimated';
 
 function CompareHeader({ subtitle }: { subtitle?: string }) {
   return (
@@ -110,14 +110,14 @@ export default function CompareScreen() {
               {rows.map((row) => <Text key={row.label} className="min-h-14 border-b border-border py-4 font-semibold text-muted-foreground">{row.label}</Text>)}
             </View>
             {selected.map((shop, index) => (
-              <Animated.View key={shop.id} entering={enter(index)} style={needsHorizontalScroll ? { width: MIN_SHOP_COL_WIDTH } : { flex: 1, minWidth: 0 }} className="border-l border-border">
+              <AnimatedView key={shop.id} entering={enter(index)} style={needsHorizontalScroll ? { width: MIN_SHOP_COL_WIDTH } : { flex: 1, minWidth: 0 }} className="border-l border-border">
                 <View className="h-28 gap-1 px-2">
                   {shop.photos[0] ? <Image source={{ uri: cloudinaryImageUrl(shop.photos[0], 160) }} className="h-12 w-12 rounded-lg" /> : <View className="h-12 w-12 rounded-lg bg-secondary" />}
                   <View className="flex-row items-start gap-1"><Text numberOfLines={1} className="flex-1 font-bold">{shop.name}</Text><Button size="sm" variant="ghost" className="h-6 w-6 px-0" onPress={() => toggle(shop.id)}><Icon as={X} size={14} /></Button></View>
                   <Text numberOfLines={1} className="text-xs text-muted-foreground">{shop.description || 'Coffee shop in Tagum'}</Text>
                 </View>
                 {rows.map((row) => <View key={row.label} className={isBest(row, shop, selected) ? 'min-h-14 rounded-md border-2 border-accent bg-accent-soft px-2 py-[15px]' : 'min-h-14 border-b border-border px-2 py-4'}>{row.label === 'Rating' ? <View className="flex-row items-center justify-center gap-1"><Icon as={Star} size={14} fill="currentColor" className="text-gold" /><Text className="text-center text-sm">{row.value(shop)}</Text></View> : <View className="flex-row items-center justify-center gap-1">{isBest(row, shop, selected) ? <Icon as={Star} size={12} fill="currentColor" className="text-gold" /> : null}<Text className="text-center text-sm">{row.value(shop)}</Text></View>}</View>)}
-              </Animated.View>
+              </AnimatedView>
             ))}
           </View>
         </ScrollView>

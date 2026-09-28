@@ -19,7 +19,7 @@ import { sortProducts, toProduct, type Product } from '@/types/product';
 import { useToast } from '@/hooks/useToast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScreenHeader } from '@/components/screen-header';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@/components/ui/linear-gradient';
 import { PALETTE } from '@/constants/theme';
 
 interface ShopDoc {

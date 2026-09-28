@@ -1,6 +1,7 @@
+import { AnimatedView } from '@/components/ui/animated';
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Image, ScrollView, Switch, View } from 'react-native';
-import Animated, { useReducedMotion } from 'react-native-reanimated';
+import { useReducedMotion } from 'react-native-reanimated';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
@@ -138,7 +139,7 @@ export default function ProfileScreen() {
         </View>
       }
       renderItem={({ item, index }) => (
-        <Animated.View entering={enter(index)} className="px-4">
+        <AnimatedView entering={enter(index)} className="px-4">
           {item.kind === 'saved' ? (
             <PressableScale
               className="flex-row items-center gap-3 rounded-2xl bg-card p-3"
@@ -186,7 +187,7 @@ export default function ProfileScreen() {
           ) : (
             <Text className="text-muted-foreground">Shops you visit will appear here.</Text>
           )}
-        </Animated.View>
+        </AnimatedView>
       )}
       ListFooterComponent={
         <View className="gap-3 px-4 pt-4">
