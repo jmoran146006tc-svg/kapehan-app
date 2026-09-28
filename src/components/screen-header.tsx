@@ -21,7 +21,7 @@ export function ScreenHeader({ title, fallbackHref, right, subtitle }: {
         <Icon as={ArrowLeft} size={21} className="text-primary-foreground" />
       </Button>
       <View className="min-w-0 flex-1">
-        <Text numberOfLines={1} className="font-serif text-xl font-bold text-primary-foreground">{title}</Text>
+        <Text numberOfLines={1} className="font-display text-xl text-primary-foreground">{title}</Text>
         {subtitle ? <Text className="text-sm text-primary-foreground/75">{subtitle}</Text> : null}
       </View>
       {right}

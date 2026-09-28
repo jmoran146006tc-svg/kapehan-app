@@ -120,7 +120,7 @@ export default function AdminDashboardScreen() {
     <View className="w-full bg-primary px-4 pb-5" style={{ paddingTop: Math.max(insets.top, 16) }}>
       <View className="mx-auto w-full max-w-2xl flex-row items-center justify-between gap-4">
         <View className="flex-1">
-          <Text className="font-serif text-2xl font-bold text-primary-foreground">Admin Dashboard</Text>
+          <Text className="font-display text-2xl text-primary-foreground">Admin Dashboard</Text>
           <Text className="mt-1 text-sm text-primary-foreground/75">Kapehan · Content Management</Text>
         </View>
         <LogoutButton size="sm" variant="secondary" />
@@ -128,7 +128,7 @@ export default function AdminDashboardScreen() {
     </View>
     <View className="mx-auto w-full max-w-2xl flex-1 gap-3 px-4 pt-4" style={{ minHeight: 0 }}>
       <View className="flex-row rounded-2xl border border-border bg-card py-4">
-        {([{ label: 'Users', value: users.length }, { label: 'Owners', value: ownerCount }, { label: 'Pending', value: pending }, { label: 'Reviews', value: reviewCount }] as const).map((metric) => <View key={metric.label} className={metric.label === 'Pending' && pending ? 'flex-1 items-center rounded-xl bg-amber-50 px-1' : 'flex-1 items-center px-1'}><Text className={metric.label === 'Pending' && pending ? 'font-serif text-2xl font-bold text-amber-900' : 'font-serif text-2xl font-bold text-primary'}>{metric.value}</Text><Text className="text-center text-xs text-muted-foreground">{metric.label}</Text></View>)}
+        {([{ label: 'Users', value: users.length }, { label: 'Owners', value: ownerCount }, { label: 'Pending', value: pending }, { label: 'Reviews', value: reviewCount }] as const).map((metric) => <View key={metric.label} className={metric.label === 'Pending' && pending ? 'flex-1 items-center rounded-xl bg-amber-50 px-1' : 'flex-1 items-center px-1'}><Text className={metric.label === 'Pending' && pending ? 'font-display text-2xl text-amber-900' : 'font-display text-2xl text-primary'}>{metric.value}</Text><Text className="text-center text-xs text-muted-foreground">{metric.label}</Text></View>)}
       </View>
       <View className="flex-row gap-6 border-b border-border">
         <Button variant="ghost" className={tab === 'users' ? 'rounded-none border-b-2 border-accent px-1' : 'rounded-none px-1'} onPress={() => setTab('users')}><Text className={tab === 'users' ? 'font-semibold text-foreground' : 'text-muted-foreground'}>Users</Text></Button>

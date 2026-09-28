@@ -1,17 +1,30 @@
-import { View } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
-import { Text } from '@/components/ui/text';
+import { Logo } from '@/components/logo';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import { useEffect } from 'react';
+import { PALETTE } from '@/constants/theme';
+
+function BrandedLoader() {
+  const reduced = useReducedMotion();
+  const scale = useSharedValue(1);
+  useEffect(() => {
+    if (!reduced) scale.set(withRepeat(withTiming(1.04, { duration: 1300, reduceMotion: ReduceMotion.System }), -1, true));
+  }, [reduced, scale]);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return (
+    <LinearGradient colors={[PALETTE.primary, PALETTE.espresso2]} className="flex-1 items-center justify-center">
+      <Animated.View style={style}><Logo width={140} height={140} accessibilityLabel="Kapehan" /></Animated.View>
+    </LinearGradient>
+  );
+}
 
 export default function Index() {
   const { user, role, status, loading } = useAuth();
 
   if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background">
-        <Text className="text-muted-foreground">Loading…</Text>
-      </View>
-    );
+    return <BrandedLoader />;
   }
 
   if (!user) return <Redirect href="/(auth)/login" />;

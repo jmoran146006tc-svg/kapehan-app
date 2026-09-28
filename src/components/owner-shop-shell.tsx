@@ -55,12 +55,12 @@ export function OwnerShopShell({ active, children }: { active: OwnerTab; childre
     <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerClassName="mx-auto w-full max-w-2xl pb-8">
       <View className="gap-4">
         <View className="relative h-48 overflow-hidden bg-secondary">
-          {shop.photos[0] ? <Image source={{ uri: cloudinaryImageUrl(shop.photos[0], 1200) }} className="h-full w-full" resizeMode="cover" /> : <View className="h-full items-center justify-center"><Text className="font-serif text-4xl text-primary/30">Kapehan</Text></View>}
+          {shop.photos[0] ? <Image source={{ uri: cloudinaryImageUrl(shop.photos[0], 1200) }} className="h-full w-full" resizeMode="cover" /> : <View className="h-full items-center justify-center"><Text className="font-display text-4xl text-primary/30">Kapehan</Text></View>}
         </View>
         <View className="gap-3 px-4">
-          <View><Text className="text-xs font-bold uppercase tracking-widest text-accent">Your coffee shop</Text><Text className="mt-1 font-serif text-3xl font-bold text-foreground">{shop.name}</Text><Text className="mt-1 text-sm capitalize text-muted-foreground">{shop.status} listing</Text></View>
+          <View><Text className="text-xs font-bold uppercase tracking-widest text-accent">Your coffee shop</Text><Text className="mt-1 font-display text-3xl text-foreground">{shop.name}</Text><Text className="mt-1 text-sm capitalize text-muted-foreground">{shop.status} listing</Text></View>
           <View className="flex-row rounded-2xl border border-border bg-card py-3">
-            {([{ label: 'Rating', value: shop.avgRating.toFixed(1) }, { label: 'Reviews', value: shop.reviewCount }, { label: 'Views', value: shop.viewCount ?? 0 }] as const).map((metric, index) => <View key={metric.label} className={index ? 'flex-1 items-center border-l border-border' : 'flex-1 items-center'}><Text className="font-serif text-xl font-bold text-primary">{metric.value}</Text><Text className="text-xs text-muted-foreground">{metric.label}</Text></View>)}
+            {([{ label: 'Rating', value: shop.avgRating.toFixed(1) }, { label: 'Reviews', value: shop.reviewCount }, { label: 'Views', value: shop.viewCount ?? 0 }] as const).map((metric, index) => <View key={metric.label} className={index ? 'flex-1 items-center border-l border-border' : 'flex-1 items-center'}><Text className="font-display text-xl text-primary">{metric.value}</Text><Text className="text-xs text-muted-foreground">{metric.label}</Text></View>)}
           </View>
           {shop.status === 'archived' ? <View className="rounded-xl border border-border bg-secondary px-4 py-3"><Text className="font-semibold text-foreground">This listing has been archived.</Text><Text className="text-sm text-muted-foreground">Its details, menu, and replies are read only.</Text></View> : null}
         </View>

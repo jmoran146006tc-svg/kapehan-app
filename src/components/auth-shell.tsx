@@ -28,7 +28,7 @@ export function AuthShell({ active, children }: AuthShellProps) {
     <KeyboardAvoidingView className="flex-1 bg-primary" behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}>
       <View className="items-center justify-center gap-2 px-6" style={{ height: keyboardVisible ? 72 : height * 0.38 }}>
         {!keyboardVisible ? <Logo width={logoSize} height={logoSize} accessibilityLabel="Kapehan" /> : null}
-        <Text className={keyboardVisible ? 'font-serif text-2xl font-bold text-primary-foreground' : 'font-serif text-4xl font-bold text-primary-foreground'}>Kapehan</Text>
+        <Text className={keyboardVisible ? 'font-display text-2xl text-primary-foreground' : 'font-display text-4xl text-primary-foreground'}>Kapehan</Text>
         {!keyboardVisible ? <Text className="text-center text-sm text-primary-foreground/75">Discover your perfect cup in Tagum City</Text> : null}
       </View>
       <ScrollView className="flex-1 rounded-t-3xl bg-background" contentContainerClassName="items-center pb-8" keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
