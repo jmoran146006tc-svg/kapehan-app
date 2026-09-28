@@ -29,19 +29,16 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
   const [locating, setLocating] = useState(false);
   const { showToast } = useToast();
 
-  const { control, handleSubmit, setValue } = useForm
-  <ShopFormInput,
-  any,
-  ShopFormValues>({
-  resolver: zodResolver(shopFormSchema),
-  defaultValues: {
-    name: '', address: '', lat: '', lng: '',
-    priceMin: 60, priceMax: 150, hasWifi: true, description: '',
-    hours: DEFAULT_HOURS, photos: [],
-    ...defaultValues,
-    tags: (defaultValues?.tags ?? []).filter((tag) => TAG_OPTIONS.includes(tag)),
-  },
-});
+  const { control, handleSubmit, setValue } = useForm<ShopFormInput, any, ShopFormValues>({
+    resolver: zodResolver(shopFormSchema),
+    defaultValues: {
+      name: '', address: '', lat: '', lng: '',
+      priceMin: 60, priceMax: 150, hasWifi: true, description: '',
+      hours: DEFAULT_HOURS, photos: [],
+      ...defaultValues,
+      tags: (defaultValues?.tags ?? []).filter((tag) => TAG_OPTIONS.includes(tag)),
+    },
+  });
 
   const photos = useWatch({ control, name: 'photos' }) ?? [];
   const tags = useWatch({ control, name: 'tags' }) ?? [];
@@ -99,11 +96,14 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
   }
 
   return (
-    <View className="gap-4">
+    <View className="gap-5">
+      <Text className="text-xs font-semibold uppercase tracking-widest text-accent">Shop details</Text>
       <Controller control={control} name="name" render={({ field }) => (
         <Input placeholder="Shop name" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />
       )} />
 
+      <View className="h-px bg-border/60" />
+      <Text className="text-xs font-semibold uppercase tracking-widest text-accent">Location</Text>
       <Controller control={control} name="address" render={({ field }) => (
         <Input placeholder="Address" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />
       )} />
@@ -125,7 +125,8 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
         <LocationPicker value={coordinates} onChange={setCoordinates} />
       </View>
 
-      <Text className="font-semibold">Typical price range</Text>
+      <View className="h-px bg-border/60" />
+      <Text className="text-xs font-semibold uppercase tracking-widest text-accent">Typical price range</Text>
       <View className="flex-row gap-2">
         <Controller control={control} name="priceMin" render={({ field }) => (
           <Input className="flex-1" placeholder="Typical price min" keyboardType="numeric"
@@ -137,12 +138,13 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
         )} />
       </View>
 
-      <Text className="font-semibold">Description</Text>
+      <Text className="text-xs font-semibold uppercase tracking-widest text-accent">Description</Text>
       <Controller control={control} name="description" render={({ field }) => (
         <Input className="min-h-24 py-3" multiline placeholder="Tell guests what makes your shop special (optional)" maxLength={500} value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />
       )} />
 
-      <Text className="font-semibold">WiFi</Text>
+      <View className="h-px bg-border/60" />
+      <Text className="text-xs font-semibold uppercase tracking-widest text-accent">WiFi</Text>
       <Controller control={control} name="hasWifi" render={({ field }) => (
         <View className="flex-row gap-2">
           <Button className="flex-1" variant={field.value ? 'default' : 'outline'} onPress={() => field.onChange(true)}>
@@ -154,7 +156,7 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
         </View>
       )} />
 
-      <Text className="font-semibold">Tags</Text>
+      <Text className="text-xs font-semibold uppercase tracking-widest text-accent">Tags</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 pr-4">
         {TAG_OPTIONS.map((tag) => {
           const selected = tags.includes(tag);
@@ -173,7 +175,8 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
       </ScrollView>
       <Text className="text-muted-foreground text-xs -mt-2">Choose up to {MAX_TAGS_PER_SHOP} tags.</Text>
 
-      <Text className="font-semibold">Hours</Text>
+      <View className="h-px bg-border/60" />
+      <Text className="text-xs font-semibold uppercase tracking-widest text-accent">Hours</Text>
       {DAYS.map((day) => (
         <Controller key={day} control={control} name={`hours.${day}`} render={({ field }) => (
           <View className="flex-row items-center gap-2">
@@ -191,7 +194,8 @@ export function ShopForm({ defaultValues, onSubmit, submitLabel }: ShopFormProps
       ))}
       <Text className="text-muted-foreground text-xs -mt-2">24-hour HH:mm — e.g. 07:00 and 21:00.</Text>
 
-      <Text className="font-semibold">Photos</Text>
+      <View className="h-px bg-border/60" />
+      <Text className="text-xs font-semibold uppercase tracking-widest text-accent">Photos</Text>
       <View className="flex-row flex-wrap gap-2">
         {photos.map((url) => (
           <View key={url} className="relative">

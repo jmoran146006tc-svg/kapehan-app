@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Platform, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { Calendar, Check, Coffee, Mail, Star, X } from 'lucide-react-native';
 import { collection, doc, getDocs, onSnapshot, serverTimestamp, writeBatch } from 'firebase/firestore';
@@ -25,13 +25,14 @@ import { ShopCardSkeleton } from '@/components/shop-card-skeleton';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
+import { GradientHeader } from '@/components/gradient-header';
+import { UnderlineTabs } from '@/components/underline-tabs';
 
 type AdminTab = 'users' | 'owners';
 type AdminUser = AppUserDocument & { id: string };
 type AdminShop = Shop;
 
 export default function AdminDashboardScreen() {
-  const insets = useSafeAreaInsets();
   const { user: admin, role } = useAuth();
   const { showToast } = useToast();
   const [tab, setTab] = useState<AdminTab>('users');
@@ -117,7 +118,8 @@ export default function AdminDashboardScreen() {
   }
 
   return <View className="flex-1 bg-background" style={{ minHeight: 0 }}>
-    <View className="w-full bg-primary px-4 pb-5" style={{ paddingTop: Math.max(insets.top, 16) }}>
+    <StatusBar style="light" />
+    <GradientHeader>
       <View className="mx-auto w-full max-w-2xl flex-row items-center justify-between gap-4">
         <View className="flex-1">
           <Text className="font-display text-2xl text-primary-foreground">Admin Dashboard</Text>
@@ -125,15 +127,12 @@ export default function AdminDashboardScreen() {
         </View>
         <LogoutButton size="sm" variant="secondary" />
       </View>
-    </View>
+    </GradientHeader>
     <View className="mx-auto w-full max-w-2xl flex-1 gap-3 px-4 pt-4" style={{ minHeight: 0 }}>
-      <View className="flex-row rounded-2xl border border-border bg-card py-4">
-        {([{ label: 'Users', value: users.length }, { label: 'Owners', value: ownerCount }, { label: 'Pending', value: pending }, { label: 'Reviews', value: reviewCount }] as const).map((metric) => <View key={metric.label} className={metric.label === 'Pending' && pending ? 'flex-1 items-center rounded-xl bg-amber-50 px-1' : 'flex-1 items-center px-1'}><Text className={metric.label === 'Pending' && pending ? 'font-display text-2xl text-amber-900' : 'font-display text-2xl text-primary'}>{metric.value}</Text><Text className="text-center text-xs text-muted-foreground">{metric.label}</Text></View>)}
+      <View className="flex-row rounded-2xl bg-card py-4">
+        {([{ label: 'Users', value: users.length }, { label: 'Owners', value: ownerCount }, { label: 'Pending', value: pending }, { label: 'Reviews', value: reviewCount }] as const).map((metric) => <View key={metric.label} className={metric.label === 'Pending' && pending ? 'flex-1 items-center rounded-xl bg-pending px-1' : 'flex-1 items-center px-1'}><Text className={metric.label === 'Pending' && pending ? 'font-display text-2xl text-pending-foreground' : 'font-display text-2xl text-primary'}>{metric.value}</Text><Text className="text-center text-xs text-muted-foreground">{metric.label}</Text></View>)}
       </View>
-      <View className="flex-row gap-6 border-b border-border">
-        <Button variant="ghost" className={tab === 'users' ? 'rounded-none border-b-2 border-accent px-1' : 'rounded-none px-1'} onPress={() => setTab('users')}><Text className={tab === 'users' ? 'font-semibold text-foreground' : 'text-muted-foreground'}>Users</Text></Button>
-        <Button variant="ghost" className={tab === 'owners' ? 'rounded-none border-b-2 border-accent px-1' : 'rounded-none px-1'} onPress={() => setTab('owners')}><Text className={tab === 'owners' ? 'font-semibold text-foreground' : 'text-muted-foreground'}>Listings</Text><Badge variant="secondary" className={pending ? 'border-transparent bg-amber-100' : 'border-transparent bg-secondary'}><Text className={pending ? 'text-amber-900' : 'text-muted-foreground'}>{pending}</Text></Badge></Button>
-      </View>
+      <UnderlineTabs tabs={[{ key: 'users', label: 'Users' }, { key: 'owners', label: `Listings (${pending})` }]} value={tab} onChange={(value) => setTab(value as AdminTab)} />
       {tab === 'users' && usersLoadFailed ? <Text className="text-muted-foreground">User accounts are unavailable right now.</Text> : null}
       {tab === 'owners' && shopsLoadFailed ? <Text className="text-muted-foreground">Listings are unavailable right now.</Text> : null}
       {tab === 'users' ? <UsersList users={users} reviewCounts={reviewCounts} adminId={admin?.uid} updatingId={updatingId} onStatus={setUserStatus} loading={usersLoading} loadFailed={usersLoadFailed} refreshing={refreshing} onRefresh={refresh} /> : <OwnersList shops={shops} loading={shopsLoading} updatingId={updatingId} onStatus={setShopStatus} onRemovalDecision={decideRemoval} loadFailed={shopsLoadFailed} refreshing={refreshing} onRefresh={refresh} />}
@@ -156,7 +155,7 @@ function UsersList({ users, reviewCounts, adminId, updatingId, onStatus, loading
     <FlatList className="flex-1" style={{ minHeight: 0 }} data={loading ? [] : visibleUsers} keyExtractor={(account) => account.id} initialNumToRender={10} windowSize={7} refreshing={refreshing} onRefresh={() => void onRefresh()} contentContainerClassName="gap-3 pb-8" ListHeaderComponent={<View className="gap-3 pb-2"><Text className="text-xl font-bold">Registered Users</Text><Input placeholder="Search name or email" value={search} onChangeText={setSearch} /><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">{(['all', 'active', 'suspended'] as const).map((status) => <FilterChip key={status} label={status[0].toUpperCase() + status.slice(1)} selected={statusFilter === status} onPress={() => setStatusFilter(status)} />)}</ScrollView></View>} ListEmptyComponent={loading ? <View className="gap-3"><Skeleton className="h-28 w-full rounded-xl" /><Skeleton className="h-28 w-full rounded-xl" /></View> : !loadFailed ? <Text className="text-muted-foreground">No matching accounts.</Text> : null} renderItem={({ item: account }) => {
         const status = account.status ?? 'active';
         const initials = (account.name || account.email || 'U').split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
-        return <Card className={Platform.select({ web: 'transition-all duration-200 hover:shadow-md' })}><CardHeader className="gap-3"><View className="flex-row items-start gap-3"><View className="h-10 w-10 items-center justify-center rounded-full bg-secondary"><Text className="font-bold">{initials}</Text></View><View className="flex-1"><CardTitle>{account.name || 'Unnamed user'}</CardTitle><Text className="text-sm text-muted-foreground">{account.email}</Text></View><Badge variant="secondary"><Text className="capitalize">{account.role}</Text></Badge><Badge className={status === 'active' ? 'border-transparent bg-green-100' : 'border-transparent bg-red-100'} variant="secondary"><Text className={status === 'active' ? 'text-green-800' : 'text-red-700'}>{status}</Text></Badge></View><Text className="text-sm text-muted-foreground">Joined {account.createdAt ? dayjs(account.createdAt.toDate()).format('MMM D, YYYY') : 'recently'} · {reviewCounts[account.id] ?? 0} reviews</Text><View className="flex-row gap-2"><Button className="flex-1" size="sm" variant="outline" disabled={account.id === adminId} loading={updatingId === account.id} loadingLabel="Updating…" onPress={() => onStatus(account, status === 'active' ? 'suspended' : 'active')}><Text>{status === 'active' ? 'Suspend Account' : 'Reactivate Account'}</Text></Button><Button className="flex-1" size="sm" variant="outline" onPress={() => setViewingAccount(account)}><Text>View Account</Text></Button></View></CardHeader></Card>;
+        return <Card className={Platform.select({ web: 'transition-all duration-200 hover:shadow-md' })}><CardHeader className="gap-3"><View className="flex-row items-start gap-3"><View className="h-10 w-10 items-center justify-center rounded-full bg-secondary"><Text className="font-bold">{initials}</Text></View><View className="flex-1"><CardTitle>{account.name || 'Unnamed user'}</CardTitle><Text className="text-sm text-muted-foreground">{account.email}</Text></View><Badge variant="secondary"><Text className="capitalize">{account.role}</Text></Badge><Badge className={status === 'active' ? 'border-transparent bg-success' : 'border-transparent bg-destructive/15'} variant="secondary"><Text className={status === 'active' ? 'text-success-foreground' : 'text-destructive'}>{status}</Text></Badge></View><Text className="text-sm text-muted-foreground">Joined {account.createdAt ? dayjs(account.createdAt.toDate()).format('MMM D, YYYY') : 'recently'} · {reviewCounts[account.id] ?? 0} reviews</Text><View className="flex-row gap-2"><Button className="flex-1" size="sm" variant="outline" disabled={account.id === adminId} loading={updatingId === account.id} loadingLabel="Updating…" onPress={() => onStatus(account, status === 'active' ? 'suspended' : 'active')}><Text>{status === 'active' ? 'Suspend Account' : 'Reactivate Account'}</Text></Button><Button className="flex-1" size="sm" variant="outline" onPress={() => setViewingAccount(account)}><Text>View Account</Text></Button></View></CardHeader></Card>;
       }} />
     <Dialog open={!!viewingAccount} onOpenChange={(open) => { if (!open) { blurActiveElement(); setViewingAccount(null); } }}>
       <DialogContent>
@@ -166,7 +165,7 @@ function UsersList({ users, reviewCounts, adminId, updatingId, onStatus, loading
         </DialogHeader>
         <View className="gap-3">
           <View className="flex-row items-center gap-3"><Icon as={Mail} size={18} className="text-muted-foreground" /><View className="flex-1"><Text className="text-xs text-muted-foreground">Email</Text><Text>{viewingAccount?.email || 'No email on file'}</Text></View></View>
-          <View className="flex-row gap-3"><View className="flex-1 gap-1"><Text className="text-xs text-muted-foreground">Role</Text><Badge variant="secondary"><Text>{viewingAccount?.role ?? 'user'}</Text></Badge></View><View className="flex-1 gap-1"><Text className="text-xs text-muted-foreground">Status</Text><Badge className={viewingStatus === 'active' ? 'border-transparent bg-green-100' : 'border-transparent bg-red-100'} variant="secondary"><Text className={viewingStatus === 'active' ? 'text-green-800' : 'text-red-700'}>{viewingStatus}</Text></Badge></View></View>
+          <View className="flex-row gap-3"><View className="flex-1 gap-1"><Text className="text-xs text-muted-foreground">Role</Text><Badge variant="secondary"><Text>{viewingAccount?.role ?? 'user'}</Text></Badge></View><View className="flex-1 gap-1"><Text className="text-xs text-muted-foreground">Status</Text><Badge className={viewingStatus === 'active' ? 'border-transparent bg-success' : 'border-transparent bg-destructive/15'} variant="secondary"><Text className={viewingStatus === 'active' ? 'text-success-foreground' : 'text-destructive'}>{viewingStatus}</Text></Badge></View></View>
           <View className="flex-row items-center gap-3"><Icon as={Calendar} size={18} className="text-muted-foreground" /><View><Text className="text-xs text-muted-foreground">Joined</Text><Text>{viewingAccount?.createdAt ? dayjs(viewingAccount.createdAt.toDate()).format('MMM D, YYYY') : 'Unknown'}</Text></View></View>
           <View className="flex-row items-center gap-3"><Icon as={Star} size={18} className="text-accent" /><Text className="flex-1 text-sm text-muted-foreground">Reviews written</Text><Text className="font-semibold">{reviewCounts[viewingAccount?.id ?? ''] ?? 0}</Text></View>
         </View>
@@ -193,21 +192,21 @@ function OwnerShopCard({ shop, updating, onStatus, onRemovalDecision }: {
 }) {
   const removalPending = Boolean(shop.removalRequest);
   return <Card className={cn(
-    (removalPending || shop.status === 'pending') && 'bg-amber-50/60',
+    (removalPending || shop.status === 'pending') && 'bg-pending/60',
     Platform.select({ web: 'transition-all duration-200 hover:shadow-md' }),
   )}>
     <CardHeader className="gap-3">
       <View className="flex-row items-start justify-between gap-3">
-        <View className="flex-1"><View className="flex-row flex-wrap items-center gap-2"><Icon as={Coffee} size={17} className="text-accent" /><CardTitle>{shop.name}</CardTitle>{removalPending || shop.status === 'pending' ? <Badge variant="secondary" className="border-transparent bg-amber-100"><Text className="text-amber-900">{removalPending ? 'Removal requested' : 'Needs review'}</Text></Badge> : null}</View><Text className="text-sm text-muted-foreground">Registered listing</Text></View>
-        <Badge className={shop.status === 'approved' ? 'border-transparent bg-green-100' : shop.status === 'pending' ? 'border-transparent bg-amber-100' : 'border-transparent bg-slate-200'} variant="secondary"><Text className={shop.status === 'approved' ? 'text-green-800' : shop.status === 'pending' ? 'text-amber-800' : 'text-slate-800'}>{shop.status}</Text></Badge>
+        <View className="flex-1"><View className="flex-row flex-wrap items-center gap-2"><Icon as={Coffee} size={17} className="text-accent" /><CardTitle>{shop.name}</CardTitle>{removalPending || shop.status === 'pending' ? <Badge variant="secondary" className="border-transparent bg-pending"><Text className="text-pending-foreground">{removalPending ? 'Removal requested' : 'Needs review'}</Text></Badge> : null}</View><Text className="text-sm text-muted-foreground">Registered listing</Text></View>
+        <Badge className={shop.status === 'approved' ? 'border-transparent bg-success' : shop.status === 'pending' ? 'border-transparent bg-pending' : 'border-transparent bg-secondary'} variant="secondary"><Text className={shop.status === 'approved' ? 'text-success-foreground' : shop.status === 'pending' ? 'text-pending-foreground' : 'text-muted-foreground'}>{shop.status}</Text></Badge>
       </View>
-      {shop.removalRequest ? <View className="gap-1 rounded-lg bg-amber-50 p-3"><Text className="font-semibold text-amber-900">Removal requested</Text><Text className="text-amber-900">{shop.removalRequest.reason}</Text></View> : null}
+      {shop.removalRequest ? <View className="gap-1 rounded-lg bg-pending/60 p-3"><Text className="font-semibold text-pending-foreground">Removal requested</Text><Text className="text-pending-foreground">{shop.removalRequest.reason}</Text></View> : null}
       {removalPending ? <View className="flex-row gap-2">
         <Button className="flex-1" variant="destructive" loading={updating} loadingLabel="Updating…" onPress={() => onRemovalDecision(shop, 'revoke')}><Text>Revoke Listing</Text></Button>
         <Button className="flex-1" variant="outline" disabled={updating} onPress={() => onRemovalDecision(shop, 'deny')}><Text>Deny Request</Text></Button>
       </View> : null}
       {!removalPending && shop.status === 'approved' ? <Button variant="outline" className="border-destructive" loading={updating} loadingLabel="Updating…" onPress={() => onStatus(shop, 'rejected')}><Text className="text-destructive">Revoke Listing</Text></Button> : null}
-      {!removalPending && shop.status === 'pending' ? <View className="flex-row gap-2"><Button className="flex-1 bg-green-700" loading={updating} loadingLabel="Updating…" onPress={() => onStatus(shop, 'approved')}><Icon as={Check} size={16} className="text-white" /><Text>Approve Listing</Text></Button><Button className="flex-1" variant="destructive" loading={updating} loadingLabel="Updating…" onPress={() => onStatus(shop, 'rejected')}><Icon as={X} size={16} className="text-destructive-foreground" /><Text>Reject</Text></Button></View> : null}
+      {!removalPending && shop.status === 'pending' ? <View className="flex-row gap-2"><Button className="flex-1 bg-success-foreground" loading={updating} loadingLabel="Updating…" onPress={() => onStatus(shop, 'approved')}><Icon as={Check} size={16} className="text-white" /><Text>Approve Listing</Text></Button><Button className="flex-1" variant="destructive" loading={updating} loadingLabel="Updating…" onPress={() => onStatus(shop, 'rejected')}><Icon as={X} size={16} className="text-destructive-foreground" /><Text>Reject</Text></Button></View> : null}
       <Button variant="ghost" size="sm" className="self-start" onPress={() => router.push({ pathname: '/(admin)/listing/[id]', params: { id: shop.id } })}><Text>View listing</Text></Button>
     </CardHeader>
   </Card>;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import Animated, { FadeIn } from 'react-native-reanimated';
-import { Image, Platform, ScrollView, View } from 'react-native';
+import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
+import { Image, ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { Camera } from 'lucide-react-native';
@@ -16,6 +16,7 @@ import { getUserFriendlyError } from '@/lib/errors';
 import { useToast } from '@/hooks/useToast';
 import { cloudinaryImageUrl } from '@/lib/cloudinary';
 import { ScreenHeader } from '@/components/screen-header';
+import { UnderlineTabs } from '@/components/underline-tabs';
 
 type OwnerTab = 'info' | 'menu' | 'reviews';
 
@@ -59,16 +60,16 @@ export function OwnerShopShell({ active, children }: { active: OwnerTab; childre
         </View>
         <View className="gap-3 px-4">
           <View><Text className="text-xs font-bold uppercase tracking-widest text-accent">Your coffee shop</Text><Text className="mt-1 font-display text-3xl text-foreground">{shop.name}</Text><Text className="mt-1 text-sm capitalize text-muted-foreground">{shop.status} listing</Text></View>
-          <View className="flex-row rounded-2xl border border-border bg-card py-3">
+          <View className="flex-row rounded-2xl bg-card py-3">
             {([{ label: 'Rating', value: shop.avgRating.toFixed(1) }, { label: 'Reviews', value: shop.reviewCount }, { label: 'Views', value: shop.viewCount ?? 0 }] as const).map((metric, index) => <View key={metric.label} className={index ? 'flex-1 items-center border-l border-border' : 'flex-1 items-center'}><Text className="font-display text-xl text-primary">{metric.value}</Text><Text className="text-xs text-muted-foreground">{metric.label}</Text></View>)}
           </View>
           {shop.status === 'archived' ? <View className="rounded-xl border border-border bg-secondary px-4 py-3"><Text className="font-semibold text-foreground">This listing has been archived.</Text><Text className="text-sm text-muted-foreground">Its details, menu, and replies are read only.</Text></View> : null}
         </View>
       </View>
       <View className="gap-4 pt-5">
-        <View className="flex-row border-b border-border px-4">{(['info', 'menu', 'reviews'] as OwnerTab[]).map((tab) => <Button key={tab} variant="ghost" className={active === tab ? `flex-1 rounded-none border-b-2 border-accent ${Platform.select({ web: 'hover:bg-transparent dark:hover:bg-transparent' }) ?? ''}` : 'flex-1 rounded-none'} onPress={() => go(tab)}><Text className={active === tab ? 'font-bold text-accent' : undefined}>{tab === 'info' ? 'Shop Info' : tab[0].toUpperCase() + tab.slice(1)}</Text></Button>)}</View>
+        <UnderlineTabs tabs={[{ key: 'info', label: 'Shop Info' }, { key: 'menu', label: 'Menu' }, { key: 'reviews', label: 'Reviews' }]} value={active} onChange={(value) => go(value as OwnerTab)} animated={false} />
       </View>
-      <Animated.View entering={FadeIn.duration(180)}>{children(shop)}</Animated.View>
+      <Animated.View entering={FadeIn.duration(180).reduceMotion(ReduceMotion.System)}>{children(shop)}</Animated.View>
     </ScrollView>
     </View>
   );
