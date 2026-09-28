@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
 import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { select } from '@/lib/haptics';
+import { SPRING } from '@/constants/theme';
 
 interface FilterChipProps {
   label: string;
@@ -20,16 +22,16 @@ export function FilterChip({ label, selected = false, onPress }: FilterChipProps
       variant={selected ? 'default' : 'outline'}
       className={cn(
         'shrink-0 rounded-full',
-        selected ? 'bg-accent' : 'bg-secondary',
+        selected ? 'bg-accent shadow-sm shadow-accent/30' : 'border-border/60 bg-card',
         Platform.select({
           web: selected
             ? 'transition-colors duration-150 hover:bg-accent/90'
-            : 'transition-colors duration-150 hover:bg-secondary/70',
+            : 'transition-colors duration-150 hover:bg-card/70',
         }),
       )}
-      onPress={onPress}
-      onPressIn={() => { scale.set(withSpring(0.97, { reduceMotion: ReduceMotion.System })); }}
-      onPressOut={() => { scale.set(withSpring(1, { reduceMotion: ReduceMotion.System })); }}>
+      onPress={() => { select(); onPress(); }}
+      onPressIn={() => { scale.set(withSpring(0.97, { ...SPRING.snappy, reduceMotion: ReduceMotion.System })); }}
+      onPressOut={() => { scale.set(withSpring(1, { ...SPRING.snappy, reduceMotion: ReduceMotion.System })); }}>
       <Text className={selected ? 'text-accent-foreground' : 'text-foreground'}>{label}</Text>
     </Button>
     </Animated.View>

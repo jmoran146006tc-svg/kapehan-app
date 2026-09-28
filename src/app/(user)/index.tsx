@@ -65,8 +65,8 @@ export default function HomeScreen() {
             <Button size="sm" variant="link" onPress={() => router.push('/(user)/search')}><Text>See all</Text></Button>
           </View>
           <View className="gap-3">
-            {loading ? [0, 1, 2].map((index) => <ShopCardSkeleton key={index} />) : featured.map((shop) => (
-              <ShopCard key={shop.id} shop={shop} onPress={() => router.push({ pathname: '/(user)/shop/[id]', params: { id: shop.id } })} saved={savedShopIds.includes(shop.id)} saving={savingShopId === shop.id} onToggleSaved={() => void toggleSavedShop(shop.id)} compared={ids.includes(shop.id)} onToggleCompare={() => toggle(shop.id)} />
+            {loading ? [0, 1, 2].map((index) => <ShopCardSkeleton key={index} />) : featured.map((shop, index) => (
+              <ShopCard key={shop.id} index={index} shop={shop} onPress={() => router.push({ pathname: '/(user)/shop/[id]', params: { id: shop.id } })} saved={savedShopIds.includes(shop.id)} saving={savingShopId === shop.id} onToggleSaved={() => void toggleSavedShop(shop.id)} compared={ids.includes(shop.id)} onToggleCompare={() => toggle(shop.id)} />
             ))}
             {!loading && featured.length === 0 ? <Text className="py-8 text-center text-muted-foreground">{error ? 'Coffee shops are unavailable. Pull down to retry.' : 'No approved coffee shops match these filters yet.'}</Text> : null}
           </View>
