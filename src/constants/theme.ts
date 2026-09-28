@@ -20,6 +20,8 @@ export const PALETTE = {
   accentSoft: '#FAE9DC',
   gold: '#E9AC3F',
   creamDeep: '#EDE5D9',
+  card: '#FDFCF9',
+  mutedForeground: '#8D7F72',
 } as const;
 
 const shadowColor = PALETTE.primary;

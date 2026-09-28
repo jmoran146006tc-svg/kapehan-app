@@ -1,8 +1,8 @@
-import { ImageBackground, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { ImageBackground, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowRight, Moon, Search, Sun } from 'lucide-react-native';
+import { MapPin, Moon, Search, Sun } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useFilteredShops } from '@/hooks/useFilteredShops';
 import { useCompareStore } from '@/store/compareStore';
 import { useSavedShops } from '@/hooks/useSavedShops';
@@ -13,6 +13,9 @@ import { UserNotificationButton } from '@/components/user-notification-button';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
+import { GradientHeader } from '@/components/gradient-header';
+import { PressableScale } from '@/components/ui/pressable-scale';
+import { PALETTE, SHADOW } from '@/constants/theme';
 
 export default function HomeScreen() {
   const { shops, loading, refreshing, refresh, error } = useFilteredShops({ featuredOnly: true });
@@ -22,28 +25,29 @@ export default function HomeScreen() {
   const { savedShopIds, savingShopId, toggleSavedShop } = useSavedShops();
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-background">
-      <ScrollView className="flex-1" contentContainerClassName="gap-4 pb-8" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}>
-        <View className="gap-4 bg-primary px-4 pb-5 pt-3">
+    <View className="flex-1 bg-background">
+      <StatusBar style="light" />
+      <ScrollView className="flex-1" contentContainerClassName="gap-6 pb-8" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={PALETTE.accent} />}>
+        <GradientHeader className="gap-4">
           <View className="flex-row items-start justify-between">
             <View>
               <View className="flex-row items-center gap-2"><Icon as={greeting().icon} size={16} className="text-primary-foreground/70" /><Text className="text-sm text-primary-foreground/70">{greeting().label}</Text></View>
-              <Text className="mt-1 text-3xl font-bold text-primary-foreground">Find Your Kape</Text>
+              <Text className="mt-1 font-display text-3xl text-primary-foreground">Find Your Kape</Text>
             </View>
             <UserNotificationButton />
           </View>
-          <Button variant="secondary" className="justify-start bg-card" onPress={() => router.push('/(user)/search')}>
+          <Button variant="secondary" className="justify-start rounded-full bg-card" style={SHADOW.e2} onPress={() => router.push('/(user)/search')}>
             <Icon as={Search} size={18} className="text-muted-foreground" />
             <Text className="text-muted-foreground">Search coffee shops…</Text>
           </Button>
           <DiscoveryFilterRow />
-        </View>
+        </GradientHeader>
 
         <View className="mx-auto w-full max-w-2xl gap-4 px-4">
-          <Pressable accessibilityRole="button" onPress={() => router.push('/(user)/map' as never)} className="overflow-hidden rounded-2xl">
+          <PressableScale onPress={() => router.push('/(user)/map' as never)} scaleTo={0.98} className="overflow-hidden rounded-3xl" accessibilityLabel="Explore on Maps">
             <ImageBackground source={require('../../../assets/images/map-preview.png')} resizeMode="cover" className="px-6 py-6">
               <LinearGradient
-                colors={['rgba(32,18,10,0.55)', 'rgba(32,18,10,0.88)']}
+                colors={[`${PALETTE.primary}88`, `${PALETTE.primary}E0`]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={StyleSheet.absoluteFill}
@@ -54,14 +58,17 @@ export default function HomeScreen() {
                   <Text className="text-sm text-white/70">Find your next stop in Tagum City</Text>
                 </View>
                 <View className="h-11 w-11 items-center justify-center rounded-full bg-accent">
-                  <Icon as={ArrowRight} size={20} className="text-white" />
+                  <Icon as={MapPin} size={20} className="text-white" />
                 </View>
               </View>
             </ImageBackground>
-          </Pressable>
+          </PressableScale>
 
           <View className="flex-row items-center justify-between">
-            <Text className="text-xl font-bold">Featured Today</Text>
+            <View className="flex-row items-center gap-2">
+              <View className="h-5 w-1 rounded-full bg-accent" />
+              <Text className="font-display text-xl">Featured Today</Text>
+            </View>
             <Button size="sm" variant="link" onPress={() => router.push('/(user)/search')}><Text>See all</Text></Button>
           </View>
           <View className="gap-3">
@@ -72,7 +79,7 @@ export default function HomeScreen() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

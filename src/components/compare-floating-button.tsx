@@ -4,11 +4,12 @@ import { useBottomTabBarHeight } from 'expo-router/build/react-navigation/bottom
 import { X } from 'lucide-react-native';
 import { useCompareStore } from '@/store/compareStore';
 import { useShops } from '@/hooks/useShops';
-import { BottomTabInset } from '@/constants/theme';
+import { BottomTabInset, SHADOW, SPRING } from '@/constants/theme';
 import { Icon } from '@/components/ui/icon';
 import { Popover, PopoverClose, PopoverContent, PopoverOverlay, PopoverPortal, PopoverTrigger } from '@/components/ui/popover';
 import { Text } from '@/components/ui/text';
-import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
+import { useEffect } from 'react';
 
 function useTabHeight() {
   try {
@@ -28,12 +29,18 @@ export function CompareFloatingButton({ measuredTabHeight }: { measuredTabHeight
   const tabHeight = measuredTabHeight ?? fallbackTabHeight;
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  useEffect(() => {
+    if (ids.length >= 2) scale.set(withSequence(
+      withSpring(1.1, { ...SPRING.bouncy, reduceMotion: ReduceMotion.System }),
+      withSpring(1, { ...SPRING.bouncy, reduceMotion: ReduceMotion.System }),
+    ));
+  }, [ids.length, scale]);
 
   if (ids.length < 2 || pathname === '/compare' || pathname.endsWith('/compare')) return null;
 
   const popoverContent = (
     <PopoverContent side="top" align="end" sideOffset={8}
-      className="z-50 w-64 gap-3 rounded-2xl border border-border bg-card p-4 shadow-lg">
+      className="z-50 w-64 gap-3 rounded-3xl border border-border/60 bg-card p-4" style={SHADOW.e3}>
       <Text className="font-bold">Compare shops</Text>
       {ids.map((id) => <View key={id} className="flex-row items-center justify-between gap-2">
         <Text numberOfLines={1} className="flex-1 text-sm">{shops.find((shop) => shop.id === id)?.name ?? 'Shop'}</Text>
@@ -49,7 +56,7 @@ export function CompareFloatingButton({ measuredTabHeight }: { measuredTabHeight
   return (
     <Popover className="absolute right-4 z-50" style={{ bottom: tabHeight + 16 }}>
       <Animated.View style={animatedStyle}>
-        <PopoverTrigger className="rounded-full bg-primary px-4 py-3 shadow-lg shadow-black/20"
+        <PopoverTrigger className="rounded-full bg-primary px-4 py-3" style={SHADOW.e2}
           onPressIn={() => { scale.set(withSpring(0.97, { reduceMotion: ReduceMotion.System })); }}
           onPressOut={() => { scale.set(withSpring(1, { reduceMotion: ReduceMotion.System })); }}
           accessibilityLabel="Manage compared shops">
