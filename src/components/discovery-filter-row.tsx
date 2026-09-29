@@ -9,21 +9,28 @@ import { TAG_OPTIONS } from '@/constants/tags';
 export function DiscoveryFilterRow({ dark = false }: { dark?: boolean }) {
   const { priceBuckets, wifiOnly, tags, openNowOnly, setFilter, toggleArrayFilter, reset } = useFilterStore();
   const hasActiveFilter = wifiOnly || openNowOnly || priceBuckets.length > 0 || tags.length > 0;
+  const fadeColor = dark ? PALETTE.espresso2 : PALETTE.background;
+
 
   return (
     <View className="relative">
-    <ScrollView horizontal className="min-h-11" showsHorizontalScrollIndicator={false} contentContainerClassName="items-center gap-2 py-1 pr-6">
-      <FilterChip label="All" selected={!hasActiveFilter} onPress={reset} />
-      <FilterChip label="Open Now" selected={openNowOnly} onPress={() => setFilter('openNowOnly', !openNowOnly)} />
-      <FilterChip label="WiFi" selected={wifiOnly} onPress={() => setFilter('wifiOnly', !wifiOnly)} />
-      {(['budget', 'moderate', 'premium'] as PriceBucket[]).map((bucket) => (
-        <FilterChip key={bucket} label={PRICE_BUCKET_LABELS[bucket]} selected={priceBuckets.includes(bucket)} onPress={() => toggleArrayFilter('priceBuckets', bucket)} />
-      ))}
-      {TAG_OPTIONS.map((tag) => (
-        <FilterChip key={tag} label={tag} selected={tags.includes(tag)} onPress={() => toggleArrayFilter('tags', tag)} />
-      ))}
-    </ScrollView>
-    <LinearGradient pointerEvents="none" colors={['transparent', dark ? PALETTE.primary : PALETTE.card]} className="absolute bottom-0 right-0 top-0 w-6" />
-    </View>
+      <ScrollView horizontal className="min-h-11" showsHorizontalScrollIndicator={false} contentContainerClassName="items-center gap-2 py-1 pr-6">
+        <FilterChip label="All" selected={!hasActiveFilter} onPress={reset} />
+        <FilterChip label="Open Now" selected={openNowOnly} onPress={() => setFilter('openNowOnly', !openNowOnly)} />
+        <FilterChip label="WiFi" selected={wifiOnly} onPress={() => setFilter('wifiOnly', !wifiOnly)} />
+        {(['budget', 'moderate', 'premium'] as PriceBucket[]).map((bucket) => (
+          <FilterChip key={bucket} label={PRICE_BUCKET_LABELS[bucket]} selected={priceBuckets.includes(bucket)} onPress={() => toggleArrayFilter('priceBuckets', bucket)} />
+        ))}
+        {TAG_OPTIONS.map((tag) => (
+          <FilterChip key={tag} label={tag} selected={tags.includes(tag)} onPress={() => toggleArrayFilter('tags', tag)} />
+        ))}
+      </ScrollView>
+      <LinearGradient
+        pointerEvents="none"
+        colors={[`${fadeColor}00`, fadeColor]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        className="absolute bottom-0 right-0 top-0 w-6"
+      />    </View>
   );
 }

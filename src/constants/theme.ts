@@ -21,6 +21,7 @@ export const PALETTE = {
   gold: '#E9AC3F',
   creamDeep: '#EDE5D9',
   card: '#FDFCF9',
+  background: '#F8F4ED', 
   mutedForeground: '#8D7F72',
 } as const;
 
