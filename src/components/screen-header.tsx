@@ -8,6 +8,8 @@ import { PressableScale } from '@/components/ui/pressable-scale';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { StatusBar } from 'expo-status-bar';
+import { MarqueeText } from '@/components/ui/marquee-text';
+
 
 export function ScreenHeader({ title, fallbackHref, right, subtitle }: {
   title: string;
@@ -22,7 +24,7 @@ export function ScreenHeader({ title, fallbackHref, right, subtitle }: {
         <Icon as={ArrowLeft} size={21} className="text-primary-foreground" />
       </PressableScale>
       <View className="min-w-0 flex-1">
-        <Text numberOfLines={1} className="font-display text-xl text-primary-foreground">{title}</Text>
+        <MarqueeText className="font-display text-xl text-primary-foreground">{title}</MarqueeText>
         {subtitle ? <Text className="text-sm text-primary-foreground/75">{subtitle}</Text> : null}
       </View>
       {right}
