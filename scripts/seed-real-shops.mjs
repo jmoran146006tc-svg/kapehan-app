@@ -9,7 +9,8 @@
  *
  * REAL:        name, address, lat/lng, hours, menu items + prices, photo URLs
  * PLACEHOLDER: tags (seeded-random), hasWifi (seeded-random) -> verify later
- * RATINGS:     0 / 0 unless scripts/shop-ratings.json has an entry for the slug
+ * RATINGS:     Google average from scripts/shop-ratings.json when available;
+ *              reviewCount tracks only reviews submitted in this app.
  *
  * USAGE (project root, PowerShell):
  *   $env:GOOGLE_APPLICATION_CREDENTIALS='C:\path\to\service-account.json'
@@ -28,6 +29,8 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { applicationDefault, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
@@ -41,7 +44,7 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 //           values (00:00, 01:00...), so isOpenNow() must handle overnight (see Codex prompt).
 // ---------------------------------------------------------------------------
 
-const SHOPS = [
+export const SHOPS = [
   { name: 'Dusk Coffee', address: 'GSM Building, Door 6, National Highway, Brgy. Visayan Village', lat: 7.439612, lng: 125.803961, hours: 'daily 10:00-00:00', menu: 'L:Spanish Latte:150|N:Hojicha Latte:200|N:Matcha Latte:220|F:Brown Butter Cookies:30', img: 'https://res.cloudinary.com/hoeyhawg/image/upload/v1790677758/dusk_coffee.jpg' },
   { name: '11:11 Café', address: 'Purok Gumamela 163, Apokon', lat: 7.422271, lng: 125.82476, hours: 'daily 10:00-22:00', menu: 'F:Classic Sisig:125|F:Ultimate Chicken:135|N:Iced Matcha:90|L:Iced Latte:95', phone: '+63 905 181 5343', img: 'https://res.cloudinary.com/hoeyhawg/image/upload/v1790678414/11coffee.jpg' },
   { name: 'Coffee Maybe Tagum', address: 'Purok Matinabangon (inside a village)', lat: 7.459418, lng: 125.81579, hours: 'mon x; tue-fri 10:00-20:00; sat-sun 10:00-21:00', menu: 'L:Spanish Latte:175|N:Matcha Latte:189|L:Vanilla Latte:160', phone: '+63 907 370 2240', img: 'https://res.cloudinary.com/hoeyhawg/image/upload/v1790678770/coffee_maybe.jpg' },
@@ -128,7 +131,7 @@ function mulberry32(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-function slugify(name) {
+export function slugify(name) {
   return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
@@ -176,7 +179,7 @@ function parseMenu(source) {
   });
 }
 
-function buildShop(raw, ownerId, ratings) {
+export function buildShop(raw, ownerId, ratings) {
   const slug = slugify(raw.name);
   const rng = mulberry32(hashString(raw.name));
   const menu = parseMenu(raw.menu);
@@ -195,7 +198,6 @@ function buildShop(raw, ownerId, ratings) {
   if (raw.outdoor) tags.add('Outdoor Seating');
 
   const rating = ratings[slug];
-  const reviewCount = rating?.reviewCount > 0 ? rating.reviewCount : 0;
   const shop = {
     name: raw.name,
     ownerId,
@@ -210,14 +212,11 @@ function buildShop(raw, ownerId, ratings) {
     photos: raw.img ? [raw.img] : [],
     hours: parseHours(raw.hours, raw.name),
     status: 'approved',
-    avgRating: reviewCount ? rating.avgRating : 0,
-    reviewCount,
+    avgRating: rating?.avgRating ?? 0,
+    reviewCount: 0,
     viewCount: 0,
+    ratingCounts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
   };
-  // With no imported rating, start the star histogram at zero. With an imported rating,
-  // only write a histogram if one was actually provided (never invent a distribution).
-  if (!reviewCount) shop.ratingCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  else if (rating.ratingCounts) shop.ratingCounts = rating.ratingCounts;
 
   return { slug, shop, products: priced.map(({ id, name, category, price }) => ({ id, name, category, price })), unpriced: menu.length - priced.length, noPrice: !basis.length };
 }
@@ -227,7 +226,7 @@ function loadRatings() {
   if (!existsSync(path)) return {};
   const data = JSON.parse(readFileSync(path, 'utf8'));
   for (const [slug, r] of Object.entries(data)) {
-    const ok = typeof r.avgRating === 'number' && r.avgRating >= 0 && r.avgRating <= 5 && Number.isInteger(r.reviewCount) && r.reviewCount >= 0;
+    const ok = typeof r.avgRating === 'number' && Number.isFinite(r.avgRating) && r.avgRating >= 0 && r.avgRating <= 5;
     if (!ok) throw new Error(`shop-ratings.json: invalid entry for "${slug}"`);
   }
   return data;
@@ -265,7 +264,7 @@ async function main() {
   console.log(`${apply ? 'Seeding' : 'Preview:'} ${built.length} shops, ${built.reduce((n, b) => n + b.products.length, 0)} menu items.\n`);
   for (const { slug, shop, products } of built) {
     const range = shop.priceMax ? `₱${shop.priceMin}-₱${shop.priceMax}` : 'no prices';
-    console.log(`  ${slug.padEnd(34)} ${range.padEnd(12)} ${String(products.length).padStart(2)} items  ★${shop.avgRating}(${shop.reviewCount})  [${shop.tags.join(', ') || '-'}]`);
+    console.log(`  ${slug.padEnd(34)} ${range.padEnd(12)} ${String(products.length).padStart(2)} items  ★${shop.avgRating.toFixed(1)}(${shop.reviewCount})  [${shop.tags.join(', ') || '-'}]`);
   }
   const noPhoto = built.filter((b) => !b.shop.photos.length).length;
   const noPrice = built.filter((b) => b.noPrice).map((b) => b.shop.name);
@@ -327,4 +326,6 @@ async function main() {
   console.log(`\nDone. Wrote ${built.length} shops and ${ops.length - built.length} menu items, all owned by ${ownerEmail}.`);
 }
 
-main().catch((error) => { console.error(error instanceof Error ? error.message : error); process.exitCode = 1; });
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => { console.error(error instanceof Error ? error.message : error); process.exitCode = 1; });
+}

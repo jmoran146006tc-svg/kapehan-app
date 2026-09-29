@@ -1,1 +1,257 @@
-{}
+{
+  "dusk-coffee": {
+    "avgRating": 4.9,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "11-11-cafe": {
+    "avgRating": 4.9,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "coffee-maybe-tagum": {
+    "avgRating": 4.8,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "kuan-coffee": {
+    "avgRating": 4.7,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "high-ground": {
+    "avgRating": 4.4,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "mono-coffee": {
+    "avgRating": 4.8,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "bean-o-clock-coffee-to-go": {
+    "avgRating": 4.8,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "bean-barrel-coffee-bar": {
+    "avgRating": 4.7,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "shade-cafe": {
+    "avgRating": 4.9,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "mr-brew": {
+    "avgRating": 4.9,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "coffee-keeper": {
+    "avgRating": 5,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "kurahi-coffee": {
+    "avgRating": 4.6,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "yuyu-cafe-and-dessert-shop": {
+    "avgRating": 4.4,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "hoon-bakery-cafe": {
+    "avgRating": 4.6,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "dear-coffee-co-apokon": {
+    "avgRating": 4.5,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "the-turq-cafe": {
+    "avgRating": 4.9,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "kapenings": {
+    "avgRating": 5,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "re-start-coffee": {
+    "avgRating": 4.9,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "kafeneio": {
+    "avgRating": 5,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "rookie-cafe": {
+    "avgRating": 4.7,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "kanoffee": {
+    "avgRating": 4.9,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "cafe-mellow": {
+    "avgRating": 4.4,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "the-brew-wenyo": {
+    "avgRating": 5,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "heisei-coffee-tagum": {
+    "avgRating": 4.8,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "paayo-cafe": {
+    "avgRating": 5,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "palm-breeze-cafe": {
+    "avgRating": 4.8,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "christianitea-tagum": {
+    "avgRating": 5,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "the-breakfast-club-tagum": {
+    "avgRating": 4.3,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "green-coffee-tagum": {
+    "avgRating": 4.3,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "koroa-coffee-tagum": {
+    "avgRating": 4.8,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "mama-jeans-matcha-bar": {
+    "avgRating": 5,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "matcha-fam": {
+    "avgRating": 5,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "miko-s-brew-tagum": {
+    "avgRating": 4.2,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "kafe-snowbell": {
+    "avgRating": 4.3,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "catsy-coffee": {
+    "avgRating": 5,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "ryokou-8100": {
+    "avgRating": 4.3,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "wallside": {
+    "avgRating": 4.9,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "aurora-coffee": {
+    "avgRating": 4.3,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "nicchiato": {
+    "avgRating": 4.5,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "caffeine-jitters-co": {
+    "avgRating": 4.7,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "neimar-s-cafe": {
+    "avgRating": 5,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "shell-cafe": {
+    "avgRating": 3.7,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "martha-s-coffee-house": {
+    "avgRating": 3.8,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "cove-cafe": {
+    "avgRating": 4.5,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "22-27-korean-cafe": {
+    "avgRating": 4.6,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "mabeani-cafe-and-restaurant": {
+    "avgRating": 4.6,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "tea-barrel-tagum": {
+    "avgRating": 4,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "blugre-coffee-tagum": {
+    "avgRating": 4.3,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "annipie": {
+    "avgRating": 3.4,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "starbucks": {
+    "avgRating": 4.4,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  },
+  "coffee-break": {
+    "avgRating": 4.8,
+    "source": "Google Maps",
+    "checkedAt": "2026-09-30"
+  }
+}
