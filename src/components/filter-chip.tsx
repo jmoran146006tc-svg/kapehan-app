@@ -22,7 +22,7 @@ export function FilterChip({ label, selected = false, onPress }: FilterChipProps
       variant={selected ? 'default' : 'outline'}
       className={cn(
         'shrink-0 rounded-full',
-        selected ? 'bg-accent shadow-sm shadow-accent/30' : 'border-border/60 bg-card',
+        selected ? 'bg-accent shadow-sm shadow-accent/30' : 'border-border/60 bg-card active:bg-card/70',
         Platform.select({
           web: selected
             ? 'transition-colors duration-150 hover:bg-accent/90'
@@ -32,8 +32,7 @@ export function FilterChip({ label, selected = false, onPress }: FilterChipProps
       onPress={() => { select(); onPress(); }}
       onPressIn={() => { scale.set(withSpring(0.97, { ...SPRING.snappy, reduceMotion: ReduceMotion.System })); }}
       onPressOut={() => { scale.set(withSpring(1, { ...SPRING.snappy, reduceMotion: ReduceMotion.System })); }}>
-      <Text className={selected ? 'text-accent-foreground' : 'text-foreground'}>{label}</Text>
-    </Button>
+      <Text className={selected ? 'text-accent-foreground' : 'text-foreground group-hover:text-foreground group-active:text-foreground'}>{label}</Text>    </Button>
     </Animated.View>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FlatList, View } from 'react-native';
 import { router } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
@@ -20,6 +20,8 @@ import { EmptyState } from '@/components/empty-state';
 import { ShopCard } from '@/components/shop-card';
 import { ShopCardSkeleton } from '@/components/shop-card-skeleton';
 import type { UserPreferences } from '@/types/user';
+import { LinearGradient } from '@/components/ui/linear-gradient';
+import { PALETTE } from '@/constants/theme';
 
 export default function SearchScreen() {
   const { shops, loading, refreshing, refresh, error } = useFilteredShops();
@@ -30,6 +32,7 @@ export default function SearchScreen() {
   const ids = useCompareStore((state) => state.ids);
   const toggle = useCompareStore((state) => state.toggle);
   const { savedShopIds, savingShopId, toggleSavedShop } = useSavedShops();
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     if (!user || appliedPreferencesFor.current === user.uid) return;
@@ -69,30 +72,41 @@ export default function SearchScreen() {
         {loading ? (
           <View className="gap-3"><ShopCardSkeleton /><ShopCardSkeleton /><ShopCardSkeleton /></View>
         ) : (
-          <FlatList
-            data={shops}
-            keyExtractor={(shop) => shop.id}
-            refreshing={refreshing}
-            onRefresh={() => void refresh()}
-            initialNumToRender={8}
-            windowSize={7}
-            contentContainerClassName="gap-3 pb-4"
-            ListEmptyComponent={
-              <EmptyState title={error ? 'Coffee shops are unavailable. Pull down to retry.' : 'No approved coffee shops match these filters yet.'} description="" />
-            }
-            renderItem={({ item, index }) => (
-              <ShopCard
-                index={index}
-                shop={item}
-                onPress={() => router.push({ pathname: '/(user)/shop/[id]', params: { id: item.id } })}
-                saved={savedShopIds.includes(item.id)}
-                saving={savingShopId === item.id}
-                onToggleSaved={() => void toggleSavedShop(item.id)}
-                compared={ids.includes(item.id)}
-                onToggleCompare={() => toggle(item.id)}
+          <View className="relative flex-1" style={{ minHeight: 0 }}>
+            <FlatList
+              data={shops}
+              keyExtractor={(shop) => shop.id}
+              refreshing={refreshing}
+              onRefresh={() => void refresh()}
+              onScroll={(event) => setScrolled(event.nativeEvent.contentOffset.y > 4)}
+              scrollEventThrottle={16}
+              initialNumToRender={8}
+              windowSize={7}
+              contentContainerClassName="gap-3 pb-4"
+              ListEmptyComponent={
+                <EmptyState title={error ? 'Coffee shops are unavailable. Pull down to retry.' : 'No approved coffee shops match these filters yet.'} description="" />
+              }
+              renderItem={({ item, index }) => (
+                <ShopCard
+                  index={index}
+                  shop={item}
+                  onPress={() => router.push({ pathname: '/(user)/shop/[id]', params: { id: item.id } })}
+                  saved={savedShopIds.includes(item.id)}
+                  saving={savingShopId === item.id}
+                  onToggleSaved={() => void toggleSavedShop(item.id)}
+                  compared={ids.includes(item.id)}
+                  onToggleCompare={() => toggle(item.id)}
+                />
+              )}
+            />
+            {scrolled ? (
+              <LinearGradient
+                pointerEvents="none"
+                colors={[PALETTE.background, `${PALETTE.background}00`]}
+                className="absolute left-0 right-0 top-0 h-5"
               />
-            )}
-          />
+            ) : null}
+          </View>
         )}
       </View>
     </View>

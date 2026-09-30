@@ -21,10 +21,12 @@
  *   # write everything
  *   node scripts/seed-real-shops.mjs --apply --project=kapehan-app-4c616 `
  *        --owner-email=owner@example.com [--owner-password=Secret123] `
- *        [--owner-name="Kapehan Listings"] [--admin-email=admin@example.com]
+ *        [--owner-name="Kapehan Listings"] `
+ *        [--admin-email=admin@example.com --admin-password=Secret123]
  *
  *   --owner-password is only needed if the owner Auth account doesn't exist yet
- *   (the script creates it). --admin-email re-grants role:"admin" after a wipe.
+ *   (the script creates it). --admin-password is only needed if the admin
+ *   Auth account doesn't exist yet. --admin-email also grants role:"admin".
  *   --force allows seeding even if shops owned by someone else already exist.
  */
 
@@ -298,8 +300,13 @@ async function main() {
 
   const adminEmail = option('--admin-email');
   if (adminEmail) {
-    const admin = await findAuthUser(auth, adminEmail);
-    if (!admin) throw new Error(`No Auth account for admin ${adminEmail}.`);
+    let admin = await findAuthUser(auth, adminEmail);
+    if (!admin) {
+      const password = option('--admin-password');
+      if (!password) throw new Error(`No Auth account for admin ${adminEmail}. Pass --admin-password=<6+ chars> to create it, or omit --admin-email.`);
+      admin = await auth.createUser({ email: adminEmail, password, displayName: 'Kapehan Admin' });
+      console.log(`Created Auth account ${adminEmail} (${admin.uid}).`);
+    }
     await upsertUser(db, admin.uid, adminEmail, admin.displayName ?? 'Kapehan Admin', 'admin');
     console.log(`Admin profile ready: ${adminEmail} (${admin.uid}) role=admin`);
   }

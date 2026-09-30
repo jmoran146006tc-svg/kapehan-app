@@ -64,7 +64,6 @@ export default function AdminDashboardScreen() {
   const reviewCounts = useMemo(() => Object.fromEntries(users.map((account) => [account.id, account.reviewCount ?? 0])), [users]);
   const pending = shops.filter((shop) => shop.status === 'pending' || Boolean(shop.removalRequest)).length;
   const ownerCount = users.filter((account) => account.role === 'owner').length;
-  const reviewCount = shops.reduce((total, shop) => total + shop.reviewCount, 0);
 
   async function refresh() {
     setRefreshing(true);
@@ -130,7 +129,7 @@ export default function AdminDashboardScreen() {
     </GradientHeader>
     <View className="mx-auto w-full max-w-2xl flex-1 gap-3 px-4 pt-4" style={{ minHeight: 0 }}>
       <View className="flex-row rounded-2xl bg-card py-4">
-        {([{ label: 'Users', value: users.length }, { label: 'Owners', value: ownerCount }, { label: 'Pending', value: pending }, { label: 'Reviews', value: reviewCount }] as const).map((metric) => <View key={metric.label} className={metric.label === 'Pending' && pending ? 'flex-1 items-center rounded-xl bg-pending px-1' : 'flex-1 items-center px-1'}><Text className={metric.label === 'Pending' && pending ? 'font-display text-2xl text-pending-foreground' : 'font-display text-2xl text-primary'}>{metric.value}</Text><Text className="text-center text-xs text-muted-foreground">{metric.label}</Text></View>)}
+        {([{ label: 'Users', value: users.length }, { label: 'Owners', value: ownerCount }, { label: 'Pending', value: pending }] as const).map((metric) => <View key={metric.label} className={metric.label === 'Pending' && pending ? 'flex-1 items-center rounded-xl bg-pending px-1' : 'flex-1 items-center px-1'}><Text className={metric.label === 'Pending' && pending ? 'font-display text-2xl text-pending-foreground' : 'font-display text-2xl text-primary'}>{metric.value}</Text><Text className="text-center text-xs text-muted-foreground">{metric.label}</Text></View>)}
       </View>
       <UnderlineTabs tabs={[{ key: 'users', label: 'Users' }, { key: 'owners', label: `Listings (${pending})` }]} value={tab} onChange={(value) => setTab(value as AdminTab)} />
       {tab === 'users' && usersLoadFailed ? <Text className="text-muted-foreground">User accounts are unavailable right now.</Text> : null}
