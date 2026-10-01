@@ -97,7 +97,7 @@ service cloud.firestore {
       let reviewAlreadyExists = exists(reviewBeforePath);
       let oldRating = reviewAlreadyExists ? get(reviewBeforePath).data.rating : 0;
       let nextCount = shopBefore.data.reviewCount + (reviewAlreadyExists ? 0 : 1);
-      let nextAverage = ((shopBefore.data.avgRating * shopBefore.data.reviewCount) - oldRating + reviewAfter.data.rating) / nextCount;
+      let nextTotal = (shopBefore.data.avgRating * shopBefore.data.reviewCount) - oldRating + reviewAfter.data.rating;
 
       return ((('ratingCounts' in shopBefore.data) &&
           shopAfter.data.diff(shopBefore.data).affectedKeys().hasOnly(['avgRating', 'reviewCount', 'ratingCounts']) &&
@@ -121,7 +121,7 @@ service cloud.firestore {
           ? reviewAfter.data.createdAt == get(reviewBeforePath).data.createdAt
           : reviewAfter.data.createdAt == request.time) &&
                 shopAfter.data.reviewCount == nextCount &&
-        math.abs(shopAfter.data.avgRating - nextAverage) < 0.0001;
+        math.abs((shopAfter.data.avgRating * nextCount) - nextTotal) < 0.001;
     }
 
     function validNotification() {
