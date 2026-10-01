@@ -129,7 +129,17 @@ export default function AdminDashboardScreen() {
     </GradientHeader>
     <View className="mx-auto w-full max-w-2xl flex-1 gap-3 px-4 pt-4" style={{ minHeight: 0 }}>
       <View className="flex-row rounded-2xl bg-card py-4">
-        {([{ label: 'Users', value: users.length }, { label: 'Owners', value: ownerCount }, { label: 'Pending', value: pending }] as const).map((metric) => <View key={metric.label} className={metric.label === 'Pending' && pending ? 'flex-1 items-center rounded-xl bg-pending px-1' : 'flex-1 items-center px-1'}><Text className={metric.label === 'Pending' && pending ? 'font-display text-2xl text-pending-foreground' : 'font-display text-2xl text-primary'}>{metric.value}</Text><Text className="text-center text-xs text-muted-foreground">{metric.label}</Text></View>)}
+        {([{ label: 'Users', value: users.length }, { label: 'Owners', value: ownerCount }, { label: 'Pending', value: pending }] as const).map((metric) => {
+          const highlight = metric.label === 'Pending' && pending > 0;
+          return (
+            <View key={metric.label} className="flex-1 items-center px-2">
+              <View className={highlight ? 'min-w-[72px] items-center rounded-xl bg-pending px-3 py-1' : 'items-center px-3 py-1'}>
+                <Text className={highlight ? 'font-display text-2xl text-pending-foreground' : 'font-display text-2xl text-primary'}>{metric.value}</Text>
+                <Text className="text-center text-xs text-muted-foreground">{metric.label}</Text>
+              </View>
+            </View>
+          );
+        })}
       </View>
       <UnderlineTabs tabs={[{ key: 'users', label: 'Users' }, { key: 'owners', label: `Listings (${pending})` }]} value={tab} onChange={(value) => setTab(value as AdminTab)} />
       {tab === 'users' && usersLoadFailed ? <Text className="text-muted-foreground">User accounts are unavailable right now.</Text> : null}
@@ -152,10 +162,10 @@ function UsersList({ users, reviewCounts, adminId, updatingId, onStatus, loading
 
   return <>
     <FlatList className="flex-1" style={{ minHeight: 0 }} data={loading ? [] : visibleUsers} keyExtractor={(account) => account.id} initialNumToRender={10} windowSize={7} refreshing={refreshing} onRefresh={() => void onRefresh()} contentContainerClassName="gap-3 pb-8" ListHeaderComponent={<View className="gap-3 pb-2"><Text className="text-xl font-bold">Registered Users</Text><Input placeholder="Search name or email" value={search} onChangeText={setSearch} /><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">{(['all', 'active', 'suspended'] as const).map((status) => <FilterChip key={status} label={status[0].toUpperCase() + status.slice(1)} selected={statusFilter === status} onPress={() => setStatusFilter(status)} />)}</ScrollView></View>} ListEmptyComponent={loading ? <View className="gap-3"><Skeleton className="h-28 w-full rounded-xl" /><Skeleton className="h-28 w-full rounded-xl" /></View> : !loadFailed ? <Text className="text-muted-foreground">No matching accounts.</Text> : null} renderItem={({ item: account }) => {
-        const status = account.status ?? 'active';
-        const initials = (account.name || account.email || 'U').split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
-        return <Card className={Platform.select({ web: 'transition-all duration-200 hover:shadow-md' })}><CardHeader className="gap-3"><View className="flex-row items-start gap-3"><View className="h-10 w-10 items-center justify-center rounded-full bg-secondary"><Text className="font-bold">{initials}</Text></View><View className="flex-1"><CardTitle>{account.name || 'Unnamed user'}</CardTitle><Text className="text-sm text-muted-foreground">{account.email}</Text></View><Badge variant="secondary"><Text className="capitalize">{account.role}</Text></Badge><Badge className={status === 'active' ? 'border-transparent bg-success' : 'border-transparent bg-destructive/15'} variant="secondary"><Text className={status === 'active' ? 'text-success-foreground' : 'text-destructive'}>{status}</Text></Badge></View><Text className="text-sm text-muted-foreground">Joined {account.createdAt ? dayjs(account.createdAt.toDate()).format('MMM D, YYYY') : 'recently'} · {reviewCounts[account.id] ?? 0} reviews</Text><View className="flex-row gap-2"><Button className="flex-1" size="sm" variant="outline" disabled={account.id === adminId} loading={updatingId === account.id} loadingLabel="Updating…" onPress={() => onStatus(account, status === 'active' ? 'suspended' : 'active')}><Text>{status === 'active' ? 'Suspend Account' : 'Reactivate Account'}</Text></Button><Button className="flex-1" size="sm" variant="outline" onPress={() => setViewingAccount(account)}><Text>View Account</Text></Button></View></CardHeader></Card>;
-      }} />
+      const status = account.status ?? 'active';
+      const initials = (account.name || account.email || 'U').split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+      return <Card className={Platform.select({ web: 'transition-all duration-200 hover:shadow-md' })}><CardHeader className="gap-3"><View className="flex-row items-start gap-3"><View className="h-10 w-10 items-center justify-center rounded-full bg-secondary"><Text className="font-bold">{initials}</Text></View><View className="flex-1"><CardTitle>{account.name || 'Unnamed user'}</CardTitle><Text className="text-sm text-muted-foreground">{account.email}</Text></View><Badge variant="secondary"><Text className="capitalize">{account.role}</Text></Badge><Badge className={status === 'active' ? 'border-transparent bg-success' : 'border-transparent bg-destructive/15'} variant="secondary"><Text className={status === 'active' ? 'text-success-foreground' : 'text-destructive'}>{status}</Text></Badge></View><Text className="text-sm text-muted-foreground">Joined {account.createdAt ? dayjs(account.createdAt.toDate()).format('MMM D, YYYY') : 'recently'} · {reviewCounts[account.id] ?? 0} reviews</Text><View className="flex-row gap-2"><Button className="flex-1" size="sm" variant="outline" disabled={account.id === adminId} loading={updatingId === account.id} loadingLabel="Updating…" onPress={() => onStatus(account, status === 'active' ? 'suspended' : 'active')}><Text>{status === 'active' ? 'Suspend Account' : 'Reactivate Account'}</Text></Button><Button className="flex-1" size="sm" variant="outline" onPress={() => setViewingAccount(account)}><Text>View Account</Text></Button></View></CardHeader></Card>;
+    }} />
     <Dialog open={!!viewingAccount} onOpenChange={(open) => { if (!open) { blurActiveElement(); setViewingAccount(null); } }}>
       <DialogContent>
         <DialogHeader className="items-center gap-3">
