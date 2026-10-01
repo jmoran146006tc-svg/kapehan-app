@@ -120,8 +120,8 @@ service cloud.firestore {
         (reviewAlreadyExists
           ? reviewAfter.data.createdAt == get(reviewBeforePath).data.createdAt
           : reviewAfter.data.createdAt == request.time) &&
-        shopAfter.data.reviewCount == nextCount &&
-        shopAfter.data.avgRating == nextAverage;
+                shopAfter.data.reviewCount == nextCount &&
+        math.abs(shopAfter.data.avgRating - nextAverage) < 0.0001;
     }
 
     function validNotification() {

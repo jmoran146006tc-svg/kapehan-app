@@ -23,7 +23,7 @@ import { useToast } from '@/hooks/useToast';
 
 export default function RegisterScreen() {
   const { showToast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittingRole, setSubmittingRole] = useState<'user' | 'owner' | null>(null);
   const [legalDocument, setLegalDocument] = useState<'terms' | 'privacy' | null>(null);
   const { control, handleSubmit } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -31,7 +31,7 @@ export default function RegisterScreen() {
   });
 
   async function handleRegister(values: RegisterValues, role: 'user' | 'owner') {
-    setIsSubmitting(true);
+    setSubmittingRole(role);
     try {
       const cred = await withTimeout(createUserWithEmailAndPassword(auth, values.email, values.password));
       await withTimeout(setDoc(doc(db, 'users', cred.user.uid), {
@@ -50,14 +50,14 @@ export default function RegisterScreen() {
     } catch (error) {
       showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not create your account. Please try again.') });
     } finally {
-      setIsSubmitting(false);
+      setSubmittingRole(null);
     }
   }
 
   return (
-    <SafeAreaView edges={['bottom']} className="flex-1 bg-primary">
-      <AuthShell active="register">
-        <WebForm className="gap-4" onSubmit={handleSubmit((values) => handleRegister(values, 'user'), (errors) => toastFormErrors(errors, showToast))}>
+  <SafeAreaView edges={['bottom']} className="flex-1 bg-primary">
+    <AuthShell active="register">
+      <WebForm className="gap-4" onSubmit={handleSubmit((values) => handleRegister(values, 'user'), (errors) => toastFormErrors(errors, showToast))}>
         <Text className="text-2xl font-bold">Join Kapehan</Text>
         <AuthField index={0}><Controller control={control} name="name" render={({ field }) => (
           <Input placeholder="Maria Santos" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} autoComplete="name" />
@@ -80,24 +80,24 @@ export default function RegisterScreen() {
           </Text>
         </View>
 
-        <Button loading={isSubmitting} loadingLabel="Creating account…" onPress={handleSubmit((values) => handleRegister(values, 'user'), (errors) => toastFormErrors(errors, showToast))}>
+        <Button loading={submittingRole === 'user'} loadingLabel="Creating account…" disabled={submittingRole !== null} onPress={handleSubmit((values) => handleRegister(values, 'user'), (errors) => toastFormErrors(errors, showToast))}>
           <Text>Create Customer Account</Text>
         </Button>
-        <Button className="bg-accent" loading={isSubmitting} loadingLabel="Creating account…" onPress={handleSubmit((values) => handleRegister(values, 'owner'), (errors) => toastFormErrors(errors, showToast))}>
+        <Button className="bg-accent" loading={submittingRole === 'owner'} loadingLabel="Creating account…" disabled={submittingRole !== null} onPress={handleSubmit((values) => handleRegister(values, 'owner'), (errors) => toastFormErrors(errors, showToast))}>
           <Text>Create Owner Account</Text>
         </Button>
-        </WebForm>
-        <Dialog open={legalDocument !== null} onOpenChange={(open) => { if (!open) setLegalDocument(null); }}>
-          <DialogContent className="max-h-[85%]">
-            <DialogHeader><DialogTitle>{legalDocument === 'terms' ? 'Terms & Conditions' : 'Data Privacy Notice'}</DialogTitle></DialogHeader>
-            <ScrollView className="w-full" contentContainerClassName="pb-4">
-              <Text>{legalDocument === 'terms'
-                ? '[PLACEHOLDER — replace with reviewed Terms & Conditions text]'
-                : '[PLACEHOLDER — replace with reviewed Philippine Data Privacy Act notice text]'}</Text>
-            </ScrollView>
-          </DialogContent>
-        </Dialog>
-      </AuthShell>
-    </SafeAreaView>
+      </WebForm>
+      <Dialog open={legalDocument !== null} onOpenChange={(open) => { if (!open) setLegalDocument(null); }}>
+        <DialogContent className="max-h-[85%]">
+          <DialogHeader><DialogTitle>{legalDocument === 'terms' ? 'Terms & Conditions' : 'Data Privacy Notice'}</DialogTitle></DialogHeader>
+          <ScrollView className="w-full" contentContainerClassName="pb-4">
+            <Text>{legalDocument === 'terms'
+              ? '[PLACEHOLDER — replace with reviewed Terms & Conditions text]'
+              : '[PLACEHOLDER — replace with reviewed Philippine Data Privacy Act notice text]'}</Text>
+          </ScrollView>
+        </DialogContent>
+      </Dialog>
+    </AuthShell>
+  </SafeAreaView>
   );
 }

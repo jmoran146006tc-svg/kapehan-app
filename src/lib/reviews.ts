@@ -58,9 +58,11 @@ export async function submitReview(
     const previousTotal = (shop.avgRating ?? 0) * previousCount;
     // Remove an edited rating before adding the replacement so edits never inflate the average.
     const nextAverage = (previousTotal - previousRating + rating) / nextCount;
+    const authorName = (userSnap.exists() && typeof userSnap.data().name === 'string' && userSnap.data().name.trim()) ||
+      'Kapehan guest';
 
     if (isNewReview) {
-      tx.set(reviewRef, { userId, userName, rating, text, createdAt: serverTimestamp() });
+      tx.set(reviewRef, { userId, userName: authorName, rating, text, createdAt: serverTimestamp() });
     } else {
       tx.update(reviewRef, { rating, text, editedAt: serverTimestamp() });
     }
@@ -80,7 +82,7 @@ export async function submitReview(
       const notificationRef = doc(collection(db, 'users', shop.ownerId, 'notifications'));
       tx.set(notificationRef, {
         type: 'review_received',
-        message: `${userName} left a ${rating}-star review for ${shop.name}.`,
+        message: `${authorName} left a ${rating}-star review for ${shop.name}.`,
         shopId,
         read: false,
         createdAt: serverTimestamp(),
