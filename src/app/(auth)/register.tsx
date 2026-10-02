@@ -3,7 +3,6 @@ import { ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { auth, db } from '@/lib/firebase';
@@ -16,7 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
-import { AuthShell } from '@/components/auth-shell';
+import { AuthBody } from '@/components/auth-body';
 import { AuthField } from '@/components/auth-field';
 import { WebForm } from '@/components/web-form';
 import { useToast } from '@/hooks/useToast';
@@ -55,8 +54,7 @@ export default function RegisterScreen() {
   }
 
   return (
-  <SafeAreaView edges={['bottom']} className="flex-1 bg-primary">
-    <AuthShell active="register">
+    <AuthBody>
       <WebForm className="gap-4" onSubmit={handleSubmit((values) => handleRegister(values, 'user'), (errors) => toastFormErrors(errors, showToast))}>
         <Text className="text-2xl font-bold">Join Kapehan</Text>
         <AuthField index={0}><Controller control={control} name="name" render={({ field }) => (
@@ -97,7 +95,6 @@ export default function RegisterScreen() {
           </ScrollView>
         </DialogContent>
       </Dialog>
-    </AuthShell>
-  </SafeAreaView>
+    </AuthBody>
   );
 }
