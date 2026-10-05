@@ -26,7 +26,7 @@ export default function RegisterScreen() {
   const [legalDocument, setLegalDocument] = useState<'terms' | 'privacy' | null>(null);
   const { control, handleSubmit } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: '', email: '', password: '', role: 'user', agreedToTerms: false },
+    defaultValues: { name: '', email: '', password: '', confirmPassword: '', role: 'user', agreedToTerms: false },
   });
 
   async function handleRegister(values: RegisterValues, role: 'user' | 'owner') {
@@ -64,6 +64,9 @@ export default function RegisterScreen() {
           <Input placeholder="you@email.com" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} autoCapitalize="none" autoComplete="email" keyboardType="email-address" />
         )} /></AuthField>
         <AuthField index={2}><Controller control={control} name="password" render={({ field }) => (
+          <Input placeholder="••••••••" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} autoComplete="new-password" secureTextEntry />
+        )} /></AuthField>
+        <AuthField index={3}><Controller control={control} name="confirmPassword" render={({ field }) => (
           <Input placeholder="••••••••" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} autoComplete="new-password" secureTextEntry />
         )} /></AuthField>
 
