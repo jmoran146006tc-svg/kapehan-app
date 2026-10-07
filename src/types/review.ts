@@ -1,4 +1,5 @@
 import type { Timestamp } from 'firebase/firestore';
+import { MAX_REVIEW_PHOTOS } from '@/constants/reviews';
 
 export interface Review {
   id: string;
@@ -6,6 +7,7 @@ export interface Review {
   userName: string;
   rating: number;
   text: string;
+  photos: string[];
   createdAt: Timestamp | null;
   editedAt: Timestamp | null;
   ownerReply: { text: string; repliedAt: Timestamp | null; editedAt: Timestamp | null } | null;
@@ -27,6 +29,7 @@ export function toReview(id: string, data: unknown): Review {
     userName: typeof source.userName === 'string' ? source.userName : 'Kapehan guest',
     rating: typeof source.rating === 'number' && Number.isFinite(source.rating) ? source.rating : 0,
     text: typeof source.text === 'string' ? source.text : '',
+    photos: Array.isArray(source.photos) ? source.photos.filter((photo): photo is string => typeof photo === 'string').slice(0, MAX_REVIEW_PHOTOS) : [],
     createdAt: (source.createdAt as Timestamp | null | undefined) ?? null,
     editedAt: (source.editedAt as Timestamp | null | undefined) ?? null,
     ownerReply: typeof reply.text === 'string' && reply.text.trim()

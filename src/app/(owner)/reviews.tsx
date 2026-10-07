@@ -1,3 +1,4 @@
+import { ReviewPhotoStrip } from '@/components/review-photo-strip';
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
@@ -53,7 +54,7 @@ export default function OwnerReviewsScreen() {
               <CardTitle className="flex-1">{review.userName}</CardTitle>
               <View className="flex-row items-center gap-1"><Icon as={Star} size={14} fill="currentColor" className="text-accent" /><Text>{review.rating}/5</Text></View>
             </View>
-            <CardDescription>{review.text || 'No written comment.'}</CardDescription>
+            <CardDescription>{review.text || 'No written comment.'}</CardDescription><ReviewPhotoStrip photos={review.photos} />
             <ReviewTime review={review} />
             {review.ownerReply?.text ? <View className="mt-2 rounded-lg bg-secondary p-3"><OwnerReplyLabel edited={Boolean(review.ownerReply.editedAt)} /><Text className="mt-1 text-sm">{review.ownerReply.text}</Text></View> : null}
           </CardHeader>

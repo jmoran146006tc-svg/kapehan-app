@@ -31,7 +31,8 @@ export async function submitReview(
   userId: string,
   userName: string,
   rating: number,
-  text: string
+  text: string,
+  photos: string[] = [],
 ) {
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
     throw new Error('Rating must be between 1 and 5');
@@ -62,9 +63,9 @@ export async function submitReview(
       'Kapehan guest';
 
     if (isNewReview) {
-      tx.set(reviewRef, { userId, userName: authorName, rating, text, createdAt: serverTimestamp() });
+      tx.set(reviewRef, { userId, userName: authorName, rating, text, ...(photos.length ? { photos } : {}), createdAt: serverTimestamp() });
     } else {
-      tx.update(reviewRef, { rating, text, editedAt: serverTimestamp() });
+      tx.update(reviewRef, { rating, text, photos, editedAt: serverTimestamp() });
     }
     const ratingCounts = nextRatingCounts(shop.ratingCounts, previousRating, rating);
     tx.update(shopRef, {

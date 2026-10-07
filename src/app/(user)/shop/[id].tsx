@@ -32,6 +32,8 @@ import { toReview, type Review } from '@/types/review';
 import { toShop, type Shop } from '@/types/shop';
 import { ShopLocationMap } from '@/components/shop-location-map';
 import { ShopGallery } from '@/components/shop-gallery';
+import { ReviewPhotoPicker } from '@/components/review-photo-picker';
+import { ReviewPhotoStrip } from '@/components/review-photo-strip';
 import { EmptyState } from '@/components/empty-state';
 import { cloudinaryImageUrl } from '@/lib/cloudinary';
 import { Badge } from '@/components/ui/badge';
@@ -79,7 +81,8 @@ function ShopDetailContent({ id }: { id: string }) {
   const [tab, setTab] = useState<ShopTab>('info');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const { control, handleSubmit, reset } = useForm<ReviewFormInput, any, ReviewFormValues>({ resolver: zodResolver(reviewFormSchema), defaultValues: { rating: 0, text: '' } });
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+  const { control, handleSubmit, reset } = useForm<ReviewFormInput, any, ReviewFormValues>({ resolver: zodResolver(reviewFormSchema), defaultValues: { rating: 0, text: '', photos: [] } });
 
   useEffect(() => {
     if (!id) return;
@@ -108,19 +111,20 @@ function ShopDetailContent({ id }: { id: string }) {
     void logShopView(user.uid, id).catch((error) => console.error('Failed to log shop view', error));
   }, [id, user]);
 
-  useEffect(() => {
-    const ownReview = reviews.find((review) => review.userId === user?.uid);
-    reset(ownReview ? { rating: ownReview.rating, text: ownReview.text } : { rating: 0, text: '' });
-  }, [reset, reviews, user]);
+  const currentReview = reviews.find((review) => review.userId === user?.uid);
+  // A scalar snapshot only changes when this author's form content/version changes.
+  const ownReviewJson = JSON.stringify({ uid: user?.uid, version: currentReview?.editedAt?.toMillis?.() ?? currentReview?.createdAt?.toMillis?.() ?? null, values: currentReview ? { rating: currentReview.rating, text: currentReview.text, photos: currentReview.photos } : { rating: 0, text: '', photos: [] } });
+  useEffect(() => { reset((JSON.parse(ownReviewJson) as { values: ReviewFormValues }).values); }, [ownReviewJson, reset]);
 
   const distanceKm = shop && location ? haversineKm(location.lat, location.lng, shop.lat, shop.lng) : null;
   const ratingCounts = useMemo(() => shop?.ratingCounts ?? reviews.reduce<Record<'1' | '2' | '3' | '4' | '5', number>>((counts, review) => ({ ...counts, [String(review.rating) as keyof typeof counts]: counts[String(review.rating) as keyof typeof counts] + 1 }), { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 }), [reviews, shop?.ratingCounts]);
 
   async function handleReviewSubmit(values: ReviewFormValues) {
+    if (isUploadingPhotos || isSubmittingReview) return;
     if (!user || !id) return showToast({ type: 'error', message: 'Log in to leave a review.' });
     setIsSubmittingReview(true);
     try {
-      await submitReview(id, user.uid, user.displayName || user.email || 'Kapehan guest', values.rating, values.text);
+      await submitReview(id, user.uid, user.displayName || user.email || 'Kapehan guest', values.rating, values.text, values.photos);
       showToast({ type: 'success', message: reviews.some((review) => review.userId === user.uid) ? 'Review updated' : 'Review posted' });
     } catch (error) {
       showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not post your review. Please try again.') });
@@ -199,7 +203,7 @@ function ShopDetailContent({ id }: { id: string }) {
           <AnimatedView key={tab} entering={FadeIn.duration(180).reduceMotion(ReduceMotion.System)} className="px-4">
             {tab === 'info' ? <InfoTab shop={shop} location={location} saved={saved} saving={savingShopId === shop.id} compared={ids.includes(shop.id)} onSave={() => void toggleSavedShop(shop.id)} onCompare={() => { toggle(shop.id); showToast({ type: 'success', message: ids.includes(shop.id) ? 'Removed from comparison' : 'Added to comparison' }); }} /> : null}
             {tab === 'menu' ? <MenuTab products={products} /> : null}
-            {tab === 'reviews' ? <ReviewsTab reviews={reviews} ratingCounts={ratingCounts} user={user ? { uid: user.uid } : null} control={control} isSubmitting={isSubmittingReview} onSubmit={handleSubmit(handleReviewSubmit, (errors) => toastFormErrors(errors, showToast))} hasOwnReview={ownReview} /> : null}
+            {tab === 'reviews' ? <ReviewsTab reviews={reviews} ratingCounts={ratingCounts} user={user ? { uid: user.uid } : null} control={control} isSubmitting={isSubmittingReview} isUploadingPhotos={isUploadingPhotos} onUploadingChange={setIsUploadingPhotos} onSubmit={handleSubmit(handleReviewSubmit, (errors) => toastFormErrors(errors, showToast))} hasOwnReview={ownReview} /> : null}
           </AnimatedView>
         </View>
       </AnimatedScrollView>
@@ -303,12 +307,14 @@ function RatingBar({ rating, count, total, index }: { rating: number; count: num
   );
 }
 
-function ReviewsTab({ reviews, ratingCounts, user, control, isSubmitting, onSubmit, hasOwnReview }: {
+function ReviewsTab({ reviews, ratingCounts, user, control, isSubmitting, isUploadingPhotos, onUploadingChange, onSubmit, hasOwnReview }: {
   reviews: Review[];
   ratingCounts: Record<'1' | '2' | '3' | '4' | '5', number>;
   user: { uid: string } | null;
   control: ReturnType<typeof useForm<ReviewFormInput, any, ReviewFormValues>>['control'];
   isSubmitting: boolean;
+  isUploadingPhotos: boolean;
+  onUploadingChange: (uploading: boolean) => void;
   onSubmit: () => void;
   hasOwnReview: boolean;
 }) {
@@ -345,7 +351,8 @@ function ReviewsTab({ reviews, ratingCounts, user, control, isSubmitting, onSubm
             <Controller control={control} name="text" render={({ field }) => (
               <Input className="min-h-24 py-3" multiline maxLength={1000} placeholder="Share your experience (optional)" value={field.value} onBlur={field.onBlur} onChangeText={field.onChange} />
             )} />
-            <Button loading={isSubmitting} loadingLabel="Posting review…" onPress={onSubmit}>
+            <Controller control={control} name="photos" render={({ field }) => <ReviewPhotoPicker photos={field.value ?? []} onChange={field.onChange} onUploadingChange={onUploadingChange} disabled={isSubmitting} />} />
+            <Button disabled={isUploadingPhotos} loading={isSubmitting} loadingLabel="Posting review…" onPress={onSubmit}>
               <Text>{hasOwnReview ? 'Update review' : 'Post review'}</Text>
             </Button>
           </CardHeader>
@@ -363,6 +370,7 @@ function ReviewsTab({ reviews, ratingCounts, user, control, isSubmitting, onSubm
                 </View>
               </View>
               <CardDescription>{review.text || 'No written comment.'}</CardDescription>
+              <ReviewPhotoStrip photos={review.photos} />
               <ReviewTime review={review} />
               {review.ownerReply?.text ? (
                 <View className="mt-2 rounded-lg border-l-2 border-accent bg-secondary p-3">
