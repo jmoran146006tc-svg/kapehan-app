@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { ArrowLeft, MapPin, Star } from 'lucide-react-native';
 import { useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ReduceMotion, SlideInDown } from 'react-native-reanimated';
+import { Easing, ReduceMotion, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { useShops } from '@/hooks/useShops';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import type { Shop } from '@/types/shop';
@@ -35,7 +35,7 @@ export default function MapScreen() {
       </View>
       <ShopsLocationMap shops={shops} selectedShopId={selected?.id} onSelect={setSelected} />
       {selected ? (
-        <AnimatedView key={selected.id} entering={SlideInDown.springify().damping(18).reduceMotion(ReduceMotion.System)} className="absolute bottom-6 left-4 right-4 max-w-md">
+        <AnimatedView entering={SlideInDown.duration(240).easing(Easing.out(Easing.cubic)).reduceMotion(ReduceMotion.System)} exiting={SlideOutDown.duration(160).reduceMotion(ReduceMotion.System)} className="absolute bottom-6 left-4 right-4 max-w-md">
           <Card className="py-3">
             <View className="flex-row items-center gap-3 px-4">
               <View className="h-16 w-16 overflow-hidden rounded-xl bg-secondary">

@@ -87,3 +87,11 @@
 - Traced the `Primitive.div failed to slot onto its children` exception to the web popover portal receiving both an overlay and content. The Radix portal uses `asChild` and requires one child. Web now portals the content directly; native retains its overlay.
 - Reproduced the exact exception with the installed Radix primitive using two children, then confirmed the single-child form renders.
 - Exported a temporary local comparison smoke route, opened the popover with two selected shops, and cleared the selection in the browser. The dialog appeared, closed cleanly, and the browser reported no console errors. Removed the temporary route and server afterward.
+
+## 2026-10-07 — Auth pill, container motion, and compact tabs
+
+- Gave the Log In/Register pill explicit layout and palette styles, equal-width pressables, and direct replacement navigation. Preserved the sliding indicator, keyboard header collapse, and hidden pill on other auth routes.
+- Replaced map-preview, toast, and native dialog spring entrances with reduced-motion-aware timing. Kept the map preview mounted when selecting another shop and preserved deliberate scale pulses and marker behavior.
+- Reduced tab icons to 20px with 2.25 strokes, labels to 11px/600, and pill spacing. Reserved a full-width icon slot and a 52px bar plus the bottom safe-area inset; comparison positioning still uses the measured bar height plus 16px.
+- Validation: `npx tsc --noEmit`, `npx expo lint --no-cache`, and `git diff --check` passed. Source inspection did not confirm that Expo Router's `Link asChild` drops child classes; its slot handles style/class merging, so the specific native interop cause remains unverified.
+- Visual QA remains pending: Metro's file watcher failed (CI mode served the HTML page, but the full web-bundle request timed out), browser automation stopped because it could not confidently identify Chrome's URL, and no Android or iOS Expo Go device was available. The temporary preview server was stopped afterward.

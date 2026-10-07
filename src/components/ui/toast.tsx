@@ -1,6 +1,6 @@
 import { createContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
-import Animated, { FadeInDown, FadeOutDown, ReduceMotion } from 'react-native-reanimated';
+import Animated, { Easing, FadeInDown, FadeOutDown, ReduceMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/text';
 import { success, warning } from '@/lib/haptics';
@@ -27,7 +27,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return <ToastContext.Provider value={{ showToast }}>
     {children}
     <View pointerEvents="box-none" className="absolute left-4 right-4 z-50 items-center gap-2" style={{ bottom: Math.max(80, insets.bottom + 64) }}>
-      {items.map((item) => <Animated.View key={item.id} entering={FadeInDown.springify().damping(16).reduceMotion(ReduceMotion.System)} exiting={FadeOutDown.duration(150).reduceMotion(ReduceMotion.System)} style={{ width: '100%', maxWidth: 448 }}>
+      {items.map((item) => <Animated.View key={item.id} entering={FadeInDown.duration(220).easing(Easing.out(Easing.cubic)).reduceMotion(ReduceMotion.System)} exiting={FadeOutDown.duration(150).reduceMotion(ReduceMotion.System)} style={{ width: '100%', maxWidth: 448 }}>
         <View className={item.type === 'success' ? 'rounded-md bg-primary px-4 py-3' : 'rounded-md bg-destructive px-4 py-3'}>
           <Text accessibilityRole="alert" className="text-sm font-medium text-primary-foreground">{item.message}</Text>
         </View>

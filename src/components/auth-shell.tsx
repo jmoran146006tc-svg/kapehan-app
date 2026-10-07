@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, View, useWindowDimensions } from 'react-native';
-import { Link, usePathname } from 'expo-router';
-import { Easing, FadeIn, ReduceMotion, SlideInDown, ZoomIn, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { router, usePathname } from 'expo-router';
+import Animated, { Easing, FadeIn, ReduceMotion, SlideInDown, ZoomIn, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AnimatedView } from '@/components/ui/animated';
 import { LinearGradient } from '@/components/ui/linear-gradient';
@@ -16,6 +16,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const active: AuthTab = pathname.endsWith('/register') ? 'register' : pathname.endsWith('/login') ? 'login' : null;
   const { width, height } = useWindowDimensions();
+  const pillWidth = Math.min(Math.max(width - 48, 0), 624);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const logoSize = Math.min(120, Math.max(72, Math.floor(height * 0.38 - 100)));
   const headerHeight = useSharedValue(height * 0.38);
@@ -77,21 +78,19 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           </LinearGradient>
         </AnimatedView>
         <AnimatedView entering={SlideInDown.duration(280).easing(Easing.out(Easing.cubic)).reduceMotion(ReduceMotion.System)} className="flex-1 overflow-hidden rounded-t-[32px] bg-background">
-          <AnimatedView style={[pillStyle, { width: Math.min(Math.max(width - 48, 0), 624), alignSelf: 'center' }]} className="overflow-hidden" pointerEvents={active ? 'auto' : 'none'} accessibilityElementsHidden={!active} importantForAccessibility={active ? 'auto' : 'no-hide-descendants'}>
-            <View className="relative flex-row rounded-full bg-secondary p-1" onLayout={(event) => segmentWidth.set(Math.max(event.nativeEvent.layout.width - 8, 0))}>
-              <AnimatedView pointerEvents="none" className="absolute bottom-1 left-1 top-1 rounded-full bg-primary" style={indicatorStyle} />
-              <Link href="/(auth)/login" replace asChild>
-                <Pressable className="min-h-11 flex-1 items-center justify-center rounded-full px-3" onPressIn={() => select()} accessibilityRole="tab" accessibilityState={{ selected: active === 'login' }}>
-                  <Text className={active === 'login' ? 'text-center font-semibold text-primary-foreground' : 'text-center font-semibold'}>Log In</Text>
+          <View style={{ width: pillWidth, alignSelf: 'center' }}>
+            <Animated.View style={[pillStyle, { overflow: 'hidden' }]} pointerEvents={active ? 'auto' : 'none'} accessibilityElementsHidden={!active} importantForAccessibility={active ? 'auto' : 'no-hide-descendants'}>
+              <View style={{ flexDirection: 'row', padding: 4, borderRadius: 999, backgroundColor: PALETTE.creamDeep }} onLayout={(event) => segmentWidth.set(Math.max(event.nativeEvent.layout.width - 8, 0))}>
+                <Animated.View pointerEvents="none" style={[{ position: 'absolute', top: 4, bottom: 4, left: 4, borderRadius: 999, backgroundColor: PALETTE.primary }, indicatorStyle]} />
+                <Pressable style={{ flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center' }} onPress={() => { select(); router.replace('/(auth)/login'); }} accessibilityRole="tab" accessibilityState={{ selected: active === 'login' }}>
+                  <Text className="text-center font-semibold" style={{ color: active === 'login' ? PALETTE.card : PALETTE.primary }}>Log In</Text>
                 </Pressable>
-              </Link>
-              <Link href="/(auth)/register" replace asChild>
-                <Pressable className="min-h-11 flex-1 items-center justify-center rounded-full px-3" onPressIn={() => select()} accessibilityRole="tab" accessibilityState={{ selected: active === 'register' }}>
-                  <Text className={active === 'register' ? 'text-center font-semibold text-primary-foreground' : 'text-center font-semibold'}>Register</Text>
+                <Pressable style={{ flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center' }} onPress={() => { select(); router.replace('/(auth)/register'); }} accessibilityRole="tab" accessibilityState={{ selected: active === 'register' }}>
+                  <Text className="text-center font-semibold" style={{ color: active === 'register' ? PALETTE.card : PALETTE.primary }}>Register</Text>
                 </Pressable>
-              </Link>
-            </View>
-          </AnimatedView>
+              </View>
+            </Animated.View>
+          </View>
           <View className="min-h-0 flex-1">{children}</View>
         </AnimatedView>
       </KeyboardAvoidingView>

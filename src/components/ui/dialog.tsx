@@ -5,7 +5,7 @@ import * as DialogPrimitive from '@rn-primitives/dialog';
 import { X } from 'lucide-react-native';
 import * as React from 'react';
 import { Platform, Text, View, type GestureResponderEvent, type ViewProps } from 'react-native';
-import { FadeIn, FadeOut, ReduceMotion, ZoomIn, ZoomOut } from 'react-native-reanimated';
+import { Easing, FadeIn, FadeOut, ReduceMotion, ZoomIn, ZoomOut } from 'react-native-reanimated';
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
 
 const Dialog = DialogPrimitive.Root;
@@ -53,7 +53,7 @@ function DialogOverlay({
           exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}
           as="Pressable">
           <NativeOnlyAnimatedView
-            entering={ZoomIn.springify().damping(15).reduceMotion(ReduceMotion.System)}
+            entering={ZoomIn.duration(220).easing(Easing.out(Easing.cubic)).reduceMotion(ReduceMotion.System)}
             exiting={ZoomOut.duration(150).reduceMotion(ReduceMotion.System)}>
             <>{children}</>
           </NativeOnlyAnimatedView>
