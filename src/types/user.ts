@@ -7,6 +7,7 @@ export interface UserPreferences {
   tags: ShopTag[];
   priceBuckets: PriceBucket[];
   openNowOnly: boolean;
+  maxDistanceKm: number | null;
 }
 
 export interface RecentlyViewedEntry {

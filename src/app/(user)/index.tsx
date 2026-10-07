@@ -18,7 +18,7 @@ import { PressableScale } from '@/components/ui/pressable-scale';
 import { PALETTE, SHADOW } from '@/constants/theme';
 
 export default function HomeScreen() {
-  const { shops, loading, refreshing, refresh, error } = useFilteredShops({ featuredOnly: true });
+  const { shops, loading, refreshing, refresh, error, distanceFilterWaiting } = useFilteredShops({ featuredOnly: true });
   const featured = [...shops].sort((a, b) => b.avgRating - a.avgRating).slice(0, 5);
   const ids = useCompareStore((state) => state.ids);
   const toggle = useCompareStore((state) => state.toggle);
@@ -72,6 +72,7 @@ export default function HomeScreen() {
             <Button size="sm" variant="link" onPress={() => router.push('/(user)/search')}><Text>See all</Text></Button>
           </View>
           <View className="gap-3">
+            {distanceFilterWaiting ? <Text className="text-sm text-muted-foreground">Waiting for your location — showing all shops for now.</Text> : null}
             {loading ? [0, 1, 2].map((index) => <ShopCardSkeleton key={index} />) : featured.map((shop, index) => (
               <ShopCard key={shop.id} index={index} shop={shop} onPress={() => router.push({ pathname: '/(user)/shop/[id]', params: { id: shop.id } })} saved={savedShopIds.includes(shop.id)} saving={savingShopId === shop.id} onToggleSaved={() => void toggleSavedShop(shop.id)} compared={ids.includes(shop.id)} onToggleCompare={() => toggle(shop.id)} />
             ))}

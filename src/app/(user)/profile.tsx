@@ -22,6 +22,7 @@ import { withTimeout } from '@/lib/timeout';
 import { cloudinaryImageUrl } from '@/lib/cloudinary';
 import { PRICE_BUCKET_LABELS, type PriceBucket } from '@/utils/price';
 import { TAG_OPTIONS } from '@/constants/tags';
+import { DISTANCE_OPTIONS_KM } from '@/constants/distance';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/empty-state';
 import { FilterChip } from '@/components/filter-chip';
@@ -50,7 +51,7 @@ export default function ProfileScreen() {
   const { showToast } = useToast();
   const { control, handleSubmit, reset } = useForm<PreferencesValues>({
     resolver: zodResolver(preferencesSchema),
-    defaultValues: { wifiOnly: false, tags: [], priceBuckets: [], openNowOnly: false },
+    defaultValues: { wifiOnly: false, tags: [], priceBuckets: [], openNowOnly: false, maxDistanceKm: null },
   });
 
   useEffect(() => {
@@ -59,7 +60,7 @@ export default function ProfileScreen() {
       const nextProfile = snapshot.data() as AppUserDocument | undefined;
       setProfile(nextProfile ?? null);
       const preferences = nextProfile?.preferences;
-      reset({ wifiOnly: preferences?.wifiOnly ?? false, tags: preferences?.tags ?? [], priceBuckets: preferences?.priceBuckets ?? [], openNowOnly: preferences?.openNowOnly ?? false });
+      reset({ wifiOnly: preferences?.wifiOnly ?? false, tags: preferences?.tags ?? [], priceBuckets: preferences?.priceBuckets ?? [], openNowOnly: preferences?.openNowOnly ?? false, maxDistanceKm: preferences?.maxDistanceKm ?? null });
     }, (error) => showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not load your profile. Please try again.') }));
   }, [reset, showToast, user]);
 
@@ -200,6 +201,14 @@ export default function ProfileScreen() {
                   <Text className="mt-1 text-sm text-muted-foreground">Filter your search to places with a WiFi connection.</Text>
                 </View>
                 <Switch value={field.value} onValueChange={field.onChange} trackColor={{ false: PALETTE.creamDeep, true: PALETTE.accent }} thumbColor={PALETTE.card} accessibilityLabel="Only show shops with WiFi" />
+              </View>
+            )} />
+            <Controller control={control} name="maxDistanceKm" render={({ field }) => (
+              <View className="gap-2">
+                <Text className="font-semibold">Preferred distance</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 pr-4">
+                  {DISTANCE_OPTIONS_KM.map((distance) => <FilterChip key={distance} label={`Within ${distance} km`} selected={field.value === distance} onPress={() => field.onChange(field.value === distance ? null : distance)} />)}
+                </ScrollView>
               </View>
             )} />
             <Controller control={control} name="priceBuckets" render={({ field }) => (

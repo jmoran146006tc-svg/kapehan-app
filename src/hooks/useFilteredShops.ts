@@ -30,7 +30,7 @@ export function useFilteredShops({ featuredOnly = false }: { featuredOnly?: bool
         if (filters.wifiOnly && !shop.hasWifi) return false;
         if (filters.tags.length && !filters.tags.every((tag) => shop.tags?.includes(tag))) return false;
         if (filters.openNowOnly && !shop.openNow) return false;
-        if (filters.maxDistanceKm != null && (shop.distanceKm == null || shop.distanceKm > filters.maxDistanceKm))
+        if (location != null && filters.maxDistanceKm != null && (shop.distanceKm == null || shop.distanceKm > filters.maxDistanceKm))
           return false;
         return true;
       })
@@ -39,5 +39,5 @@ export function useFilteredShops({ featuredOnly = false }: { featuredOnly?: bool
         return (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity);
       });
   }, [shops, filters, location]);
-  return { shops: filteredShops, loading, refreshing, refresh, error };
+  return { shops: filteredShops, loading, refreshing, refresh, error, distanceFilterWaiting: filters.maxDistanceKm != null && location == null };
 }

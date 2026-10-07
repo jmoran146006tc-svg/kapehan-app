@@ -6,6 +6,7 @@ export const preferencesSchema = z.object({
   tags: z.array(z.enum(TAG_OPTIONS)),
   priceBuckets: z.array(z.enum(['budget', 'moderate', 'premium'])),
   openNowOnly: z.boolean(),
+  maxDistanceKm: z.number().positive().nullable(),
 });
 
 export type PreferencesValues = z.infer<typeof preferencesSchema>;

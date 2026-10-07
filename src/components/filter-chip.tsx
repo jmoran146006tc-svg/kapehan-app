@@ -21,7 +21,7 @@ export function FilterChip({ label, selected = false, onPress }: FilterChipProps
       size="sm"
       variant={selected ? 'default' : 'outline'}
       className={cn(
-        'shrink-0 rounded-full',
+        'min-h-11 shrink-0 rounded-full',
         selected ? 'bg-accent shadow-sm shadow-accent/30' : 'border-border/60 bg-card active:bg-card/70',
         Platform.select({
           web: selected

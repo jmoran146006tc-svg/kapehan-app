@@ -22,9 +22,12 @@ import { ShopCardSkeleton } from '@/components/shop-card-skeleton';
 import type { UserPreferences } from '@/types/user';
 import { LinearGradient } from '@/components/ui/linear-gradient';
 import { PALETTE } from '@/constants/theme';
+import { useToast } from '@/hooks/useToast';
+import { getUserFriendlyError } from '@/lib/errors';
 
 export default function SearchScreen() {
-  const { shops, loading, refreshing, refresh, error } = useFilteredShops();
+  const { shops, loading, refreshing, refresh, error, distanceFilterWaiting } = useFilteredShops();
+  const { showToast } = useToast();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const appliedPreferencesFor = useRef<string | null>(null);
@@ -46,9 +49,10 @@ export default function SearchScreen() {
       setFilter('tags', preferences.tags ?? []);
       setFilter('priceBuckets', preferences.priceBuckets ?? []);
       setFilter('openNowOnly', preferences.openNowOnly ?? false);
-    });
+      setFilter('maxDistanceKm', preferences.maxDistanceKm ?? null);
+    }).catch((error) => { if (active) showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not load your search preferences.') }); });
     return () => { active = false; };
-  }, [setFilter, user]);
+  }, [setFilter, showToast, user]);
 
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
@@ -68,6 +72,7 @@ export default function SearchScreen() {
           </View>
         </View>
         <DiscoveryFilterRow />
+        {distanceFilterWaiting ? <Text className="text-sm text-muted-foreground">Waiting for your location — showing all shops for now.</Text> : null}
         <Text className="text-sm text-muted-foreground">{loading ? 'Loading coffee shops…' : `${shops.length} coffee shop${shops.length === 1 ? '' : 's'} found`}</Text>
         {loading ? (
           <View className="gap-3"><ShopCardSkeleton /><ShopCardSkeleton /><ShopCardSkeleton /></View>

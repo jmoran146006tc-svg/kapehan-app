@@ -6,11 +6,28 @@ import { FilterChip } from '@/components/filter-chip';
 import { useFilterStore } from '@/store/filterStore';
 import { PRICE_BUCKET_LABELS, type PriceBucket } from '@/utils/price';
 import { TAG_OPTIONS } from '@/constants/tags';
+import { DISTANCE_OPTIONS_KM } from '@/constants/distance';
+import { useLocationStore } from '@/store/locationStore';
+import { useToast } from '@/hooks/useToast';
 
 export function DiscoveryFilterRow({ dark = false }: { dark?: boolean }) {
-  const { priceBuckets, wifiOnly, tags, openNowOnly, setFilter, toggleArrayFilter, reset } = useFilterStore();
-  const hasActiveFilter = wifiOnly || openNowOnly || priceBuckets.length > 0 || tags.length > 0;
+  const { priceBuckets, wifiOnly, tags, openNowOnly, maxDistanceKm, setFilter, toggleArrayFilter, reset } = useFilterStore();
+  const hasActiveFilter = wifiOnly || openNowOnly || priceBuckets.length > 0 || tags.length > 0 || maxDistanceKm != null;
+  const { showToast } = useToast();
   const [scrolled, setScrolled] = useState(false);
+
+  async function selectDistance(distance: number) {
+    if (useFilterStore.getState().maxDistanceKm === distance) {
+      setFilter('maxDistanceKm', null);
+      return;
+    }
+    await useLocationStore.getState().request();
+    if (useLocationStore.getState().status !== 'granted') {
+      showToast({ type: 'error', message: 'Allow location access to filter by distance.' });
+      return;
+    }
+    setFilter('maxDistanceKm', distance);
+  }
 
   // The header gradient runs primary (left) -> espresso2 (right), so each edge fades to its own color.
   const leftColor = dark ? PALETTE.primary : PALETTE.background;
@@ -28,6 +45,9 @@ export function DiscoveryFilterRow({ dark = false }: { dark?: boolean }) {
         <FilterChip label="All" selected={!hasActiveFilter} onPress={reset} />
         <FilterChip label="Open Now" selected={openNowOnly} onPress={() => setFilter('openNowOnly', !openNowOnly)} />
         <FilterChip label="WiFi" selected={wifiOnly} onPress={() => setFilter('wifiOnly', !wifiOnly)} />
+        {DISTANCE_OPTIONS_KM.map((distance) => (
+          <FilterChip key={distance} label={`Within ${distance} km`} selected={maxDistanceKm === distance} onPress={() => void selectDistance(distance)} />
+        ))}
         {(['budget', 'moderate', 'premium'] as PriceBucket[]).map((bucket) => (
           <FilterChip key={bucket} label={PRICE_BUCKET_LABELS[bucket]} selected={priceBuckets.includes(bucket)} onPress={() => toggleArrayFilter('priceBuckets', bucket)} />
         ))}

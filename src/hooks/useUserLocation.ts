@@ -1,21 +1,16 @@
-import { useEffect, useState } from 'react';
-import * as Location from 'expo-location';
+import { useEffect } from 'react';
+import { useLocationStore } from '@/store/locationStore';
 
 export function useUserLocation() {
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  return useUserLocationStatus().location;
+}
 
+export function useUserLocationStatus() {
+  const location = useLocationStore((state) => state.location);
+  const status = useLocationStore((state) => state.status);
+  const request = useLocationStore((state) => state.request);
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      const pos = await Location.getCurrentPositionAsync({});
-      if (!cancelled) setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return location;
+    if (status === 'unknown') void request();
+  }, [request, status]);
+  return { location, status, request };
 }
