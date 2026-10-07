@@ -19,7 +19,7 @@ import { enter } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 import { MAX_COMPARED_SHOPS, useCompareStore } from '@/store/compareStore';
 
-type ShopCardShop = Shop & { distanceKm?: number | null; openNow?: boolean };
+type ShopCardShop = Shop & { distanceKm?: number | null; openNow?: boolean; matchedOn?: 'name' | 'address' | null };
 
 interface ShopCardProps {
   shop: ShopCardShop;
@@ -98,6 +98,12 @@ export function ShopCard({ shop, onPress, saved = false, saving = false, onToggl
             </View>
           </View>
           {shop.description ? <Text numberOfLines={1} className="px-4 text-sm text-muted-foreground">{shop.description}</Text> : null}
+          {shop.matchedOn === 'address' ? (
+            <View className="flex-row items-center gap-1 px-4">
+              <Icon as={MapPin} size={14} className="text-muted-foreground" />
+              <Text numberOfLines={1} className="flex-1 text-sm text-muted-foreground">{shop.address}</Text>
+            </View>
+          ) : null}
         </PressableScale>
 
         <View className="flex-row flex-wrap items-center gap-2 px-4 pb-4 pt-3">

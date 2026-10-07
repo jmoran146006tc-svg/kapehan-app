@@ -5,6 +5,7 @@ import { useUserLocation } from './useUserLocation';
 import { haversineKm } from '@/utils/distance';
 import { isOpenNow } from '@/utils/hours';
 import { getPriceBucket } from '@/utils/price';
+import { matchShopSearch } from '@/utils/search';
 
 export function useFilteredShops({ featuredOnly = false }: { featuredOnly?: boolean } = {}) {
   const filters = useFilterStore();
@@ -18,9 +19,10 @@ export function useFilteredShops({ featuredOnly = false }: { featuredOnly?: bool
         ...shop,
         distanceKm: location ? haversineKm(location.lat, location.lng, shop.lat, shop.lng) : null,
         openNow: isOpenNow(shop.hours),
+        matchedOn: matchShopSearch(shop, filters.search),
       }))
       .filter((shop) => {
-        if (filters.search && !shop.name.toLowerCase().includes(filters.search.toLowerCase())) return false;
+        if (filters.search && shop.matchedOn == null) return false;
         if (
           filters.priceBuckets.length &&
           (shop.priceMin == null || !filters.priceBuckets.includes(getPriceBucket(shop.priceMin)))
@@ -32,7 +34,10 @@ export function useFilteredShops({ featuredOnly = false }: { featuredOnly?: bool
           return false;
         return true;
       })
-      .sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+      .sort((a, b) => {
+        if (filters.search.trim() && !location) return Number(b.matchedOn === 'name') - Number(a.matchedOn === 'name');
+        return (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity);
+      });
   }, [shops, filters, location]);
   return { shops: filteredShops, loading, refreshing, refresh, error };
 }

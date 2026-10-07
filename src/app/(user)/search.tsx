@@ -59,7 +59,7 @@ export default function SearchScreen() {
           </PressableScale>
           <View className="h-12 min-w-0 flex-1 flex-row items-center gap-2 rounded-xl border border-border/60 bg-card px-3">
             <Icon as={Search} size={18} className="text-muted-foreground" />
-            <Input autoFocus placeholder="Search coffee shops…" value={search} onChangeText={(value) => setFilter('search', value)} className="h-11 min-w-0 flex-1 border-0 bg-transparent px-0 shadow-none" />
+            <Input autoFocus placeholder="Search by shop name or area…" returnKeyType="search" value={search} onChangeText={(value) => setFilter('search', value)} className="h-11 min-w-0 flex-1 border-0 bg-transparent px-0 shadow-none" />
             {search ? (
               <PressableScale className="h-11 w-11 items-center justify-center" onPress={() => setFilter('search', '')} accessibilityLabel="Clear search">
                 <Icon as={X} size={18} className="text-muted-foreground" />
@@ -84,7 +84,7 @@ export default function SearchScreen() {
               windowSize={7}
               contentContainerClassName="gap-3 pb-4"
               ListEmptyComponent={
-                <EmptyState title={error ? 'Coffee shops are unavailable. Pull down to retry.' : 'No approved coffee shops match these filters yet.'} description="" />
+                <EmptyState title={error ? 'Coffee shops are unavailable. Pull down to retry.' : search.trim() ? `No coffee shops match "${search.trim()}" yet.` : 'No approved coffee shops match these filters yet.'} description={!error && search.trim() ? 'Try a street, barangay, or landmark.' : ''} />
               }
               renderItem={({ item, index }) => (
                 <ShopCard
