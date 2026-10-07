@@ -1,7 +1,7 @@
 /**
  * Removes Firestore data for users whose Auth account no longer exists:
  * the users doc (plus notifications), each shop's followers entry and review
- * for that uid, then recomputes affected shops' avgRating, reviewCount and
+ * for that uid, reports made by or targeting that uid, then recomputes affected shops' avgRating, reviewCount and
  * ratingCounts. Never deletes shops; shops owned by a deleted user are only
  * reported.
  *
@@ -49,19 +49,22 @@ const shops = (await db.collection('shops').get()).docs;
 const orphanIds = new Set(orphans.map((o) => o.id));
 const allReviews = (await db.collectionGroup('reviews').get()).docs;
 const allFollowers = (await db.collectionGroup('followers').get()).docs;
+const allReports = (await db.collection('reports').get()).docs;
 const orphanReviews = allReviews.filter((d) => orphanIds.has(d.id));
 const orphanFollowers = allFollowers.filter((d) => orphanIds.has(d.id));
+const orphanReports = allReports.filter((d) => orphanIds.has(d.data().reporterId) || orphanIds.has(d.data().targetUserId));
 
 for (const shop of shops) {
   if (orphanIds.has(shop.data().ownerId)) console.log(`  ! shop ${shop.id} is owned by deleted user ${shop.data().ownerId} (not deleted)`);
 }
 for (const d of orphanReviews) console.log(`  review: ${d.ref.path}`);
 console.log(`  ${orphanFollowers.length} orphaned follower record(s)`);
+console.log(`  ${orphanReports.length} report(s) made by or targeting orphaned users`);
 
 if (!apply) { console.log('\nNo writes made. Re-run with --apply --project=<id>.'); process.exit(0); }
 
 const writer = db.bulkWriter();
-for (const d of [...orphanReviews, ...orphanFollowers]) writer.delete(d.ref);
+for (const d of [...orphanReviews, ...orphanFollowers, ...orphanReports]) writer.delete(d.ref);
 await writer.close();
 
 // 4. Recompute aggregates for affected shops (and any shop whose count is out of sync)

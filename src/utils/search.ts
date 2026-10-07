@@ -18,7 +18,7 @@ export function normalizeSearchText(input: string): string {
 }
 
 export function tokenize(query: string): string[] {
-  return normalizeSearchText(query).split(' ').filter(Boolean).map((token) => ABBREVIATIONS[token] ?? token);
+  return normalizeSearchText(query).split(' ').filter(Boolean).map((token) => Object.prototype.hasOwnProperty.call(ABBREVIATIONS, token) ? ABBREVIATIONS[token] : token);
 }
 
 export function matchShopSearch(shop: Pick<Shop, 'name' | 'address'>, query: string): 'name' | 'address' | null {

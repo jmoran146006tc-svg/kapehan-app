@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { LinearGradient } from '@/components/ui/linear-gradient';
 import { PALETTE } from '@/constants/theme';
@@ -15,13 +15,17 @@ export function DiscoveryFilterRow({ dark = false }: { dark?: boolean }) {
   const hasActiveFilter = wifiOnly || openNowOnly || priceBuckets.length > 0 || tags.length > 0 || maxDistanceKm != null;
   const { showToast } = useToast();
   const [scrolled, setScrolled] = useState(false);
+  const selection = useRef(0);
+  useEffect(() => () => { selection.current += 1; }, []);
 
   async function selectDistance(distance: number) {
+    const intent = ++selection.current;
     if (useFilterStore.getState().maxDistanceKm === distance) {
       setFilter('maxDistanceKm', null);
       return;
     }
     await useLocationStore.getState().request();
+    if (selection.current !== intent) return;
     if (useLocationStore.getState().status !== 'granted') {
       showToast({ type: 'error', message: 'Allow location access to filter by distance.' });
       return;
@@ -42,7 +46,7 @@ export function DiscoveryFilterRow({ dark = false }: { dark?: boolean }) {
         scrollEventThrottle={16}
         onScroll={(event) => setScrolled(event.nativeEvent.contentOffset.x > 4)}
         contentContainerClassName="items-center gap-2 py-1 pr-6">
-        <FilterChip label="All" selected={!hasActiveFilter} onPress={reset} />
+        <FilterChip label="All" selected={!hasActiveFilter} onPress={() => { selection.current += 1; reset(); }} />
         <FilterChip label="Open Now" selected={openNowOnly} onPress={() => setFilter('openNowOnly', !openNowOnly)} />
         <FilterChip label="WiFi" selected={wifiOnly} onPress={() => setFilter('wifiOnly', !wifiOnly)} />
         {DISTANCE_OPTIONS_KM.map((distance) => (

@@ -5,6 +5,7 @@ import { LinearGradient } from '@/components/ui/linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useFilteredShops } from '@/hooks/useFilteredShops';
 import { useCompareStore } from '@/store/compareStore';
+import { useFilterStore } from '@/store/filterStore';
 import { useSavedShops } from '@/hooks/useSavedShops';
 import { DiscoveryFilterRow } from '@/components/discovery-filter-row';
 import { ShopCard } from '@/components/shop-card';
@@ -19,7 +20,8 @@ import { PALETTE, SHADOW } from '@/constants/theme';
 
 export default function HomeScreen() {
   const { shops, loading, refreshing, refresh, error, distanceFilterWaiting } = useFilteredShops({ featuredOnly: true });
-  const featured = [...shops].sort((a, b) => b.avgRating - a.avgRating).slice(0, 5);
+  const maxDistanceKm = useFilterStore((state) => state.maxDistanceKm);
+  const featured = maxDistanceKm != null && !distanceFilterWaiting ? shops.slice(0, 5) : [...shops].sort((a, b) => b.avgRating - a.avgRating).slice(0, 5);
   const ids = useCompareStore((state) => state.ids);
   const toggle = useCompareStore((state) => state.toggle);
   const { savedShopIds, savingShopId, toggleSavedShop } = useSavedShops();

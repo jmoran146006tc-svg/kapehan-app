@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { FlatList, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
 import { ArrowLeft, Clock, Search, X } from 'lucide-react-native';
@@ -82,7 +82,7 @@ export default function SearchScreen() {
               <Text className="font-semibold">Recent searches</Text>
               <Button variant="ghost" className="min-h-11" onPress={clear}><Text>Clear all</Text></Button>
             </View>
-            <View className="flex-row flex-wrap gap-2">
+            <ScrollView className="max-h-48" keyboardShouldPersistTaps="handled" contentContainerClassName="flex-row flex-wrap gap-2">
               {searches.map((query) => (
                 <View key={query} className="max-w-full flex-row items-center rounded-full border border-border bg-card">
                   <PressableScale className="min-h-11 max-w-[70%] flex-row items-center gap-2 pl-3 pr-1" onPress={() => { setFilter('search', query); record(query); }} accessibilityLabel={`Search for ${query}`}>
@@ -92,7 +92,7 @@ export default function SearchScreen() {
                   <PressableScale className="h-11 w-11 items-center justify-center" onPress={() => remove(query)} accessibilityLabel={`Remove ${query} from search history`}><Icon as={X} size={16} /></PressableScale>
                 </View>
               ))}
-            </View>
+            </ScrollView>
           </View>
         ) : null}
         {distanceFilterWaiting ? <Text className="text-sm text-muted-foreground">Waiting for your location — showing all shops for now.</Text> : null}

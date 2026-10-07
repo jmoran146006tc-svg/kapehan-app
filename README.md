@@ -67,6 +67,21 @@ npx tsc --noEmit
 npx expo lint
 ```
 
+## Rules tests and deploying these changes
+
+Run `npm run test:rules` with Java installed. This uses `@firebase/rules-unit-testing` 5.x (Firebase 12 compatible) and starts only the local Firestore emulator under `demo-kapehan`. The tests refuse non-local emulator hosts and cover history, photos, reports, atomic review removal, and existing review/listing writes. No production credentials are needed. The CLI is invoked through `npx firebase-tools`; it is not installed globally.
+
+After reviewing the rules diff and passing the tests, deploy explicitly to your intended project:
+
+```bash
+npm run test:rules
+npx firebase-tools deploy --only firestore --project <id>
+```
+
+The app changes require these rules before history writes, review photo writes, reports, or review removal will work in that project. No new composite index is required: reports use a single `createdAt` ordering or equality-only sibling queries. Legacy listings without `ratingCounts` need a reviewed repair via `scripts/backfill-shop-fields.mjs` before moderation; this task does not run repairs or deploy.
+
+See [the paper-gap validation and device QA guide](docs/paper-gap-validation.md) for acceptance checks, privacy/documentation updates, and moderation limits.
+
 ## Windows troubleshooting
 
 - OneDrive can delay Metro file watching. If refreshes are unreliable, keep an active development checkout outside a synced folder and copy or commit changes afterward.
