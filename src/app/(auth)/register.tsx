@@ -10,6 +10,7 @@ import { getUserFriendlyError } from '@/lib/errors';
 import { withTimeout } from '@/lib/timeout';
 import { toastFormErrors } from '@/lib/form-errors';
 import { registerSchema, type RegisterValues } from '@/lib/schemas/auth';
+import { TERMS_TEXT, PRIVACY_TEXT } from '@/constants/legal';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -92,9 +93,7 @@ export default function RegisterScreen() {
         <DialogContent className="max-h-[85%]">
           <DialogHeader><DialogTitle>{legalDocument === 'terms' ? 'Terms & Conditions' : 'Data Privacy Notice'}</DialogTitle></DialogHeader>
           <ScrollView className="w-full" contentContainerClassName="pb-4">
-            <Text>{legalDocument === 'terms'
-              ? '[PLACEHOLDER — replace with reviewed Terms & Conditions text]'
-              : '[PLACEHOLDER — replace with reviewed Philippine Data Privacy Act notice text]'}</Text>
+            <Text className="text-sm leading-5">{legalDocument === 'terms' ? TERMS_TEXT : PRIVACY_TEXT}</Text>
           </ScrollView>
         </DialogContent>
       </Dialog>
