@@ -2,7 +2,7 @@ import { AnimatedView } from '@/components/ui/animated';
 import { ScrollView, View } from 'react-native';
 import { ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useEffect } from 'react';
-import { Archive, Clock, Coffee, MessageCircle, Star } from 'lucide-react-native';
+import { Archive, Clock, Coffee, MessageCircle, ShieldAlert, Star } from 'lucide-react-native';
 import type { AppNotification } from '@/types/notification';
 import { dayjs } from '@/lib/dayjs';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,7 @@ import { PressableScale } from '@/components/ui/pressable-scale';
 import { enter } from '@/lib/motion';
 
 function notificationMeta(type: AppNotification['type']) {
+  if (type === 'review_removed') return { title: 'Review removed', icon: ShieldAlert };
   if (type === 'listing_archived') return { title: 'Listing archived', icon: Archive };
   if (type === 'shop_hours_updated') return { title: 'Hours updated', icon: Clock };
   if (type === 'shop_menu_updated') return { title: 'Menu updated', icon: Coffee };

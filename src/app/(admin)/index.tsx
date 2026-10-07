@@ -1,9 +1,13 @@
+import { AdminReportsList } from '@/components/admin-reports-list';
+import { toReport, type Report } from '@/types/report';
+import { REPORTS_PAGE_LIMIT } from '@/constants/moderation';
+import { setUserStatus as writeUserStatus } from '@/lib/moderation';
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Platform, ScrollView, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { Calendar, Check, Coffee, Mail, Star, X } from 'lucide-react-native';
-import { collection, doc, getDocs, onSnapshot, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { dayjs } from '@/lib/dayjs';
@@ -28,7 +32,7 @@ import { useToast } from '@/hooks/useToast';
 import { GradientHeader } from '@/components/gradient-header';
 import { UnderlineTabs } from '@/components/underline-tabs';
 
-type AdminTab = 'users' | 'owners';
+type AdminTab = 'users' | 'owners' | 'reports';
 type AdminUser = AppUserDocument & { id: string };
 type AdminShop = Shop;
 
@@ -37,6 +41,9 @@ export default function AdminDashboardScreen() {
   const { showToast } = useToast();
   const [tab, setTab] = useState<AdminTab>('users');
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(true);
+  const [reportsLoadFailed, setReportsLoadFailed] = useState(false);
   const [shops, setShops] = useState<AdminShop[]>([]);
   const [shopsLoading, setShopsLoading] = useState(true);
   const [usersLoading, setUsersLoading] = useState(true);
@@ -61,6 +68,14 @@ export default function AdminDashboardScreen() {
       setShopsLoading(false);
     }, (snapshotError) => { setShopsLoading(false); setShopsLoadFailed(true); showToast({ type: 'error', message: getUserFriendlyError(snapshotError, 'We could not load listings. Please try again.') }); });
   }, [role, showToast]);
+  useEffect(() => {
+    if (role !== 'admin') return;
+    return onSnapshot(query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(REPORTS_PAGE_LIMIT)), (snapshot) => {
+      setReports(snapshot.docs.map((item) => toReport(item.id, item.data())));
+      setReportsLoading(false); setReportsLoadFailed(false);
+    }, (error) => { setReportsLoading(false); setReportsLoadFailed(true); showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not load reports. Please try again.') }); });
+  }, [role, showToast]);
+  const openReports = reports.filter((report) => report.status === 'open').length;
   const reviewCounts = useMemo(() => Object.fromEntries(users.map((account) => [account.id, account.reviewCount ?? 0])), [users]);
   const pending = shops.filter((shop) => shop.status === 'pending' || Boolean(shop.removalRequest)).length;
   const ownerCount = users.filter((account) => account.role === 'owner').length;
@@ -68,7 +83,9 @@ export default function AdminDashboardScreen() {
   async function refresh() {
     setRefreshing(true);
     try {
-      const [userSnapshot, shopSnapshot] = await Promise.all([getDocs(collection(db, 'users')), getDocs(collection(db, 'shops'))]);
+      const [userSnapshot, shopSnapshot, reportSnapshot] = await Promise.all([getDocs(collection(db, 'users')), getDocs(collection(db, 'shops')), getDocs(query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(REPORTS_PAGE_LIMIT)))]);
+      setReports(reportSnapshot.docs.map((item) => toReport(item.id, item.data())));
+      setReportsLoading(false); setReportsLoadFailed(false);
       setUsers(userSnapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as AdminUser));
       setUsersLoading(false);
       setShops(shopSnapshot.docs.map((item) => toShop(item.id, item.data())));
@@ -129,11 +146,11 @@ export default function AdminDashboardScreen() {
     </GradientHeader>
     <View className="mx-auto w-full max-w-2xl flex-1 gap-3 px-4 pt-4" style={{ minHeight: 0 }}>
       <View className="flex-row rounded-2xl bg-card py-4">
-        {([{ label: 'Users', value: users.length }, { label: 'Owners', value: ownerCount }, { label: 'Pending', value: pending }] as const).map((metric) => {
-          const highlight = metric.label === 'Pending' && pending > 0;
+        {([{ label: 'Users', value: users.length }, { label: 'Owners', value: ownerCount }, { label: 'Pending', value: pending }, { label: 'Reports', value: openReports }] as const).map((metric) => {
+          const highlight = (metric.label === 'Pending' || metric.label === 'Reports') && metric.value > 0;
           return (
             <View key={metric.label} className="flex-1 items-center px-2">
-              <View className={highlight ? 'min-w-[72px] items-center rounded-xl bg-pending px-3 py-1' : 'items-center px-3 py-1'}>
+              <View className={highlight ? 'min-w-[56px] items-center rounded-xl bg-pending px-3 py-1' : 'items-center px-3 py-1'}>
                 <Text className={highlight ? 'font-display text-2xl text-pending-foreground' : 'font-display text-2xl text-primary'}>{metric.value}</Text>
                 <Text className="text-center text-xs text-muted-foreground">{metric.label}</Text>
               </View>
@@ -141,10 +158,10 @@ export default function AdminDashboardScreen() {
           );
         })}
       </View>
-      <UnderlineTabs tabs={[{ key: 'users', label: 'Users' }, { key: 'owners', label: `Listings (${pending})` }]} value={tab} onChange={(value) => setTab(value as AdminTab)} />
+      <UnderlineTabs tabs={[{ key: 'users', label: 'Users' }, { key: 'owners', label: `Listings (${pending})` }, { key: 'reports', label: `Reports (${openReports} open)` }]} value={tab} onChange={(value) => setTab(value as AdminTab)} />
       {tab === 'users' && usersLoadFailed ? <Text className="text-muted-foreground">User accounts are unavailable right now.</Text> : null}
       {tab === 'owners' && shopsLoadFailed ? <Text className="text-muted-foreground">Listings are unavailable right now.</Text> : null}
-      {tab === 'users' ? <UsersList users={users} reviewCounts={reviewCounts} adminId={admin?.uid} updatingId={updatingId} onStatus={setUserStatus} loading={usersLoading} loadFailed={usersLoadFailed} refreshing={refreshing} onRefresh={refresh} /> : <OwnersList shops={shops} loading={shopsLoading} updatingId={updatingId} onStatus={setShopStatus} onRemovalDecision={decideRemoval} loadFailed={shopsLoadFailed} refreshing={refreshing} onRefresh={refresh} />}
+      {tab === 'reports' ? <AdminReportsList reports={reports} loading={reportsLoading} loadFailed={reportsLoadFailed} adminUid={admin?.uid ?? ''} refreshing={refreshing} onRefresh={refresh} /> : tab === 'users' ? <UsersList users={users} reviewCounts={reviewCounts} adminId={admin?.uid} updatingId={updatingId} onStatus={setUserStatus} loading={usersLoading} loadFailed={usersLoadFailed} refreshing={refreshing} onRefresh={refresh} /> : <OwnersList shops={shops} loading={shopsLoading} updatingId={updatingId} onStatus={setShopStatus} onRemovalDecision={decideRemoval} loadFailed={shopsLoadFailed} refreshing={refreshing} onRefresh={refresh} />}
     </View>
   </View>;
 }
@@ -221,5 +238,4 @@ function OwnerShopCard({ shop, updating, onStatus, onRemovalDecision }: {
   </Card>;
 }
 
-async function writeUserStatus(uid: string, status: 'active' | 'suspended') { const batch = writeBatch(db); batch.update(doc(db, 'users', uid), { status }); await batch.commit(); }
 async function writeShopStatus(shop: Shop, status: 'approved' | 'rejected') { const batch = writeBatch(db); batch.update(doc(db, 'shops', shop.id), { status }); batch.set(doc(collection(db, 'users', shop.ownerId, 'notifications')), { type: status === 'approved' ? 'listing_approved' : 'listing_rejected', message: `${shop.name} was ${status}.`, shopId: shop.id, read: false, createdAt: serverTimestamp() }); await batch.commit(); }

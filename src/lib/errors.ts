@@ -18,7 +18,10 @@ const FRIENDLY_ERROR_MESSAGES: Record<string, string> = {
   'firestore/unavailable': 'The service is temporarily unavailable. Please try again.',
 };
 
+export class UserFacingError extends Error {}
+
 export function getUserFriendlyError(error: unknown, fallback = 'Something went wrong. Please try again.') {
+  if (error instanceof UserFacingError) return error.message;
   const code = typeof error === 'object' && error !== null && 'code' in error
     ? String(error.code)
     : undefined;

@@ -59,6 +59,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@types/leaflet": "^1.9.22",
     "@types/react": "~19.2.2",
     "eslint": "^9.0.0",
@@ -71,7 +72,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test:rules": "npx firebase-tools emulators:exec --only firestore --project demo-kapehan \"node --test scripts/test-rules.mjs\""
   },
   "private": true
 }

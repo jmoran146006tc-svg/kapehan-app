@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Image, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { collection, doc, onSnapshot, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { collection, doc, onSnapshot, orderBy, query, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, X } from 'lucide-react-native';
 import { db } from '@/lib/firebase';
@@ -13,7 +13,7 @@ import { Text } from '@/components/ui/text';
 import { formatPriceRange } from '@/utils/price';
 import { getListingStatusBadgeVariant } from '@/utils/listing';
 import { getUserFriendlyError } from '@/lib/errors';
-import { goBack } from '@/lib/navigation';
+import { blurActiveElement, goBack } from '@/lib/navigation';
 import { DAYS } from '@/lib/schemas/shop';
 import { sortProducts, toProduct, type Product } from '@/types/product';
 import { useToast } from '@/hooks/useToast';
@@ -21,6 +21,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ScreenHeader } from '@/components/screen-header';
 import { LinearGradient } from '@/components/ui/linear-gradient';
 import { PALETTE } from '@/constants/theme';
+import { useAuth } from '@/hooks/useAuth';
+import { toReview, type Review } from '@/types/review';
+import { ReviewPhotoStrip } from '@/components/review-photo-strip';
+import { ReviewTime } from '@/components/review-edit-markers';
+import { RemoveReviewDialog } from '@/components/remove-review-dialog';
+import { removeReviewAsAdmin, resolveOpenReportsForReview } from '@/lib/moderation';
+import { EmptyState } from '@/components/empty-state';
 
 interface ShopDoc {
   name: string;
@@ -40,9 +47,25 @@ interface ShopDoc {
 export default function AdminReviewListingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { showToast } = useToast();
+  const { user: admin, role } = useAuth();
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviewsFailed, setReviewsFailed] = useState(false);
+  const [removingReview, setRemovingReview] = useState<Review | null>(null);
   const [shop, setShop] = useState<ShopDoc | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [updating, setUpdating] = useState(false);
+
+  useEffect(() => {
+    if (!id || role !== 'admin') return;
+    return onSnapshot(query(collection(db, 'shops', id, 'reviews'), orderBy('createdAt', 'desc')), (snapshot) => {
+      setReviews(snapshot.docs.map((item) => toReview(item.id, item.data())));
+      setReviewsLoading(false); setReviewsFailed(false);
+    }, (error) => {
+      setReviewsLoading(false); setReviewsFailed(true);
+      showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not load reviews. Please try again.') });
+    });
+  }, [id, role, showToast]);
 
   useEffect(() => {
     if (!id) return;
@@ -122,6 +145,18 @@ export default function AdminReviewListingScreen() {
         {products.length === 0 ? <Text className="text-muted-foreground">No menu items yet.</Text> : null}
       </CardHeader></Card>
 
+      <Card><CardHeader className="gap-4">
+        <CardTitle>Reviews ({reviews.length})</CardTitle>
+        {reviewsLoading ? <Skeleton className="h-28 w-full" /> : reviewsFailed ? <Text className="text-muted-foreground">Reviews are unavailable right now.</Text> : !reviews.length ? <EmptyState title="No reviews yet" description="Customer reviews will appear here." /> : null}
+        {reviews.map((review) => <View key={review.id} className="gap-2 border-b border-border pb-4">
+          <View className="flex-row justify-between gap-3"><Text className="flex-1 font-semibold">{review.userName}</Text><Text>{review.rating}/5</Text></View>
+          <Text>{review.text || 'No written comment.'}</Text>
+          <ReviewPhotoStrip photos={review.photos} />
+          <ReviewTime review={review} />
+          <Button className="min-h-11 self-start border-destructive" variant="outline" disabled={updating} onPress={() => { blurActiveElement(); setRemovingReview(review); }}><Text className="text-destructive">Remove</Text></Button>
+        </View>)}
+      </CardHeader></Card>
+
       <SafeAreaView edges={['bottom']}>
         {shop.status === 'pending' ? (
           <View className="flex-row gap-3">
@@ -139,6 +174,15 @@ export default function AdminReviewListingScreen() {
         {shop.status === 'rejected' ? <Button className="bg-success-foreground" disabled={updating} onPress={() => setStatus('approved')}><Icon as={Check} size={16} className="text-white" /><Text>Re-enlist Listing</Text></Button> : null}
       </SafeAreaView>
     </ScrollView>
+    <RemoveReviewDialog open={removingReview !== null} reviewerName={removingReview?.userName ?? ''} onOpenChange={(open) => { if (!open) { blurActiveElement(); setRemovingReview(null); } }} onConfirm={async (reasonLabel) => {
+      if (!admin || !removingReview) return;
+      setUpdating(true);
+      try {
+        const result = await removeReviewAsAdmin({ shopId: id, reviewId: removingReview.id, reasonLabel });
+        showToast({ type: 'success', message: result.notified ? 'Review removed and reviewer notified.' : 'Review removed. The reviewer no longer has an account to notify.' });
+        if (!await resolveOpenReportsForReview({ shopId: id, reviewId: removingReview.id, adminUid: admin.uid })) showToast({ type: 'info', message: 'Review removed, but some reports still need to be marked actioned.' });
+      } finally { setUpdating(false); }
+    }} />
     </View>
   );
 }

@@ -1,11 +1,15 @@
+import { ReportDialog } from '@/components/report-dialog';
+import { submitReport } from '@/lib/reports';
+import { blurActiveElement } from '@/lib/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import { ReviewPhotoStrip } from '@/components/review-photo-strip';
 import { OwnerReplyLabel, ReviewTime } from '@/components/review-edit-markers';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { Pencil, Star } from 'lucide-react-native';
+import { Flag, Pencil, Star } from 'lucide-react-native';
 import { db } from '@/lib/firebase';
-import { getUserFriendlyError } from '@/lib/errors';
+import { getUserFriendlyError, UserFacingError } from '@/lib/errors';
 import { saveOwnerReply } from '@/lib/review-replies';
 import { toReview, type Review } from '@/types/review';
 import type { Shop } from '@/types/shop';
@@ -23,6 +27,8 @@ export default function OwnerShopReviewsScreen() {
 }
 
 function OwnerReviewsContent({ shop }: { shop: Shop }) {
+  const { user } = useAuth();
+  const [reportReview, setReportReview] = useState<Review | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState<Record<string, boolean>>({});
@@ -82,8 +88,12 @@ function OwnerReviewsContent({ shop }: { shop: Shop }) {
       const replyExists = hasReply(review);
       const isEditing = editing[review.id] === true;
       const draft = drafts[review.id] ?? '';
-      return <Card key={review.id}><CardHeader className="gap-3"><View className="flex-row items-start justify-between gap-3"><View className="flex-1"><CardTitle>{review.userName}</CardTitle><ReviewTime review={review} /></View><View className="flex-row items-center gap-1"><Icon as={Star} size={14} fill="currentColor" className="text-accent" /><Text>{review.rating}/5</Text></View></View><CardDescription>{review.text || 'No written comment.'}</CardDescription><ReviewPhotoStrip photos={review.photos} />{replyExists && (!isEditing || shop.status === 'archived') ? <View className="gap-2 rounded-lg bg-secondary p-3"><OwnerReplyLabel edited={Boolean(review.ownerReply?.editedAt)} /><Text>{review.ownerReply?.text}</Text>{shop.status !== 'archived' ? <Button size="sm" variant="outline" className="self-start" onPress={() => beginEdit(review)}><Icon as={Pencil} size={14} /><Text>Edit</Text></Button> : null}</View> : shop.status !== 'archived' ? <View className="gap-2"><Input multiline className="min-h-16 py-2" placeholder="Reply to this review…" value={draft} onChangeText={(text) => setDrafts((current) => ({ ...current, [review.id]: text }))} /><View className="flex-row gap-2"><Button size="sm" loading={submitting === review.id} loadingLabel="Sending…" disabled={!draft.trim()} onPress={() => void reply(review)}><Text>{replyExists ? 'Update reply' : 'Post reply'}</Text></Button>{replyExists ? <Button size="sm" variant="outline" onPress={() => cancelEdit(review.id)}><Text>Cancel</Text></Button> : null}</View></View> : null}</CardHeader></Card>;
+      return <Card key={review.id}><CardHeader className="gap-3"><View className="flex-row items-start justify-between gap-3"><View className="flex-1"><CardTitle>{review.userName}</CardTitle><ReviewTime review={review} /></View><View className="flex-row items-center gap-1"><Icon as={Star} size={14} fill="currentColor" className="text-accent" /><Text>{review.rating}/5</Text></View></View><CardDescription>{review.text || 'No written comment.'}</CardDescription><ReviewPhotoStrip photos={review.photos} />{user && review.userId !== user.uid ? <Button className="min-h-11 self-start" variant="ghost" onPress={() => { blurActiveElement(); setReportReview(review); }}><Icon as={Flag} size={16} /><Text>Report</Text></Button> : null}{replyExists && (!isEditing || shop.status === 'archived') ? <View className="gap-2 rounded-lg bg-secondary p-3"><OwnerReplyLabel edited={Boolean(review.ownerReply?.editedAt)} /><Text>{review.ownerReply?.text}</Text>{shop.status !== 'archived' ? <Button size="sm" variant="outline" className="self-start" onPress={() => beginEdit(review)}><Icon as={Pencil} size={14} /><Text>Edit</Text></Button> : null}</View> : shop.status !== 'archived' ? <View className="gap-2"><Input multiline className="min-h-16 py-2" placeholder="Reply to this review…" value={draft} onChangeText={(text) => setDrafts((current) => ({ ...current, [review.id]: text }))} /><View className="flex-row gap-2"><Button size="sm" loading={submitting === review.id} loadingLabel="Sending…" disabled={!draft.trim()} onPress={() => void reply(review)}><Text>{replyExists ? 'Update reply' : 'Post reply'}</Text></Button>{replyExists ? <Button size="sm" variant="outline" onPress={() => cancelEdit(review.id)}><Text>Cancel</Text></Button> : null}</View></View> : null}</CardHeader></Card>;
     })}
     {reviews.length === 0 && !loadFailed ? <EmptyState title="Waiting for first impressions" description="Guest reviews will appear here after a visit." /> : null}
+    <ReportDialog open={reportReview !== null} targetType="review" onOpenChange={(open) => { if (!open) { blurActiveElement(); setReportReview(null); } }} onSubmit={async (values) => {
+      if (!user || !reportReview) throw new UserFacingError('Log in to report content.');
+      await submitReport({ reporter: user, shop, review: reportReview, ...values });
+    }} />
   </View>;
 }

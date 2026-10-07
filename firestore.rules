@@ -140,10 +140,43 @@ service cloud.firestore {
     function validNotification() {
       return request.resource.data.keys().hasOnly(['type', 'message', 'shopId', 'read', 'createdAt']) &&
         request.resource.data.keys().hasAll(['type', 'message', 'shopId', 'read', 'createdAt']) &&
-        request.resource.data.type in ['listing_approved', 'listing_rejected', 'listing_archived', 'review_received', 'review_reply', 'shop_hours_updated', 'shop_menu_updated'] &&
+        request.resource.data.type in ['listing_approved', 'listing_rejected', 'listing_archived', 'review_received', 'review_reply', 'shop_hours_updated', 'shop_menu_updated', 'review_removed'] &&
         request.resource.data.message is string && request.resource.data.message.size() <= 1000 &&
         request.resource.data.shopId is string && request.resource.data.read == false &&
         request.resource.data.createdAt == request.time;
+    }
+
+    function isReviewRemovalNotification(uid) {
+      let reviewPath = /databases/$(database)/documents/shops/$(request.resource.data.shopId)/reviews/$(uid);
+      return isAdmin() && request.resource.data.type == 'review_removed' &&
+        exists(reviewPath) && !existsAfter(reviewPath);
+    }
+
+    function adminReviewRemovalMatchesReview(shopId, reviewId) {
+      let shopPath = /databases/$(database)/documents/shops/$(shopId);
+      let before = get(shopPath).data;
+      let after = getAfter(shopPath).data;
+      let rating = get(/databases/$(database)/documents/shops/$(shopId)/reviews/$(reviewId)).data.rating;
+      return ('ratingCounts' in before) && ('ratingCounts' in after) &&
+        after.reviewCount == before.reviewCount - 1 &&
+        after.ratingCounts[string(rating)] == before.ratingCounts[string(rating)] - 1;
+    }
+
+    function validAdminReviewRemoval(before, after) {
+      let drop1 = before.ratingCounts['1'] - after.ratingCounts['1'];
+      let drop2 = before.ratingCounts['2'] - after.ratingCounts['2'];
+      let drop3 = before.ratingCounts['3'] - after.ratingCounts['3'];
+      let drop4 = before.ratingCounts['4'] - after.ratingCounts['4'];
+      let drop5 = before.ratingCounts['5'] - after.ratingCounts['5'];
+      let weightedDrop = drop1 + 2 * drop2 + 3 * drop3 + 4 * drop4 + 5 * drop5;
+      return after.diff(before).affectedKeys().hasOnly(['avgRating', 'reviewCount', 'ratingCounts']) &&
+        before.reviewCount >= 1 && after.reviewCount == before.reviewCount - 1 &&
+        drop1 >= 0 && drop1 <= 1 && drop2 >= 0 && drop2 <= 1 && drop3 >= 0 && drop3 <= 1 &&
+        drop4 >= 0 && drop4 <= 1 && drop5 >= 0 && drop5 <= 1 &&
+        (drop1 + drop2 + drop3 + drop4 + drop5) == 1 &&
+        (after.reviewCount == 0
+          ? after.avgRating == 0
+          : math.abs(after.avgRating * after.reviewCount - (before.avgRating * before.reviewCount - weightedDrop)) < 0.001);
     }
 
     function isAdminStatusNotification(uid) {
@@ -218,6 +251,10 @@ service cloud.firestore {
       allow update: if isAdmin() &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
         request.resource.data.status in ['active', 'suspended'];
+      allow update: if isAdmin() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reviewCount']) &&
+        ('reviewCount' in resource.data) && resource.data.reviewCount >= 1 &&
+        request.resource.data.reviewCount == resource.data.reviewCount - 1;
 
       // Signed-in clients use a random, short-lived document to verify a deployed
       // Firestore connection. It is intentionally restricted to a timestamp-only
@@ -233,11 +270,50 @@ service cloud.firestore {
       match /notifications/{notificationId} {
         allow read: if isOwner(uid);
         // Notification creators must be the matching admin decision or review transaction.
-        allow create: if validNotification() && (isAdminStatusNotification(uid) || isReviewNotification(uid) || isReviewReplyNotification(uid) || isFavoriteShopUpdateNotification(uid));
+        allow create: if validNotification() && (isReviewRemovalNotification(uid) || isAdminStatusNotification(uid) || isReviewNotification(uid) || isReviewReplyNotification(uid) || isFavoriteShopUpdateNotification(uid));
         allow update: if isOwner(uid) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) &&
           request.resource.data.read is bool;
       }
+    }
+
+    function validNewReport(reportId) {
+      let d = request.resource.data;
+      let shopPath = /databases/$(database)/documents/shops/$(d.shopId);
+      return d.keys().hasOnly(['targetType','shopId','shopName','reviewId','targetUserId','reporterId','reason','details','excerpt','status','createdAt']) &&
+        d.keys().hasAll(['targetType','shopId','shopName','targetUserId','reporterId','reason','status','createdAt']) &&
+        d.shopId is string && d.targetUserId is string &&
+        d.reporterId == request.auth.uid && d.targetUserId != request.auth.uid &&
+        d.targetType in ['review', 'listing'] &&
+        d.reason in ['spam', 'offensive', 'fake', 'irrelevant', 'incorrect_info', 'other'] &&
+        d.status == 'open' && d.createdAt == request.time &&
+        d.shopName is string && d.shopName.size() <= 120 &&
+        (!('details' in d) || (d.details is string && d.details.size() <= 300)) &&
+        (!('excerpt' in d) || (d.excerpt is string && d.excerpt.size() <= 300)) &&
+        (d.targetType == 'review'
+          ? (('reviewId' in d) && d.reviewId is string &&
+             reportId == d.reporterId + '__review__' + d.shopId + '__' + d.reviewId &&
+             exists(/databases/$(database)/documents/shops/$(d.shopId)/reviews/$(d.reviewId)) &&
+             get(/databases/$(database)/documents/shops/$(d.shopId)/reviews/$(d.reviewId)).data.userId == d.targetUserId)
+          : (!('reviewId' in d) &&
+             reportId == d.reporterId + '__listing__' + d.shopId &&
+             get(shopPath).data.ownerId == d.targetUserId &&
+             get(shopPath).data.status == 'approved'));
+    }
+
+    match /reports/{reportId} {
+      allow create: if isSignedIn() && validNewReport(reportId);
+      // The reporter may read only their own deterministic id (lets the client detect duplicates).
+      allow get: if isAdmin() || (isSignedIn() && reportId.split('__')[0] == request.auth.uid);
+      allow list: if isAdmin();
+      allow update: if isAdmin() && resource.data.status == 'open' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'resolvedAt', 'resolvedBy', 'adminNote']) &&
+        request.resource.data.status in ['dismissed', 'actioned'] &&
+        request.resource.data.resolvedAt == request.time &&
+        request.resource.data.resolvedBy == request.auth.uid &&
+        (!('adminNote' in request.resource.data) ||
+          (request.resource.data.adminNote is string && request.resource.data.adminNote.size() <= 300));
+      allow delete: if false;
     }
 
     match /shops/{shopId} {
@@ -262,6 +338,9 @@ service cloud.firestore {
            request.resource.data.ratingCounts['5'] == 0)) &&
         (!('viewCount' in request.resource.data) || request.resource.data.viewCount == 0);
       allow update: if (isAdmin() && validShop(request.resource.data) &&
+          ('ratingCounts' in resource.data) && ('ratingCounts' in request.resource.data) &&
+          validAdminReviewRemoval(resource.data, request.resource.data)) ||
+        (isAdmin() && validShop(request.resource.data) &&
           ((
             ((resource.data.status == 'pending' && request.resource.data.status in ['approved', 'rejected']) ||
               (resource.data.status == 'approved' && request.resource.data.status == 'rejected') ||
@@ -354,8 +433,8 @@ service cloud.firestore {
               request.resource.data.ownerReply.editedAt == request.time)
             : (request.resource.data.ownerReply.repliedAt == request.time &&
               !('editedAt' in request.resource.data.ownerReply)));
-        // Deletion is intentionally unavailable until it also recalculates the parent summary atomically.
-        allow delete: if false;
+        // Admin removal must adjust the matching parent rating bucket atomically.
+        allow delete: if isAdmin() && adminReviewRemovalMatchesReview(shopId, reviewId);
       }
     }
   }

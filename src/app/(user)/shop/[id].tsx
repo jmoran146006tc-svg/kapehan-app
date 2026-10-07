@@ -1,3 +1,5 @@
+import { ReportDialog } from '@/components/report-dialog';
+import { submitReport } from '@/lib/reports';
 import { AnimatedScrollView, AnimatedView } from '@/components/ui/animated';
 import { OwnerReplyLabel, ReviewTime } from '@/components/review-edit-markers';
 import { useEffect, useMemo, useState } from 'react';
@@ -11,7 +13,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { collection, doc, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Check, Heart, MapPin, Star, Tag, Wifi, type LucideIcon } from 'lucide-react-native';
+import { ArrowLeft, Check, Flag, Heart, MapPin, Star, Tag, Wifi, type LucideIcon } from 'lucide-react-native';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserLocation } from '@/hooks/useUserLocation';
@@ -24,7 +26,7 @@ import { PRODUCT_CATEGORIES } from '@/constants/products';
 import { logShopView } from '@/lib/recentlyViewed';
 import { submitReview } from '@/lib/reviews';
 import { reviewFormSchema, type ReviewFormInput, type ReviewFormValues } from '@/lib/schemas/review';
-import { getUserFriendlyError } from '@/lib/errors';
+import { getUserFriendlyError, UserFacingError } from '@/lib/errors';
 import { toastFormErrors } from '@/lib/form-errors';
 import { ScreenHeader } from '@/components/screen-header';
 import { sortProducts, toProduct, type Product } from '@/types/product';
@@ -43,7 +45,7 @@ import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { useToast } from '@/hooks/useToast';
-import { goBack } from '@/lib/navigation';
+import { blurActiveElement, goBack } from '@/lib/navigation';
 import { PALETTE } from '@/constants/theme';
 import { UnderlineTabs } from '@/components/underline-tabs';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -77,6 +79,7 @@ function ShopDetailContent({ id }: { id: string }) {
   const { savedShopIds, savingShopId, toggleSavedShop } = useSavedShops();
   const [shop, setShop] = useState<Shop | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [reportTarget, setReportTarget] = useState<{ type: 'review'; review: Review } | { type: 'listing' } | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [tab, setTab] = useState<ShopTab>('info');
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -201,12 +204,16 @@ function ShopDetailContent({ id }: { id: string }) {
             onChange={(value) => setTab(value as ShopTab)}
           />
           <AnimatedView key={tab} entering={FadeIn.duration(180).reduceMotion(ReduceMotion.System)} className="px-4">
-            {tab === 'info' ? <InfoTab shop={shop} location={location} saved={saved} saving={savingShopId === shop.id} compared={ids.includes(shop.id)} onSave={() => void toggleSavedShop(shop.id)} onCompare={() => { toggle(shop.id); showToast({ type: 'success', message: ids.includes(shop.id) ? 'Removed from comparison' : 'Added to comparison' }); }} /> : null}
+            {tab === 'info' ? <InfoTab onReport={user && shop.ownerId !== user.uid ? () => { blurActiveElement(); setReportTarget({ type: 'listing' }); } : undefined} shop={shop} location={location} saved={saved} saving={savingShopId === shop.id} compared={ids.includes(shop.id)} onSave={() => void toggleSavedShop(shop.id)} onCompare={() => { toggle(shop.id); showToast({ type: 'success', message: ids.includes(shop.id) ? 'Removed from comparison' : 'Added to comparison' }); }} /> : null}
             {tab === 'menu' ? <MenuTab products={products} /> : null}
-            {tab === 'reviews' ? <ReviewsTab reviews={reviews} ratingCounts={ratingCounts} user={user ? { uid: user.uid } : null} control={control} isSubmitting={isSubmittingReview} isUploadingPhotos={isUploadingPhotos} onUploadingChange={setIsUploadingPhotos} onSubmit={handleSubmit(handleReviewSubmit, (errors) => toastFormErrors(errors, showToast))} hasOwnReview={ownReview} /> : null}
+            {tab === 'reviews' ? <ReviewsTab onReport={(review) => { blurActiveElement(); setReportTarget({ type: 'review', review }); }} reviews={reviews} ratingCounts={ratingCounts} user={user ? { uid: user.uid } : null} control={control} isSubmitting={isSubmittingReview} isUploadingPhotos={isUploadingPhotos} onUploadingChange={setIsUploadingPhotos} onSubmit={handleSubmit(handleReviewSubmit, (errors) => toastFormErrors(errors, showToast))} hasOwnReview={ownReview} /> : null}
           </AnimatedView>
         </View>
       </AnimatedScrollView>
+      <ReportDialog open={reportTarget !== null} targetType={reportTarget?.type ?? 'listing'} onOpenChange={(open) => { if (!open) { blurActiveElement(); setReportTarget(null); } }} onSubmit={async (values) => {
+        if (!user || !reportTarget) throw new UserFacingError('Log in to report content.');
+        await submitReport({ reporter: user, shop, review: reportTarget.type === 'review' ? reportTarget.review : undefined, ...values });
+      }} />
       <View className="absolute left-4 right-4 flex-row justify-between" style={{ top: insets.top + 12 }} pointerEvents="box-none">
         <PressableScale className="h-11 w-11 items-center justify-center rounded-full bg-card/90" onPress={() => goBack('/(user)')} accessibilityLabel="Go back">
           <Icon as={ArrowLeft} size={20} className="text-primary" />
@@ -231,7 +238,7 @@ function Metric({ icon, value, label }: { icon?: LucideIcon; value: string; labe
   );
 }
 
-function InfoTab({ shop, location, saved, saving, compared, onSave, onCompare }: { shop: Shop; location: { lat: number; lng: number } | null; saved: boolean; saving: boolean; compared: boolean; onSave: () => void; onCompare: () => void }) {
+function InfoTab({ shop, location, saved, saving, compared, onSave, onCompare, onReport }: { shop: Shop; location: { lat: number; lng: number } | null; saved: boolean; saving: boolean; compared: boolean; onSave: () => void; onCompare: () => void; onReport?: () => void }) {
   const today = new Date().toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase();
   const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
   return (
@@ -273,6 +280,7 @@ function InfoTab({ shop, location, saved, saving, compared, onSave, onCompare }:
           })}
         </CardHeader>
       </Card>
+      {onReport ? <Button className="min-h-11 self-start" variant="ghost" onPress={onReport}><Icon as={Flag} size={16} /><Text>Report this listing</Text></Button> : null}
     </View>
   );
 }
@@ -307,7 +315,7 @@ function RatingBar({ rating, count, total, index }: { rating: number; count: num
   );
 }
 
-function ReviewsTab({ reviews, ratingCounts, user, control, isSubmitting, isUploadingPhotos, onUploadingChange, onSubmit, hasOwnReview }: {
+function ReviewsTab({ reviews, ratingCounts, user, control, isSubmitting, isUploadingPhotos, onUploadingChange, onSubmit, hasOwnReview, onReport }: {
   reviews: Review[];
   ratingCounts: Record<'1' | '2' | '3' | '4' | '5', number>;
   user: { uid: string } | null;
@@ -317,6 +325,7 @@ function ReviewsTab({ reviews, ratingCounts, user, control, isSubmitting, isUplo
   onUploadingChange: (uploading: boolean) => void;
   onSubmit: () => void;
   hasOwnReview: boolean;
+  onReport: (review: Review) => void;
 }) {
   const total = Object.values(ratingCounts).reduce((sum, count) => sum + count, 0);
   return (
@@ -371,6 +380,7 @@ function ReviewsTab({ reviews, ratingCounts, user, control, isSubmitting, isUplo
               </View>
               <CardDescription>{review.text || 'No written comment.'}</CardDescription>
               <ReviewPhotoStrip photos={review.photos} />
+              {user && review.userId !== user.uid ? <Button className="min-h-11 self-start" variant="ghost" onPress={() => onReport(review)}><Icon as={Flag} size={16} /><Text>Report</Text></Button> : null}
               <ReviewTime review={review} />
               {review.ownerReply?.text ? (
                 <View className="mt-2 rounded-lg border-l-2 border-accent bg-secondary p-3">
