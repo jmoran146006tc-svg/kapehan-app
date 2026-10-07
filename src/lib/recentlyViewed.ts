@@ -2,8 +2,8 @@ import { Timestamp, doc, getDoc, increment, setDoc, updateDoc } from 'firebase/f
 import { db } from '@/lib/firebase';
 import { withTimeout } from '@/lib/timeout';
 import type { RecentlyViewedEntry } from '@/types/user';
+import { MAX_RECENTLY_VIEWED } from '@/constants/history';
 
-const MAX_RECENTLY_VIEWED = 20;
 const viewedThisSession = new Set<string>();
 
 export async function logShopView(uid: string, shopId: string) {

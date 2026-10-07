@@ -25,6 +25,7 @@ export interface AppUserDocument {
   preferences?: Partial<UserPreferences>;
   savedShopIds?: string[];
   recentlyViewed?: RecentlyViewedEntry[];
+  recentSearches?: string[];
   visitCount?: number;
   reviewCount?: number;
 }

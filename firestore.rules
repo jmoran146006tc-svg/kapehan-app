@@ -179,11 +179,15 @@ service cloud.firestore {
         recipient.data.savedShopIds.hasAny([request.resource.data.shopId]);
     }
 
+    function validRecentSearches(searches) {
+      return searches is list && searches.size() <= 10;
+    }
+
     match /users/{uid} {
       allow read: if isOwner(uid) || isAdmin();
       // Admin accounts are intentionally provisioned outside this client app.
       allow create: if isOwner(uid) &&
-        request.resource.data.keys().hasOnly(['name', 'email', 'role', 'status', 'createdAt', 'agreedToTermsAt', 'preferences', 'savedShopIds', 'recentlyViewed', 'visitCount']) &&
+        request.resource.data.keys().hasOnly(['name', 'email', 'role', 'status', 'createdAt', 'agreedToTermsAt', 'preferences', 'savedShopIds', 'recentlyViewed', 'visitCount', 'recentSearches']) &&
         request.resource.data.keys().hasAll(['name', 'email', 'role', 'status', 'createdAt', 'agreedToTermsAt', 'preferences', 'savedShopIds', 'recentlyViewed']) &&
         request.resource.data.name is string && request.resource.data.email == request.auth.token.email &&
         request.resource.data.role in ['user', 'owner'] &&
@@ -191,10 +195,12 @@ service cloud.firestore {
         request.resource.data.agreedToTermsAt == request.time &&
         request.resource.data.preferences is map && request.resource.data.savedShopIds is list &&
         request.resource.data.recentlyViewed is list &&
+        (!('recentSearches' in request.resource.data) || validRecentSearches(request.resource.data.recentSearches)) &&
         (!('visitCount' in request.resource.data) || (request.resource.data.visitCount is int && request.resource.data.visitCount >= 0));
       // Admin accounts are provisioned with privileged credentials, not by changing a client profile.
       allow update: if isOwner(uid) &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'preferences', 'savedShopIds', 'recentlyViewed', 'visitCount', 'reviewCount']);
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'preferences', 'savedShopIds', 'recentlyViewed', 'visitCount', 'reviewCount', 'recentSearches']) &&
+        (!('recentSearches' in request.resource.data) || validRecentSearches(request.resource.data.recentSearches));
       // The profile owner cannot silently unsuspend their own account.
       allow update: if isAdmin() &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&

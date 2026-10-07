@@ -12,6 +12,8 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { useShops } from '@/hooks/useShops';
 import { useSavedShops } from '@/hooks/useSavedShops';
+import { useSearchHistory } from '@/hooks/useSearchHistory';
+import { DEFAULT_VISIBLE_VISITS, MAX_RECENTLY_VIEWED } from '@/constants/history';
 import { dayjs } from '@/lib/dayjs';
 import type { AppUserDocument, RecentlyViewedEntry } from '@/types/user';
 import type { Shop } from '@/types/shop';
@@ -39,6 +41,7 @@ type ProfileRow =
   | { kind: 'saved'; shop: Shop }
   | { kind: 'visit'; shop: Shop; entry: RecentlyViewedEntry }
   | { kind: 'heading' }
+  | { kind: 'visitToggle'; count: number }
   | { kind: 'emptySaved' }
   | { kind: 'emptyVisit' };
 
@@ -46,6 +49,8 @@ export default function ProfileScreen() {
   const { user } = useAuth();
   const { shops } = useShops();
   const { savedShopIds, savingShopId, toggleSavedShop } = useSavedShops();
+  const { searches, clear } = useSearchHistory();
+  const [showAllVisits, setShowAllVisits] = useState(false);
   const [profile, setProfile] = useState<AppUserDocument | null>(null);
   const { run: runToastAction, pending: isSaving } = useAsyncToastAction();
   const { showToast } = useToast();
@@ -59,10 +64,11 @@ export default function ProfileScreen() {
     return onSnapshot(doc(db, 'users', user.uid), (snapshot) => {
       const nextProfile = snapshot.data() as AppUserDocument | undefined;
       setProfile(nextProfile ?? null);
-      const preferences = nextProfile?.preferences;
-      reset({ wifiOnly: preferences?.wifiOnly ?? false, tags: preferences?.tags ?? [], priceBuckets: preferences?.priceBuckets ?? [], openNowOnly: preferences?.openNowOnly ?? false, maxDistanceKm: preferences?.maxDistanceKm ?? null });
     }, (error) => showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not load your profile. Please try again.') }));
-  }, [reset, showToast, user]);
+  }, [showToast, user]);
+
+  const preferencesJson = JSON.stringify({ wifiOnly: profile?.preferences?.wifiOnly ?? false, tags: profile?.preferences?.tags ?? [], priceBuckets: profile?.preferences?.priceBuckets ?? [], openNowOnly: profile?.preferences?.openNowOnly ?? false, maxDistanceKm: profile?.preferences?.maxDistanceKm ?? null });
+  useEffect(() => { reset(JSON.parse(preferencesJson) as PreferencesValues); }, [preferencesJson, reset, user?.uid]);
 
   const rows = useMemo<ProfileRow[]>(() => {
     const shopById = new Map(shops.map((shop) => [shop.id, shop]));
@@ -71,15 +77,16 @@ export default function ProfileScreen() {
       .sort((left, right) => timestampMs(right) - timestampMs(left))
       .map((entry) => ({ entry, shop: shopById.get(entry.shopId) }))
       .filter((item): item is { entry: RecentlyViewedEntry; shop: Shop } => Boolean(item.shop))
-      .slice(0, 5);
+      .slice(0, MAX_RECENTLY_VIEWED);
     return [
       ...saved.map((shop): ProfileRow => ({ kind: 'saved', shop })),
       ...(!saved.length ? [{ kind: 'emptySaved' } as const] : []),
       { kind: 'heading' },
-      ...visits.map(({ entry, shop }): ProfileRow => ({ kind: 'visit', entry, shop })),
+      ...visits.slice(0, showAllVisits ? MAX_RECENTLY_VIEWED : DEFAULT_VISIBLE_VISITS).map(({ entry, shop }): ProfileRow => ({ kind: 'visit', entry, shop })),
+      ...(visits.length > DEFAULT_VISIBLE_VISITS ? [{ kind: 'visitToggle', count: visits.length } as const] : []),
       ...(!visits.length ? [{ kind: 'emptyVisit' } as const] : []),
     ];
-  }, [profile?.recentlyViewed, savedShopIds, shops]);
+  }, [profile?.recentlyViewed, savedShopIds, shops, showAllVisits]);
   const initials = (profile?.name || user?.email || 'K').split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
 
   async function savePreferences(values: PreferencesValues) {
@@ -181,6 +188,8 @@ export default function ProfileScreen() {
                 <Text className="text-sm text-muted-foreground">{item.entry.viewedAt ? dayjs(item.entry.viewedAt.toDate()).format('MMM D, YYYY') : 'Recently viewed'}</Text>
               </View>
             </PressableScale>
+          ) : item.kind === 'visitToggle' ? (
+            <Button className="min-h-11" variant="ghost" onPress={() => setShowAllVisits((current) => !current)}><Text>{showAllVisits ? 'Show fewer' : `Show all (${item.count})`}</Text></Button>
           ) : item.kind === 'heading' ? (
             <Text className="pt-3 font-display text-xl">Visit History</Text>
           ) : item.kind === 'emptySaved' ? (
@@ -239,6 +248,11 @@ export default function ProfileScreen() {
             <Button loading={isSaving} loadingLabel="Saving…" onPress={handleSubmit(savePreferences)}>
               <Text>Save preferences</Text>
             </Button>
+            <View className="gap-2 border-t border-border pt-3">
+              <Text className="font-semibold">Search history</Text>
+              <Text className="text-sm text-muted-foreground">{searches.length} saved searches</Text>
+              <Button className="min-h-11" variant="outline" disabled={!searches.length} onPress={clear}><Text>Clear search history</Text></Button>
+            </View>
           </View>
         </View>
       }

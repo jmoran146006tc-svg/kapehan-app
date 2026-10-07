@@ -2,10 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { FlatList, View } from 'react-native';
 import { router } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
-import { ArrowLeft, Search, X } from 'lucide-react-native';
+import { ArrowLeft, Clock, Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db } from '@/lib/firebase';
-import { goBack } from '@/lib/navigation';
+import { blurActiveElement, goBack } from '@/lib/navigation';
+import { useSearchHistory } from '@/hooks/useSearchHistory';
+import { MIN_SEARCH_LENGTH } from '@/utils/search';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useFilteredShops } from '@/hooks/useFilteredShops';
 import { useFilterStore } from '@/store/filterStore';
@@ -29,6 +32,7 @@ export default function SearchScreen() {
   const { shops, loading, refreshing, refresh, error, distanceFilterWaiting } = useFilteredShops();
   const { showToast } = useToast();
   const { user } = useAuth();
+  const { searches, record, remove, clear } = useSearchHistory();
   const insets = useSafeAreaInsets();
   const appliedPreferencesFor = useRef<string | null>(null);
   const { search, setFilter } = useFilterStore();
@@ -63,7 +67,7 @@ export default function SearchScreen() {
           </PressableScale>
           <View className="h-12 min-w-0 flex-1 flex-row items-center gap-2 rounded-xl border border-border/60 bg-card px-3">
             <Icon as={Search} size={18} className="text-muted-foreground" />
-            <Input autoFocus placeholder="Search by shop name or area…" returnKeyType="search" value={search} onChangeText={(value) => setFilter('search', value)} className="h-11 min-w-0 flex-1 border-0 bg-transparent px-0 shadow-none" />
+            <Input autoFocus placeholder="Search by shop name or area…" returnKeyType="search" onSubmitEditing={() => record(search)} value={search} onChangeText={(value) => setFilter('search', value)} className="h-11 min-w-0 flex-1 border-0 bg-transparent px-0 shadow-none" />
             {search ? (
               <PressableScale className="h-11 w-11 items-center justify-center" onPress={() => setFilter('search', '')} accessibilityLabel="Clear search">
                 <Icon as={X} size={18} className="text-muted-foreground" />
@@ -72,6 +76,25 @@ export default function SearchScreen() {
           </View>
         </View>
         <DiscoveryFilterRow />
+        {!search.trim() && searches.length > 0 ? (
+          <View className="gap-2">
+            <View className="flex-row items-center justify-between">
+              <Text className="font-semibold">Recent searches</Text>
+              <Button variant="ghost" className="min-h-11" onPress={clear}><Text>Clear all</Text></Button>
+            </View>
+            <View className="flex-row flex-wrap gap-2">
+              {searches.map((query) => (
+                <View key={query} className="max-w-full flex-row items-center rounded-full border border-border bg-card">
+                  <PressableScale className="min-h-11 max-w-[70%] flex-row items-center gap-2 pl-3 pr-1" onPress={() => { setFilter('search', query); record(query); }} accessibilityLabel={`Search for ${query}`}>
+                    <Icon as={Clock} size={16} className="text-muted-foreground" />
+                    <Text numberOfLines={1} className="shrink text-sm">{query}</Text>
+                  </PressableScale>
+                  <PressableScale className="h-11 w-11 items-center justify-center" onPress={() => remove(query)} accessibilityLabel={`Remove ${query} from search history`}><Icon as={X} size={16} /></PressableScale>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
         {distanceFilterWaiting ? <Text className="text-sm text-muted-foreground">Waiting for your location — showing all shops for now.</Text> : null}
         <Text className="text-sm text-muted-foreground">{loading ? 'Loading coffee shops…' : `${shops.length} coffee shop${shops.length === 1 ? '' : 's'} found`}</Text>
         {loading ? (
@@ -95,7 +118,7 @@ export default function SearchScreen() {
                 <ShopCard
                   index={index}
                   shop={item}
-                  onPress={() => router.push({ pathname: '/(user)/shop/[id]', params: { id: item.id } })}
+                  onPress={() => { if (search.trim().length >= MIN_SEARCH_LENGTH) record(search); blurActiveElement(); router.push({ pathname: '/(user)/shop/[id]', params: { id: item.id } }); }}
                   saved={savedShopIds.includes(item.id)}
                   saving={savingShopId === item.id}
                   onToggleSaved={() => void toggleSavedShop(item.id)}
