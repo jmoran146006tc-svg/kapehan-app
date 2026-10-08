@@ -68,12 +68,16 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           <LinearGradient colors={[PALETTE.primary, PALETTE.espresso2]} className="flex-1 items-center justify-center gap-2 px-6">
             <View pointerEvents="none" className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-accent/10" />
             <View pointerEvents="none" className="absolute -bottom-12 -left-12 h-36 w-36 rounded-full bg-gold/10" />
-            <AnimatedView entering={ZoomIn.duration(280).easing(Easing.out(Easing.cubic)).reduceMotion(ReduceMotion.System)} style={logoStyle}>
-              <Logo width={logoSize} height={logoSize} accessibilityLabel="Kapehan" />
+            <AnimatedView style={logoStyle}>
+              <AnimatedView entering={ZoomIn.duration(280).easing(Easing.out(Easing.cubic)).reduceMotion(ReduceMotion.System)}>
+                <Logo width={logoSize} height={logoSize} accessibilityLabel="Kapehan" />
+              </AnimatedView>
             </AnimatedView>
             <Text className={keyboardVisible ? 'font-display text-2xl text-primary-foreground' : 'font-display text-4xl text-primary-foreground'}>Kapehan</Text>
-            <AnimatedView entering={FadeIn.delay(100).duration(280).easing(Easing.out(Easing.cubic)).reduceMotion(ReduceMotion.System)} style={taglineStyle}>
-              <Text className="text-center text-sm text-primary-foreground/75">Discover your perfect cup in Tagum City</Text>
+            <AnimatedView style={taglineStyle}>
+              <AnimatedView entering={FadeIn.delay(100).duration(280).easing(Easing.out(Easing.cubic)).reduceMotion(ReduceMotion.System)}>
+                <Text className="text-center text-sm text-primary-foreground/75">Discover your perfect cup in Tagum City</Text>
+              </AnimatedView>
             </AnimatedView>
           </LinearGradient>
         </AnimatedView>
