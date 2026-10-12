@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { FlatList, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
-import { ArrowLeft, Clock, Search, X } from 'lucide-react-native';
+import { ArrowLeft, Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { db } from '@/lib/firebase';
 import { blurActiveElement, goBack } from '@/lib/navigation';
@@ -19,6 +19,7 @@ import { Icon } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { Text } from '@/components/ui/text';
 import { DiscoveryFilterRow } from '@/components/discovery-filter-row';
+import { RecentSearchChip } from '@/components/recent-search-chip';
 import { EmptyState } from '@/components/empty-state';
 import { ShopCard } from '@/components/shop-card';
 import { ShopCardSkeleton } from '@/components/shop-card-skeleton';
@@ -91,13 +92,7 @@ export default function SearchScreen() {
             </View>
             <ScrollView className="max-h-48" keyboardShouldPersistTaps="handled" contentContainerClassName="flex-row flex-wrap gap-2">
               {searches.map((query) => (
-                <View key={query} className="max-w-full flex-row items-center rounded-full border border-border bg-card">
-                  <PressableScale className="min-h-11 max-w-[70%] flex-row items-center gap-2 pl-3 pr-1" onPress={() => { setFilter('search', query); record(query); }} accessibilityLabel={`Search for ${query}`}>
-                    <Icon as={Clock} size={16} className="text-muted-foreground" />
-                    <Text numberOfLines={1} className="shrink text-sm">{query}</Text>
-                  </PressableScale>
-                  <PressableScale className="h-11 w-11 items-center justify-center" onPress={() => remove(query)} accessibilityLabel={`Remove ${query} from search history`}><Icon as={X} size={16} /></PressableScale>
-                </View>
+                <RecentSearchChip key={query} query={query} onSearch={() => { setFilter('search', query); record(query); }} onRemove={() => remove(query)} />
               ))}
             </ScrollView>
           </View>
