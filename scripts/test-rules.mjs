@@ -16,7 +16,8 @@ const shopData = { name: 'Test Coffee', ownerId: 'owner', address: 'Apokon', lat
 const dbFor = (uid) => env.authenticatedContext(uid, { email: `${uid}@example.test` }).firestore();
 
 before(async () => {
-  env = await initializeTestEnvironment({ projectId: 'demo-kapehan', firestore: { host, port: Number(port), rules: await readFile(new URL('../firestore.rules', import.meta.url), 'utf8') } });
+  const rulesPath = process.env.KAPEHAN_RULES_FILE ?? new URL('../firestore.rules', import.meta.url);
+  env = await initializeTestEnvironment({ projectId: 'demo-kapehan', firestore: { host, port: Number(port), rules: await readFile(rulesPath, 'utf8') } });
 });
 after(async () => { await env?.cleanup(); });
 beforeEach(async () => {
@@ -53,6 +54,20 @@ test('History: optional on account creation and validated when supplied', async 
   const data = { name: 'New user', email: 'newUser@example.test', role: 'user', status: 'active', createdAt: serverTimestamp(), agreedToTermsAt: serverTimestamp(), preferences: {}, savedShopIds: [], recentlyViewed: [] };
   await assertFails(setDoc(doc(db, 'users', 'newUser'), { ...data, recentSearches: Array(11).fill('coffee') }));
   await assertSucceeds(setDoc(doc(db, 'users', 'newUser'), data));
+});
+
+test('History: saving does not grant access to another profile or protected account fields', async () => {
+  const db = dbFor('customerA');
+  const ref = doc(db, 'users', 'customerA');
+  await assertSucceeds(updateDoc(ref, { recentSearches: ['shell'] }));
+  await assertSucceeds(getDoc(ref));
+  await assertFails(getDoc(doc(dbFor('customerB'), 'users', 'customerA')));
+  await assertFails(updateDoc(ref, { recentSearches: ['shell'], role: 'admin' }));
+  await assertFails(updateDoc(ref, { recentSearches: ['shell'], status: 'suspended' }));
+  const profile = (await getDoc(ref)).data();
+  assert.equal(profile.role, 'user');
+  assert.equal(profile.status, 'active');
+  assert.deepEqual(profile.recentSearches, ['shell']);
 });
 
 function createReviewWithPhotos(value, extra = {}) {
