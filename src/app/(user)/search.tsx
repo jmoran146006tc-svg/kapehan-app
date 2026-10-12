@@ -32,7 +32,7 @@ export default function SearchScreen() {
   const { shops, loading, refreshing, refresh, error, distanceFilterWaiting } = useFilteredShops();
   const { showToast } = useToast();
   const { user } = useAuth();
-  const { searches, record, remove, clear } = useSearchHistory();
+  const { searches, loading: historyLoading, record, remove, clear } = useSearchHistory();
   const insets = useSafeAreaInsets();
   const appliedPreferencesFor = useRef<string | null>(null);
   const { search, setFilter } = useFilterStore();
@@ -40,6 +40,13 @@ export default function SearchScreen() {
   const toggle = useCompareStore((state) => state.toggle);
   const { savedShopIds, savingShopId, toggleSavedShop } = useSavedShops();
   const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    if (historyLoading || search.trim().length < MIN_SEARCH_LENGTH) return;
+    // Results update as the customer types, so history must also work without submitting.
+    const timer = setTimeout(() => record(search), 800);
+    return () => clearTimeout(timer);
+  }, [historyLoading, record, search]);
 
   useEffect(() => {
     if (!user || appliedPreferencesFor.current === user.uid) return;
@@ -62,14 +69,14 @@ export default function SearchScreen() {
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       <View className="mx-auto w-full max-w-2xl flex-1 gap-3 px-4 pt-4" style={{ minHeight: 0 }}>
         <View className="flex-row items-center gap-3">
-          <PressableScale className="h-11 w-11 items-center justify-center rounded-full bg-card" onPress={() => goBack('/(user)')} accessibilityLabel="Back">
+          <PressableScale className="h-11 w-11 items-center justify-center rounded-full bg-card" onPress={() => { record(search); goBack('/(user)'); }} accessibilityLabel="Back">
             <Icon as={ArrowLeft} size={20} className="text-primary" />
           </PressableScale>
           <View className="h-12 min-w-0 flex-1 flex-row items-center gap-2 rounded-xl border border-border/60 bg-card px-3">
             <Icon as={Search} size={18} className="text-muted-foreground" />
-            <Input autoFocus placeholder="Search by shop name or area…" returnKeyType="search" onSubmitEditing={() => record(search)} value={search} onChangeText={(value) => setFilter('search', value)} className="h-11 min-w-0 flex-1 border-0 bg-transparent px-0 shadow-none" />
+            <Input autoFocus placeholder="Search by shop name or area…" returnKeyType="search" onSubmitEditing={() => record(search)} onBlur={() => record(search)} value={search} onChangeText={(value) => setFilter('search', value)} className="h-11 min-w-0 flex-1 border-0 bg-transparent px-0 shadow-none" />
             {search ? (
-              <PressableScale className="h-11 w-11 items-center justify-center" onPress={() => setFilter('search', '')} accessibilityLabel="Clear search">
+              <PressableScale className="h-11 w-11 items-center justify-center" onPress={() => { record(search); setFilter('search', ''); }} accessibilityLabel="Clear search">
                 <Icon as={X} size={18} className="text-muted-foreground" />
               </PressableScale>
             ) : null}

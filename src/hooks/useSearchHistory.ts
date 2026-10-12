@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { withTimeout } from '@/lib/timeout';
@@ -13,15 +13,16 @@ export function useSearchHistory() {
   const uid = user?.uid;
   const { showToast } = useToast();
   const [view, setView] = useState<{ uid: string; searches: string[] } | null>(null);
-  const latest = useRef<{ uid: string; searches: string[]; confirmed: string[]; pending: number; revision: number } | null>(null);
+  const latest = useRef<{ uid: string; loaded: boolean; searches: string[]; confirmed: string[]; pending: number; revision: number } | null>(null);
 
   useEffect(() => {
     if (!uid) return;
-    const state = { uid, searches: [] as string[], confirmed: [] as string[], pending: 0, revision: 0 };
+    const state = { uid, loaded: false, searches: [] as string[], confirmed: [] as string[], pending: 0, revision: 0 };
     latest.current = state;
     const unsubscribe = onSnapshot(doc(db, 'users', uid), { includeMetadataChanges: true }, (snapshot) => {
       const raw: unknown = snapshot.data()?.recentSearches;
       const searches = Array.isArray(raw) ? raw.filter((item): item is string => typeof item === 'string').slice(0, MAX_RECENT_SEARCHES) : [];
+      state.loaded = true;
       if (!snapshot.metadata.hasPendingWrites) state.confirmed = searches;
       // An older write's snapshot must not replace a newer optimistic edit.
       if (!state.pending) {
@@ -32,9 +33,9 @@ export function useSearchHistory() {
     return () => { unsubscribe(); latest.current = null; };
   }, [showToast, uid]);
 
-  function write(searches: string[], critical: boolean) {
+  const write = useCallback((searches: string[]) => {
     const state = latest.current;
-    if (!uid || state?.uid !== uid || JSON.stringify(state.searches) === JSON.stringify(searches)) return;
+    if (!uid || state?.uid !== uid || !state.loaded || JSON.stringify(state.searches) === JSON.stringify(searches)) return;
     state.searches = searches;
     state.pending += 1;
     const revision = ++state.revision;
@@ -46,20 +47,20 @@ export function useSearchHistory() {
         state.searches = state.confirmed;
         setView({ uid, searches: state.confirmed });
       }
-      if (critical) showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not update your search history. Please try again.') });
+      showToast({ type: 'error', message: getUserFriendlyError(error, 'We could not update your search history. Please try again.') });
     }).finally(() => { state.pending -= 1; });
-  }
+  }, [showToast, uid]);
 
-  function record(query: string) {
+  const record = useCallback((query: string) => {
     const normalized = query.trim().replace(/\s+/g, ' ').slice(0, MAX_SEARCH_LENGTH).trim();
     if (normalized.length < MIN_SEARCH_LENGTH || latest.current?.uid !== uid) return;
     const current = latest.current?.searches ?? [];
-    write([normalized, ...current.filter((item) => item.toLowerCase() !== normalized.toLowerCase())].slice(0, MAX_RECENT_SEARCHES), false);
-  }
+    write([normalized, ...current.filter((item) => item.toLowerCase() !== normalized.toLowerCase())].slice(0, MAX_RECENT_SEARCHES));
+  }, [uid, write]);
 
   function remove(query: string) {
-    write((latest.current?.searches ?? []).filter((item) => item.toLowerCase() !== query.toLowerCase()), true);
+    write((latest.current?.searches ?? []).filter((item) => item.toLowerCase() !== query.toLowerCase()));
   }
 
-  return { searches: view && view.uid === uid ? view.searches : [], record, remove, clear: () => write([], true) };
+  return { searches: view && view.uid === uid ? view.searches : [], loading: Boolean(uid) && view?.uid !== uid, record, remove, clear: () => write([]) };
 }
